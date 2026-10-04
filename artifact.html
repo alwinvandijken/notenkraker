@@ -1,0 +1,677 @@
+<title>Altsax Grepentabel</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito+Sans:wght@400;700&display=swap">
+<style>
+  /* Layout: leerling + filter bovenaan, dan de noten (knoppen of notenbalk), daaronder één grote kaart met de greep
+     en de status van die noot voor deze leerling. Data: leerlingen/{id} en leerlingen/{id}/noten/{nootId} {status}. */
+  :root {
+    --bg: #f4f1ea;
+    --surface: #ffffff;
+    --fg: #22263a;
+    --muted: #6f7384;
+    --line: #d4d1c7;
+    --accent: #e0862e;       /* in de les */
+    --accent-soft: #fbe6d2;
+    --kent: #3d9a63;         /* kent al */
+    --kent-soft: #d8efe0;
+    --moet: #8a7fd6;         /* moet nog leren */
+    --moet-soft: #e6e2f8;
+    --pressed: #22263a;
+    --open: #ffffff;
+    --display: "Baloo 2", "Comic Sans MS", system-ui, sans-serif;
+    --body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1a1c26; --surface: #252836; --fg: #f0ecdf; --muted: #a2a6b5; --line: #3d4154;
+      --accent: #f2a04f; --accent-soft: #4a3520; --kent: #5cc088; --kent-soft: #1f3f2c; --moet: #a89cf0; --moet-soft: #332e52;
+      --pressed: #f0ecdf; --open: #252836; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1a1c26; --surface: #252836; --fg: #f0ecdf; --muted: #a2a6b5; --line: #3d4154;
+    --accent: #f2a04f; --accent-soft: #4a3520; --kent: #5cc088; --kent-soft: #1f3f2c; --moet: #a89cf0; --moet-soft: #332e52;
+    --pressed: #f0ecdf; --open: #252836; color-scheme: dark;
+  }
+  body { background: var(--bg); color: var(--fg); font-family: var(--body); line-height: 1.45; }
+  .wrap { max-width: 900px; margin: 0 auto; padding-block: 24px 48px; padding-inline: 16px; }
+  h1 { font-family: var(--display); font-weight: 800; font-size: clamp(2rem, 5vw, 2.8rem); margin: 0; line-height: 1.1; }
+  .sub { color: var(--muted); margin: 4px 0 20px; }
+  .label { font-family: var(--display); font-weight: 600; font-size: 1.05rem; margin: 18px 0 8px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  button, select, input { font: inherit; }
+  .chip, .notes button, .nav button, .status button, .ghost {
+    font-family: var(--display); font-weight: 600; cursor: pointer;
+    border: 2px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 999px;
+  }
+  .chip { padding: 8px 16px; font-size: 1rem; }
+  .chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+  .ghost { padding: 6px 12px; font-size: .85rem; color: var(--muted); border-style: dashed; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  select { padding: 6px 10px; border-radius: 10px; border: 2px solid var(--line); background: var(--surface); color: var(--fg); font-weight: 700; }
+
+  .view { display: inline-flex; border: 2px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .view button { font-family: var(--body); font-weight: 700; font-size: .8rem; padding: 4px 12px; border: 0; background: var(--surface); color: var(--muted); cursor: pointer; }
+  .view button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+
+  .notes { display: flex; flex-wrap: wrap; gap: 8px; }
+  .notes button { width: 54px; height: 54px; font-size: 1.25rem; padding: 0; position: relative; }
+  .notes button.sharp { font-size: 1rem; }
+  .notes button .oct { display: block; font-size: .6rem; font-family: var(--body); font-weight: 400; margin-top: -4px; opacity: .7; }
+  .notes button[data-st="kent"] { border-color: var(--kent); background: var(--kent-soft); }
+  .notes button[data-st="les"]  { border-color: var(--accent); background: var(--accent-soft); }
+  .notes button[data-st="moet"] { border-color: var(--moet); background: var(--moet-soft); }
+  .notes button[aria-pressed="true"] { outline: 3px solid var(--fg); outline-offset: 1px; }
+
+  .allstaff { overflow-x: auto; background: var(--surface); border: 2px solid var(--line); border-radius: 18px; padding: 8px 4px; }
+  .allstaff svg { display: block; height: 230px; width: auto; max-width: none; margin: 0 auto; }
+  .allstaff g.note { cursor: pointer; }
+  .empty { color: var(--muted); padding: 14px 4px; }
+
+  .card { margin-top: 18px; background: var(--surface); border: 2px solid var(--line); border-radius: 18px; padding: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: center; }
+  @media (max-width: 560px) { .card { grid-template-columns: 1fr; } }
+  .card > div { min-width: 0; }
+  .big { font-family: var(--display); font-weight: 800; font-size: 4rem; line-height: 1; color: var(--accent); text-align: center; }
+  .big small { display: block; font-size: 1.1rem; color: var(--muted); font-weight: 600; }
+  .staff svg { width: 100%; max-width: 320px; height: auto; display: block; margin: 0 auto; }
+  .keys svg { width: 100%; max-width: 260px; height: auto; display: block; margin: 0 auto; }
+  .howto { text-align: center; font-size: 1.05rem; margin-top: 6px; }
+  .howto b { color: var(--accent); }
+
+  .status { grid-column: 1 / -1; border-top: 2px dashed var(--line); padding-top: 14px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; }
+  .status .q { width: 100%; text-align: center; color: var(--muted); font-size: .9rem; }
+  .status button { padding: 8px 14px; font-size: .95rem; }
+  .status button[data-st="kent"][aria-pressed="true"] { border-color: var(--kent); background: var(--kent-soft); }
+  .status button[data-st="les"][aria-pressed="true"]  { border-color: var(--accent); background: var(--accent-soft); }
+  .status button[data-st="moet"][aria-pressed="true"] { border-color: var(--moet); background: var(--moet-soft); }
+  .status button[data-st=""][aria-pressed="true"] { border-color: var(--fg); }
+
+  .nav { display: flex; justify-content: center; gap: 10px; margin-top: 14px; }
+  .nav button { padding: 10px 22px; font-size: 1.05rem; }
+  .legend { color: var(--muted); font-size: .9rem; margin-top: 16px; display: flex; gap: 14px 18px; flex-wrap: wrap; justify-content: center; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--fg); display: inline-block; }
+  .dot.on { background: var(--pressed); }
+  .sw { width: 16px; height: 16px; border-radius: 4px; display: inline-block; border: 2px solid; }
+  .sw.kent { border-color: var(--kent); background: var(--kent-soft); }
+  .sw.les { border-color: var(--accent); background: var(--accent-soft); }
+  .sw.moet { border-color: var(--moet); background: var(--moet-soft); }
+  .notice { font-size: .85rem; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; margin-top: 12px; }
+  .dialog { background: var(--surface); border: 2px solid var(--line); border-radius: 14px; padding: 12px; margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .dialog input { padding: 8px 12px; border-radius: 10px; border: 2px solid var(--line); background: var(--bg); color: var(--fg); min-width: 0; flex: 1 1 160px; }
+  .dialog select { flex: 1 1 200px; }
+
+  /* Spel */
+  .mode { margin-left: auto; }
+  .mode button { font-size: .9rem; padding: 6px 16px; }
+  .gcard { background: var(--surface); border: 2px solid var(--line); border-radius: 18px; padding: 14px; margin-top: 8px; }
+  .ghead { display: flex; align-items: center; justify-content: space-between; font-family: var(--display); font-weight: 800; font-size: 1.3rem; }
+  .gx { border: 0; background: transparent; color: var(--fg); font-size: 1.3rem; cursor: pointer; padding: 4px 8px; border-radius: 8px; }
+  .glives { color: #e0506a; letter-spacing: 2px; }
+  .gtime { font-variant-numeric: tabular-nums; color: var(--muted); }
+  .gstaff svg { width: 100%; height: auto; display: block; }
+  .gmsg { min-height: 1.6em; text-align: center; font-family: var(--display); font-weight: 600; font-size: 1.1rem; color: var(--muted); }
+  .gbtns { display: grid; grid-template-columns: repeat(auto-fit, minmax(56px, 1fr)); gap: 8px; margin-top: 8px; }
+  .gbtns button { font-family: var(--display); font-weight: 800; font-size: 1.4rem; padding: 18px 0; border: 0; border-radius: 12px; background: #3b9ad9; color: #fff; cursor: pointer; box-shadow: 0 4px 0 #2a78ab; }
+  .gbtns button:active { transform: translateY(3px); box-shadow: 0 1px 0 #2a78ab; }
+  .gbtns button:disabled { opacity: .5; cursor: default; }
+  .gstart { text-align: center; margin-top: 8px; }
+  .gintro { color: var(--muted); margin: 10px auto 14px; max-width: 60ch; }
+  .gintro b { color: var(--fg); }
+  .big-btn { font-size: 1.3rem; padding: 14px 32px; border-color: var(--accent); background: var(--accent); color: #fff; }
+  .ghist { margin-top: 18px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+  .gh { background: var(--surface); border: 2px solid var(--line); border-radius: 14px; padding: 10px 14px; min-width: 110px; }
+  .gh .stars { color: #3b9ad9; font-size: 1.3rem; letter-spacing: 2px; }
+  .gh .t { font-variant-numeric: tabular-nums; color: #e0506a; font-weight: 700; }
+  .gh .d { font-size: .75rem; color: var(--muted); }
+  .gh.best { border-color: var(--accent); }
+  .gend { text-align: center; padding: 10px 0; }
+  .gend .stars { font-size: 3rem; color: #3b9ad9; letter-spacing: 6px; }
+  .gend .big { font-size: 2.2rem; }
+</style>
+
+<div class="wrap">
+  <h1>Altsax Grepentabel</h1>
+  <p class="sub">Kies een leerling, tik op een noot en zie welke kleppen je indrukt.</p>
+
+  <div class="label">Leerling
+    <select id="student" aria-label="Leerling"></select>
+    <button type="button" class="ghost" id="addStudentBtn" hidden>+ leerling</button>
+    <span class="view mode" role="group" aria-label="Onderdeel"><button type="button" id="modeLearn">Grepen</button><button type="button" id="modeGame">Spel</button></span>
+  </div>
+  <div class="dialog" id="addStudent" hidden>
+    <input id="newName" placeholder="Naam" aria-label="Naam van de leerling" maxlength="40">
+    <select id="preset" aria-label="Beginnen met">
+      <option value="">Start zonder noten</option>
+      <option value="1">Begin: kent G A B C D</option>
+      <option value="2">Gevorderd: kent lage C t/m hoge G, fis en gis in de les</option>
+    </select>
+    <button type="button" class="chip" id="saveStudent">Toevoegen</button>
+    <button type="button" class="ghost" id="cancelStudent">Annuleren</button>
+  </div>
+  <div class="notice" id="notice" hidden></div>
+
+  <div id="learn">
+  <div class="label">Noten
+    <span class="row" id="filters" role="group" aria-label="Welke noten"></span>
+    <span class="view" role="group" aria-label="Weergave"><button type="button" id="viewBtn">Knoppen</button><button type="button" id="viewStaff">Notenbalk</button></span>
+  </div>
+  <div class="notes" id="notes" role="group" aria-label="Noten"></div>
+  <div class="allstaff" id="allstaff" hidden></div>
+
+  <div class="card" id="card">
+    <div>
+      <div class="big" id="bigname"></div>
+      <div class="staff" id="staff"></div>
+    </div>
+    <div>
+      <div class="keys" id="keys"></div>
+      <div class="howto" id="howto"></div>
+      <div class="howto"><button type="button" class="ghost" id="allKeys"></button></div>
+    </div>
+    <div class="status" id="status"></div>
+  </div>
+  <div class="nav">
+    <button id="prev" type="button">◀ Vorige</button>
+    <button id="next" type="button">Volgende ▶</button>
+  </div>
+  <p class="legend">
+    <span><i class="sw kent"></i> kent al</span>
+    <span><i class="sw les"></i> in de les</span>
+    <span><i class="sw moet"></i> moet nog leren</span>
+    <span><i class="dot on"></i> klep indrukken</span>
+    <span><i class="dot"></i> open laten</span>
+  </p>
+  </div>
+
+  <div id="game" hidden>
+    <div class="gcard">
+      <div class="ghead">
+        <button type="button" class="gx" id="gQuit" aria-label="Stoppen">✕</button>
+        <div class="glives" id="gLives"></div>
+        <div class="gtime" id="gTime">0:00.000</div>
+      </div>
+      <div class="gstaff" id="gStaff"></div>
+      <div class="gmsg" id="gMsg"></div>
+      <div class="gbtns" id="gBtns"></div>
+    </div>
+    <div class="gstart" id="gStart">
+      <div class="gintro" id="gIntro"></div>
+      <button type="button" class="chip big-btn" id="gPlay">▶ Spelen</button>
+      <div class="ghist" id="gHist"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const L = ["L1","L2","L3"], R = ["R4","R5","R6"];
+// s = plek op de notenbalk (C4 = 0, elke stap = één lijn of tussenruimte). Het id is naam + octaafnummer (fis4, bes3).
+const NOTES = [
+  {n:"B♭", say:"bes",  s:-1, acc:"♭", k:[...L,...R,"lc","lbb"]},
+  {n:"B",  say:"b",    s:-1, acc:"",  k:[...L,...R,"lc","lb"]},
+  {n:"C",  say:"c",    s:0,  acc:"",  k:[...L,...R,"lc"]},
+  {n:"C♯", say:"cis",  s:0,  acc:"♯", k:[...L,...R,"lc","cs"]},
+  {n:"D",  say:"d",    s:1,  acc:"",  k:[...L,...R]},
+  {n:"E♭", say:"es",   s:2,  acc:"♭", k:[...L,...R,"eb"]},
+  {n:"E",  say:"e",    s:2,  acc:"",  k:[...L,"R4","R5"]},
+  {n:"F",  say:"f",    s:3,  acc:"",  k:[...L,"R4"]},
+  {n:"F♯", say:"fis",  s:3,  acc:"♯", k:[...L,"R5"]},
+  {n:"G",  say:"g",    s:4,  acc:"",  k:[...L]},
+  {n:"G♯", say:"gis",  s:4,  acc:"♯", k:[...L,"gs"]},
+  {n:"A",  say:"a",    s:5,  acc:"",  k:["L1","L2"]},
+  {n:"B♭", say:"bes",  s:6,  acc:"♭", k:["L1","bis"]},
+  {n:"B",  say:"b",    s:6,  acc:"",  k:["L1"]},
+  {n:"C",  say:"c",    s:7,  acc:"",  k:["L2"]},
+  {n:"C♯", say:"cis",  s:7,  acc:"♯", k:[]},
+  {n:"D",  say:"d",    s:8,  acc:"",  k:["oct",...L,...R]},
+  {n:"E♭", say:"es",   s:9,  acc:"♭", k:["oct",...L,...R,"eb"]},
+  {n:"E",  say:"e",    s:9,  acc:"",  k:["oct",...L,"R4","R5"]},
+  {n:"F",  say:"f",    s:10, acc:"",  k:["oct",...L,"R4"]},
+  {n:"F♯", say:"fis",  s:10, acc:"♯", k:["oct",...L,"R5"]},
+  {n:"G",  say:"g",    s:11, acc:"",  k:["oct",...L]},
+  {n:"G♯", say:"gis",  s:11, acc:"♯", k:["oct",...L,"gs"]},
+  {n:"A",  say:"a",    s:12, acc:"",  k:["oct","L1","L2"]},
+  {n:"B♭", say:"bes",  s:13, acc:"♭", k:["oct","L1","bis"]},
+  {n:"B",  say:"b",    s:13, acc:"",  k:["oct","L1"]},
+  {n:"C",  say:"c",    s:14, acc:"",  k:["oct","L2"]},
+  {n:"C♯", say:"cis",  s:14, acc:"♯", k:["oct"]},
+  {n:"D",  say:"d",    s:15, acc:"",  k:["oct","pD"]},
+  {n:"E♭", say:"es",   s:16, acc:"♭", k:["oct","pD","pEb"]},
+  {n:"E",  say:"e",    s:16, acc:"",  k:["oct","pD","pEb","sE"]},
+  {n:"F",  say:"f",    s:17, acc:"",  k:["oct","pD","pEb","pF","sE"]},
+].map(nt => {
+  const octave = 4 + Math.floor(nt.s / 7);
+  return {...nt, id: nt.say + octave, oct: nt.s < 4 ? "laag" : nt.s < 8 ? "" : nt.s < 15 ? "hoog" : "extra hoog"};
+});
+const byId = Object.fromEntries(NOTES.map(n => [n.id, n]));
+const PRESETS = {
+  "1": {kent: ["g4","a4","b4","c5","d5"], les: []},
+  "2": {kent: ["c4","d4","e4","f4","g4","a4","b4","c5","d5","e5","f5","g5"], les: ["fis4","gis4","fis5","gis5"]},
+};
+const STATUS = [["kent","Kent al"],["les","In de les"],["moet","Moet nog leren"],["","Nog niet aan de beurt"]];
+const FILTERS = [["mine","Mijn noten"],["les","In de les"],["all","Alle noten"]];
+const KEYNAMES = {oct:"octaafklep (duim links)", L1:"1", L2:"2", L3:"3", R4:"4", R5:"5", R6:"6", bis:"bis‑knopje", gs:"G♯‑klep (pink links)", cs:"C♯‑klep (pink links)", lb:"lage B‑klep (pink links)", lbb:"lage B♭‑klep (pink links)", eb:"E♭‑klep (pink rechts)", lc:"lage C‑klep (pink rechts)", pD:"handpalmklep D", pEb:"handpalmklep E♭", pF:"handpalmklep F", sE:"zijklep E (rechts)"};
+
+// ---- Toestand
+let db = null, canWrite = false;
+let students = [];            // [{id, naam}]
+let studentId = null;
+let statuses = {};            // nootId -> "kent" | "les" | "moet"
+let filter = "mine", view = "buttons", selId = "g4", showAllKeys = false, mode = "learn";
+let unsubNotes = null;
+try { view = localStorage.getItem("saxView") || "buttons"; filter = localStorage.getItem("saxFilter") || "mine"; showAllKeys = localStorage.getItem("saxAllKeys") === "1"; } catch (e) {}
+
+const $ = id => document.getElementById(id);
+const visible = () => filter === "all" ? NOTES : NOTES.filter(n => filter === "les" ? statuses[n.id] === "les" : !!statuses[n.id]);
+
+// ---- Notenbalk met één noot
+function staffSVG(nt) {
+  const sp = 14, half = sp/2, w = 260, h = 190, base = 128, cx = 170;
+  const y = s => base - (s-2)*half, cy = y(nt.s);
+  let o = `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">`;
+  for (let i = 0; i < 5; i++) o += `<line x1="10" x2="${w-10}" y1="${base-i*sp}" y2="${base-i*sp}" stroke="var(--fg)" stroke-width="1.3"/>`;
+  o += `<text x="18" y="${base+4}" font-size="74" fill="var(--fg)" font-family="serif">𝄞</text>`;
+  for (let s = 0; s >= nt.s; s -= 2) o += `<line x1="${cx-16}" x2="${cx+16}" y1="${y(s)}" y2="${y(s)}" stroke="var(--fg)" stroke-width="1.3"/>`;
+  for (let s = 12; s <= nt.s; s += 2) o += `<line x1="${cx-16}" x2="${cx+16}" y1="${y(s)}" y2="${y(s)}" stroke="var(--fg)" stroke-width="1.3"/>`;
+  if (nt.acc) o += `<text x="${cx-24}" y="${cy+7}" font-size="24" fill="var(--accent)" text-anchor="middle" font-family="serif">${nt.acc}</text>`;
+  o += `<ellipse cx="${cx}" cy="${cy}" rx="8.5" ry="6" fill="var(--accent)" transform="rotate(-20 ${cx} ${cy})"/>`;
+  o += nt.s < 6 ? `<line x1="${cx+7.5}" x2="${cx+7.5}" y1="${cy-1}" y2="${cy-42}" stroke="var(--accent)" stroke-width="2"/>`
+                : `<line x1="${cx-7.5}" x2="${cx-7.5}" y1="${cy+1}" y2="${cy+42}" stroke="var(--accent)" stroke-width="2"/>`;
+  return o + `</svg>`;
+}
+
+// ---- Greepdiagram: alle kleppen zoals ze op de sax zitten. Handpalm-/zijkleppen alleen als ze nodig zijn.
+const KEYS = [
+  {id:"oct", t:"pill", x:48,  y:54,  w:36, h:16, lbl:"Oct"},
+  {id:"L1",  t:"c",    x:100, y:62,  r:15, lbl:"1"},
+  {id:"bis", t:"c",    x:120, y:82,  r:5,  lbl:"", auto:true},
+  {id:"L2",  t:"c",    x:100, y:102, r:15, lbl:"2"},
+  {id:"L3",  t:"c",    x:100, y:142, r:15, lbl:"3"},
+  {id:"pD",  t:"pill", x:44,  y:96,  w:28, h:12, lbl:"D",  opt:true},
+  {id:"pEb", t:"pill", x:44,  y:114, w:28, h:12, lbl:"E♭", opt:true},
+  {id:"pF",  t:"pill", x:44,  y:132, w:28, h:12, lbl:"F",  opt:true},
+  {id:"gs",  t:"oval", x:52,  y:176, w:44, h:20, lbl:"G♯", auto:true},
+  {id:"low", t:"oval", x:56,  y:204, w:44, h:20, lbl:"laag", auto:true},
+  {id:"R4",  t:"c",    x:100, y:200, r:15, lbl:"4"},
+  {id:"R5",  t:"c",    x:100, y:240, r:15, lbl:"5"},
+  {id:"R6",  t:"c",    x:100, y:280, r:15, lbl:"6"},
+  {id:"sE",  t:"pill", x:150, y:196, w:28, h:12, lbl:"E",  opt:true},
+  {id:"sC",  t:"pill", x:150, y:214, w:28, h:12, lbl:"C",  opt:true},
+  {id:"sBb", t:"pill", x:150, y:232, w:28, h:12, lbl:"B♭", opt:true},
+  {id:"eb",  t:"oval", x:150, y:264, w:44, h:20, lbl:"E♭", auto:true},
+  {id:"lc",  t:"oval", x:150, y:290, w:44, h:20, lbl:"C", auto:true},
+];
+// De linkerpink heeft op deze sax twee kleppen: G♯ en één voor de lage noten (cis, b, bes).
+const mapKeys = ks => ks.map(k => ["cs","lb","lbb"].includes(k) ? "low" : k);
+// Kleppen die bij de noten van deze leerling horen (kent / les / moet): alleen die tekenen we erbij.
+function neededKeys() {
+  const set = new Set();
+  NOTES.filter(n => statuses[n.id]).forEach(n => mapKeys(n.k).forEach(k => set.add(k)));
+  return set;
+}
+function keysSVG(pressedRaw) {
+  const pressed = mapKeys(pressedRaw), need = neededKeys();
+  const show = k => showAllKeys || pressed.includes(k.id) || need.has(k.id);
+  const cap = (x, y, t) => `<text x="${x}" y="${y}" font-size="9" fill="var(--muted)" text-anchor="middle" font-family="Nunito Sans, sans-serif">${t}</text>`;
+  let o = `<svg viewBox="0 0 200 318" xmlns="http://www.w3.org/2000/svg">`;
+  o += `<line x1="100" x2="100" y1="44" y2="298" stroke="var(--line)" stroke-width="2"/>`;
+  o += cap(100, 36, "linkerhand") + cap(100, 176, "rechterhand") + cap(48, 40, "duim");
+  if (KEYS.some(k => ["gs","low"].includes(k.id) && show(k))) o += cap(52, 160, "pink links");
+  if (KEYS.some(k => ["eb","lc"].includes(k.id) && show(k))) o += cap(150, 248, "pink rechts");
+  if (pressed.some(k => k.startsWith("p"))) o += cap(44, 86, "handpalm");
+  if (pressed.some(k => k.startsWith("s"))) o += cap(150, 186, "zijkant");
+  for (const k of KEYS) {
+    const on = pressed.includes(k.id);
+    if (k.opt && !on) continue;
+    if (k.auto && !show(k)) continue;
+    const fill = on ? "var(--pressed)" : "var(--open)", ink = on ? "var(--open)" : "var(--fg)";
+    if (k.t === "oval") {
+      o += `<ellipse cx="${k.x}" cy="${k.y}" rx="${k.w/2}" ry="${k.h/2}" fill="${fill}" stroke="var(--fg)" stroke-width="2" transform="rotate(-8 ${k.x} ${k.y})"/>`;
+      o += `<text x="${k.x}" y="${k.y + 3.5}" font-size="10" font-weight="700" text-anchor="middle" fill="${ink}" font-family="Nunito Sans, sans-serif">${k.lbl}</text>`;
+    } else if (k.t === "c") {
+      o += `<circle cx="${k.x}" cy="${k.y}" r="${k.r}" fill="${fill}" stroke="var(--fg)" stroke-width="2"/>`;
+      if (k.lbl) o += `<text x="${k.x}" y="${k.y + (k.r > 10 ? 5 : 3)}" font-size="${k.r > 10 ? 14 : 8}" font-weight="700" text-anchor="middle" fill="${ink}" font-family="Baloo 2, sans-serif">${k.lbl}</text>`;
+    } else {
+      o += `<rect x="${k.x - k.w/2}" y="${k.y - k.h/2}" width="${k.w}" height="${k.h}" rx="${k.h/2}" fill="${fill}" stroke="var(--fg)" stroke-width="2"/>`;
+      o += `<text x="${k.x}" y="${k.y + 3.5}" font-size="9" font-weight="700" text-anchor="middle" fill="${ink}" font-family="Nunito Sans, sans-serif">${k.lbl}</text>`;
+    }
+  }
+  return o + `</svg>`;
+}
+
+// ---- Notenbalk met alle zichtbare noten, gekleurd op status, klikbaar, naam eronder
+const stColor = id => ({kent:"var(--kent)", les:"var(--accent)", moet:"var(--moet)"})[statuses[id]] || "var(--fg)";
+function renderAllStaff() {
+  const list = visible(), box = $("allstaff");
+  if (!list.length) { box.innerHTML = `<div class="empty">Nog geen noten voor deze leerling. Kies "Alle noten" en geef noten een status.</div>`; return; }
+  const sp = 12, half = sp/2, x0 = 70, dx = 58, w = x0 + list.length*dx + 6, h = 230, base = 150;
+  const y = s => base - (s-2)*half;
+  let o = `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">`;
+  for (let i = 0; i < 5; i++) o += `<line x1="8" x2="${w-8}" y1="${base-i*sp}" y2="${base-i*sp}" stroke="var(--fg)" stroke-width="1.2"/>`;
+  o += `<text x="14" y="${base+3}" font-size="64" fill="var(--fg)" font-family="serif">𝄞</text>`;
+  list.forEach((nt, i) => {
+    const cx = x0 + i*dx, cy = y(nt.s), sel = nt.id === selId, col = stColor(nt.id);
+    const top = Math.min(cy, base-4*sp) - 50;
+    o += `<g class="note" data-id="${nt.id}" role="button" tabindex="0" aria-label="${nt.say}${nt.oct ? " " + nt.oct : ""}">`;
+    o += `<rect x="${cx-26}" y="${top}" width="52" height="${h-top}" fill="${sel ? "var(--bg)" : "transparent"}" stroke="${sel ? "var(--fg)" : "none"}" stroke-width="2" rx="10"/>`;
+    for (let s = 0; s >= nt.s; s -= 2) o += `<line x1="${cx-13}" x2="${cx+13}" y1="${y(s)}" y2="${y(s)}" stroke="var(--fg)" stroke-width="1.2"/>`;
+    for (let s = 12; s <= nt.s; s += 2) o += `<line x1="${cx-13}" x2="${cx+13}" y1="${y(s)}" y2="${y(s)}" stroke="var(--fg)" stroke-width="1.2"/>`;
+    if (nt.acc) o += `<text x="${cx-19}" y="${cy+6}" font-size="18" fill="${col}" text-anchor="middle" font-family="serif">${nt.acc}</text>`;
+    o += `<ellipse cx="${cx}" cy="${cy}" rx="7" ry="5" fill="${col}" transform="rotate(-20 ${cx} ${cy})"/>`;
+    o += nt.s < 6 ? `<line x1="${cx+6.3}" x2="${cx+6.3}" y1="${cy-1}" y2="${cy-34}" stroke="${col}" stroke-width="1.6"/>`
+                  : `<line x1="${cx-6.3}" x2="${cx-6.3}" y1="${cy+1}" y2="${cy+34}" stroke="${col}" stroke-width="1.6"/>`;
+    o += `<text x="${cx}" y="${h-26}" font-size="19" font-weight="800" fill="${col}" text-anchor="middle" font-family="Baloo 2, sans-serif">${nt.say}</text>`;
+    if (nt.oct) o += `<text x="${cx}" y="${h-9}" font-size="10" fill="var(--muted)" text-anchor="middle" font-family="Nunito Sans, sans-serif">${nt.oct}</text>`;
+    o += `</g>`;
+  });
+  box.innerHTML = o + `</svg>`;
+  box.querySelectorAll("g.note").forEach(g => {
+    const go = () => { selId = g.dataset.id; render(); };
+    g.addEventListener("click", go);
+    g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+  });
+}
+function renderNotes() {
+  const box = $("notes"), list = visible();
+  box.innerHTML = list.length ? "" : `<div class="empty">Nog geen noten voor deze leerling. Kies "Alle noten" en geef noten een status.</div>`;
+  list.forEach(nt => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = nt.acc ? "sharp" : "";
+    b.dataset.st = statuses[nt.id] || "";
+    b.setAttribute("aria-pressed", nt.id === selId);
+    b.innerHTML = nt.n + (nt.oct ? `<span class="oct">${nt.oct}</span>` : "");
+    b.addEventListener("click", () => { selId = nt.id; render(); });
+    box.appendChild(b);
+  });
+}
+function renderCard() {
+  const nt = byId[selId];
+  $("bigname").innerHTML = `${nt.n}<small>"${nt.say}"${nt.oct ? " · " + nt.oct : ""}</small>`;
+  $("staff").innerHTML = staffSVG(nt);
+  $("keys").innerHTML = keysSVG(nt.k);
+  const parts = nt.k.map(k => KEYNAMES[k]);
+  $("howto").innerHTML = parts.length ? "Druk in: <b>" + parts.join("</b>, <b>") + "</b>" : "Niets indrukken, alle kleppen <b>open</b>!";
+  $("allKeys").textContent = showAllKeys ? "Alleen de kleppen voor mijn noten" : "Toon alle kleppen";
+  const st = $("status"), cur = statuses[selId] || "", name = (students.find(s => s.id === studentId) || {}).naam || "deze leerling";
+  st.innerHTML = `<div class="q">Deze noot voor ${name}:</div>`;
+  STATUS.forEach(([v, lbl]) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.dataset.st = v; b.textContent = lbl;
+    b.setAttribute("aria-pressed", v === cur);
+    b.disabled = !canWrite;
+    b.addEventListener("click", () => setStatus(selId, v));
+    st.appendChild(b);
+  });
+  st.hidden = !studentId;
+}
+function renderFilters() {
+  const box = $("filters"); box.innerHTML = "";
+  FILTERS.forEach(([v, lbl]) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.textContent = lbl;
+    b.setAttribute("aria-pressed", v === filter);
+    b.addEventListener("click", () => { filter = v; try { localStorage.setItem("saxFilter", v); } catch (e) {} render(); });
+    box.appendChild(b);
+  });
+}
+function renderStudents() {
+  const sel = $("student"); sel.innerHTML = "";
+  if (!students.length) { const o = document.createElement("option"); o.textContent = "— nog geen leerling —"; sel.appendChild(o); }
+  students.forEach(s => { const o = document.createElement("option"); o.value = s.id; o.textContent = s.naam; o.selected = s.id === studentId; sel.appendChild(o); });
+}
+function render() {
+  const list = visible();
+  if (list.length && !list.some(n => n.id === selId)) selId = list[0].id;
+  renderFilters(); renderNotes(); renderAllStaff(); renderCard();
+  $("notes").hidden = view !== "buttons";
+  $("allstaff").hidden = view !== "staff";
+  $("viewBtn").setAttribute("aria-pressed", view === "buttons");
+  $("viewStaff").setAttribute("aria-pressed", view === "staff");
+  if (typeof mode !== "undefined" && mode === "game" && !G.running) renderGame();
+}
+
+// ---- Data: leerlingen/{id} {naam} en leerlingen/{id}/noten/{nootId} {status}
+async function setStatus(noteId, st) {
+  if (!studentId || !canWrite) return;
+  const prev = statuses[noteId] || "";
+  if (prev === st) return;
+  if (st) statuses[noteId] = st; else delete statuses[noteId];
+  render();
+  if (!db) return;
+  const ref = db.doc(`leerlingen/${studentId}/noten/${noteId}`);
+  try { st ? await ref.set({status: st, bijgewerkt: new Date().toISOString()}) : await ref.delete(); }
+  catch (e) { if (prev) statuses[noteId] = prev; else delete statuses[noteId]; render(); showNotice("Opslaan lukte niet (" + (e.code || "fout") + "). Probeer het nog eens."); }
+}
+function watchStudent(id) {
+  if (unsubNotes) { unsubNotes(); unsubNotes = null; }
+  statuses = {}; studentId = id;
+  try { localStorage.setItem("saxStudent", id || ""); } catch (e) {}
+  if (typeof mode !== "undefined" && mode === "game") loadHistory();
+  if (!db || !id) { render(); return; }
+  unsubNotes = db.collection(`leerlingen/${id}/noten`).onSnapshot(snap => {
+    const next = {};
+    snap.docs.forEach(d => { const s = d.data().status; if (s) next[d.id] = s; });
+    statuses = next; render();
+  }, e => showNotice("Noten van deze leerling konden niet geladen worden (" + e.code + ")."));
+  render();
+}
+async function addStudent(naam, preset) {
+  const id = naam.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "leerling";
+  const p = PRESETS[preset] || {kent: [], les: []};
+  if (!db) {
+    students.push({id, naam}); renderStudents(); watchStudent(id);
+    p.kent.forEach(n => statuses[n] = "kent"); p.les.forEach(n => statuses[n] = "les"); render();
+    return;
+  }
+  try {
+    await db.doc(`leerlingen/${id}`).set({naam, instrument: "altsax", aangemaakt: new Date().toISOString()});
+    for (const n of p.kent) await db.doc(`leerlingen/${id}/noten/${n}`).set({status: "kent"});
+    for (const n of p.les) await db.doc(`leerlingen/${id}/noten/${n}`).set({status: "les"});
+    watchStudent(id);
+  } catch (e) { showNotice("Leerling toevoegen lukte niet (" + (e.code || "fout") + ")."); }
+}
+function showNotice(t) { const n = $("notice"); n.textContent = t; n.hidden = !t; }
+
+// ---- Knoppen
+$("student").addEventListener("change", e => watchStudent(e.target.value));
+$("addStudentBtn").addEventListener("click", () => { $("addStudent").hidden = false; $("newName").focus(); });
+$("cancelStudent").addEventListener("click", () => { $("addStudent").hidden = true; });
+$("saveStudent").addEventListener("click", () => {
+  const naam = $("newName").value.trim(); if (!naam) { $("newName").focus(); return; }
+  $("addStudent").hidden = true; $("newName").value = "";
+  addStudent(naam, $("preset").value);
+});
+$("newName").addEventListener("keydown", e => { if (e.key === "Enter") $("saveStudent").click(); });
+$("allKeys").addEventListener("click", () => { showAllKeys = !showAllKeys; try { localStorage.setItem("saxAllKeys", showAllKeys ? "1" : "0"); } catch (e) {} renderCard(); });
+$("viewBtn").addEventListener("click", () => { view = "buttons"; try { localStorage.setItem("saxView", view); } catch (e) {} render(); });
+$("viewStaff").addEventListener("click", () => { view = "staff"; try { localStorage.setItem("saxView", view); } catch (e) {} render(); });
+$("prev").addEventListener("click", () => { const l = visible(); if (!l.length) return; const i = l.findIndex(n => n.id === selId); selId = l[(i - 1 + l.length) % l.length].id; render(); });
+$("next").addEventListener("click", () => { const l = visible(); if (!l.length) return; const i = l.findIndex(n => n.id === selId); selId = l[(i + 1) % l.length].id; render(); });
+
+// =====================================================================
+// SPEL: 8 noten op een rij, de streep wijst de noot aan, tik de juiste naam.
+// Noten komen uit wat de leerling kent (1x) en in de les heeft / nog moet leren (3x).
+// =====================================================================
+const G = { seq: [], pos: 0, lives: 3, answers: [], t0: 0, timer: null, running: false, msg: "" };
+const NAMES_ORDER = ["c","d","e","f","g","a","b","cis","es","fis","gis","bes"];
+const cap1 = s => s.charAt(0).toUpperCase() + s.slice(1);
+try { mode = localStorage.getItem("saxMode") || "learn"; } catch (e) {}
+
+function gamePool() {
+  const pool = [];
+  NOTES.forEach(n => {
+    const st = statuses[n.id];
+    if (st === "kent") pool.push(n);
+    else if (st === "les" || st === "moet") pool.push(n, n, n);
+  });
+  if (!pool.length) ["g4","a4","b4","c5","d5"].forEach(id => pool.push(byId[id]));
+  return pool;
+}
+function gameNames() {
+  const have = new Set(gamePool().map(n => n.say));
+  return NAMES_ORDER.filter(s => have.has(s));
+}
+function makeSeq() {
+  const pool = gamePool(), seq = [];
+  for (let i = 0; i < 8; i++) {
+    let n, tries = 0;
+    do { n = pool[Math.floor(Math.random() * pool.length)]; tries++; } while (seq.length && n.id === seq[seq.length-1].id && tries < 10);
+    seq.push(n);
+  }
+  return seq;
+}
+function fmt(ms) { const m = Math.floor(ms/60000), s = Math.floor(ms/1000)%60, r = Math.floor(ms%1000); return `${m}:${String(s).padStart(2,"0")}.${String(r).padStart(3,"0")}`; }
+
+// Geluid: altsax klinkt een grote sext lager dan geschreven.
+let actx = null;
+function beep(nt) {
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const semis = [0,2,4,5,7,9,11], idx = ((nt.s % 7) + 7) % 7, oct = 4 + Math.floor(nt.s / 7);
+    const midi = 12*(oct+1) + semis[idx] + (nt.acc === "♯" ? 1 : nt.acc === "♭" ? -1 : 0) - 9;
+    const f = 440 * Math.pow(2, (midi - 69) / 12), t = actx.currentTime;
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = "sawtooth"; o.frequency.value = f;
+    const lp = actx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = f * 4;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+    o.connect(lp); lp.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + 0.6);
+  } catch (e) {}
+}
+
+function gameStaffSVG() {
+  const n = 8, sp = 12, half = sp/2, x0 = 64, dx = 68, w = x0 + n*dx, h = 190, base = 120;
+  const y = s => base - (s-2)*half;
+  let o = `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">`;
+  if (G.running && G.pos < n) {
+    const cx = x0 + G.pos*dx;
+    o += `<rect x="${cx-24}" y="20" width="48" height="${h-30}" rx="8" fill="var(--accent-soft)"/>`;
+    o += `<line x1="${cx}" x2="${cx}" y1="20" y2="${h-10}" stroke="var(--accent)" stroke-width="1.5" opacity=".6"/>`;
+  }
+  for (let i = 0; i < 5; i++) o += `<line x1="6" x2="${w-6}" y1="${base-i*sp}" y2="${base-i*sp}" stroke="var(--fg)" stroke-width="1.2"/>`;
+  o += `<text x="10" y="${base+3}" font-size="64" fill="var(--fg)" font-family="serif">𝄞</text>`;
+  G.seq.forEach((nt, i) => {
+    const cx = x0 + i*dx, cy = y(nt.s), a = G.answers[i];
+    const col = a ? (a.ok ? "var(--kent)" : "#d8323c") : "var(--fg)";
+    for (let s = 0; s >= nt.s; s -= 2) o += `<line x1="${cx-13}" x2="${cx+13}" y1="${y(s)}" y2="${y(s)}" stroke="var(--fg)" stroke-width="1.2"/>`;
+    for (let s = 12; s <= nt.s; s += 2) o += `<line x1="${cx-13}" x2="${cx+13}" y1="${y(s)}" y2="${y(s)}" stroke="var(--fg)" stroke-width="1.2"/>`;
+    if (nt.acc) o += `<text x="${cx-18}" y="${cy+6}" font-size="18" fill="${col}" text-anchor="middle" font-family="serif">${nt.acc}</text>`;
+    o += `<ellipse cx="${cx}" cy="${cy}" rx="7.5" ry="5.2" fill="${col}" transform="rotate(-20 ${cx} ${cy})"/>`;
+    if (a) {
+      o += `<circle cx="${cx}" cy="34" r="14" fill="${a.ok ? "var(--kent)" : "#d8323c"}"/>`;
+      o += `<text x="${cx}" y="39" font-size="13" font-weight="800" text-anchor="middle" fill="#fff" font-family="Baloo 2, sans-serif">${cap1(nt.say)}</text>`;
+    }
+  });
+  return o + `</svg>`;
+}
+function renderGame() {
+  $("gStart").hidden = G.running;
+  $("gLives").textContent = G.running ? `${G.lives} × ♥` : "";
+  $("gStaff").innerHTML = gameStaffSVG();
+  $("gMsg").textContent = G.msg;
+  const box = $("gBtns"); box.innerHTML = "";
+  gameNames().forEach(say => {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = cap1(say); b.disabled = !G.running;
+    b.addEventListener("click", () => answer(say));
+    box.appendChild(b);
+  });
+  if (!G.running) renderGameStart();
+}
+function renderGameStart() {
+  const names = gameNames().map(cap1).join(" · ");
+  const focus = NOTES.filter(n => ["les","moet"].includes(statuses[n.id])).map(n => cap1(n.say));
+  const who = (students.find(s => s.id === studentId) || {}).naam || "jou";
+  $("gIntro").innerHTML = `Acht noten op een rij. Tik zo snel mogelijk de juiste naam. Je hebt <b>3 levens</b>.<br>Noten voor ${who}: <b>${names}</b>` +
+    (focus.length ? `<br>Extra vaak: <b>${[...new Set(focus)].join(" · ")}</b>` : "");
+  $("gTime").textContent = "0:00.000";
+}
+function startGame() {
+  G.seq = makeSeq(); G.pos = 0; G.lives = 3; G.answers = []; G.running = true; G.msg = "";
+  G.t0 = performance.now();
+  clearInterval(G.timer);
+  G.timer = setInterval(() => { $("gTime").textContent = fmt(performance.now() - G.t0); }, 50);
+  renderGame();
+}
+function answer(say) {
+  if (!G.running) return;
+  const nt = G.seq[G.pos], ok = say === nt.say;
+  G.answers[G.pos] = {ok, given: say};
+  if (ok) { beep(nt); G.msg = "Goed!"; }
+  else { G.lives--; G.msg = `Dat was een ${cap1(nt.say)}`; }
+  G.pos++;
+  if (G.lives <= 0 || G.pos >= G.seq.length) return endGame();
+  renderGame();
+}
+async function endGame() {
+  clearInterval(G.timer);
+  const ms = performance.now() - G.t0, fouten = G.answers.filter(a => !a.ok).length, af = G.lives > 0;
+  const sterren = !af ? 0 : fouten === 0 ? 3 : fouten === 1 ? 2 : 1;
+  G.running = false;
+  $("gStaff").innerHTML = gameStaffSVG();
+  $("gLives").textContent = ""; $("gTime").textContent = fmt(ms);
+  $("gMsg").innerHTML = `<div class="gend"><div class="stars">${"★".repeat(sterren)}${"☆".repeat(3-sterren)}</div><div class="big">${af ? fmt(ms) : "Levens op!"}</div><div>${fouten === 0 ? "Foutloos!" : fouten + (fouten === 1 ? " fout" : " fouten")}</div></div>`;
+  $("gBtns").innerHTML = "";
+  $("gStart").hidden = false; renderGameStart();
+  const ronde = {datum: new Date().toISOString(), ms: Math.round(ms), fouten, sterren, af, fout_noten: G.seq.filter((n, i) => G.answers[i] && !G.answers[i].ok).map(n => n.id)};
+  if (db && studentId && canWrite) {
+    try { await db.collection(`leerlingen/${studentId}/rondes`).add(ronde); } catch (e) {}
+  }
+  loadHistory();
+}
+async function loadHistory() {
+  const box = $("gHist"); box.innerHTML = "";
+  if (!db || !studentId) return;
+  try {
+    const snap = await db.collection(`leerlingen/${studentId}/rondes`).orderBy("datum", "desc").limit(6).get();
+    const rows = snap.docs.map(d => d.data());
+    const best = rows.filter(r => r.af).reduce((b, r) => (!b || r.ms < b.ms) ? r : b, null);
+    rows.forEach(r => {
+      const d = document.createElement("div");
+      d.className = "gh" + (r === best ? " best" : "");
+      const dt = new Date(r.datum);
+      d.innerHTML = `<div class="stars">${"★".repeat(r.sterren)}${"☆".repeat(3-r.sterren)}</div><div class="t">${r.af ? fmt(r.ms) : "–"}</div><div class="d">${dt.toLocaleDateString("nl-NL", {day:"numeric", month:"short"})} ${dt.toLocaleTimeString("nl-NL", {hour:"2-digit", minute:"2-digit"})}${r === best ? " · snelste" : ""}</div>`;
+      box.appendChild(d);
+    });
+  } catch (e) {}
+}
+function setMode(m) {
+  mode = m; try { localStorage.setItem("saxMode", m); } catch (e) {}
+  $("learn").hidden = m !== "learn"; $("game").hidden = m !== "game";
+  $("modeLearn").setAttribute("aria-pressed", m === "learn"); $("modeGame").setAttribute("aria-pressed", m === "game");
+  if (m === "game") { if (!G.running) { G.seq = []; G.answers = []; } renderGame(); loadHistory(); }
+}
+$("modeLearn").addEventListener("click", () => setMode("learn"));
+$("modeGame").addEventListener("click", () => setMode("game"));
+$("gPlay").addEventListener("click", startGame);
+$("gQuit").addEventListener("click", () => { clearInterval(G.timer); G.running = false; G.seq = []; G.answers = []; G.msg = ""; renderGame(); });
+document.addEventListener("keydown", e => {
+  if (!G.running || mode !== "game") return;
+  const k = e.key.toLowerCase(), names = gameNames();
+  if (names.includes(k)) answer(k);
+});
+
+// ---- Start: eerst tekenen, dan de database erbij
+renderStudents(); render(); setMode(mode);
+(async () => {
+  db = await (window.claude?.use ? window.claude.use("db") : Promise.resolve(null));
+  const user = await (window.claude?.use ? window.claude.use("user") : Promise.resolve(null));
+  if (!db) {
+    canWrite = true; $("addStudentBtn").hidden = false;
+    showNotice("Geen verbinding met de database: wijzigingen worden hier niet bewaard.");
+    filter = "all"; render();
+    return;
+  }
+  const w = user ? await user.can("data.write") : null;
+  canWrite = w !== false;
+  $("addStudentBtn").hidden = !canWrite;
+  let remembered = ""; try { remembered = localStorage.getItem("saxStudent") || ""; } catch (e) {}
+  db.collection("leerlingen").orderBy("naam").onSnapshot(snap => {
+    students = snap.docs.map(d => ({id: d.id, naam: d.data().naam || d.id}));
+    renderStudents();
+    if (!students.some(s => s.id === studentId)) {
+      const pick = students.find(s => s.id === remembered) || students[0];
+      watchStudent(pick ? pick.id : null);
+    }
+    if (!students.length) { filter = "all"; render(); }
+  }, e => showNotice("Leerlingen konden niet geladen worden (" + e.code + ")."));
+})();
+</script>
