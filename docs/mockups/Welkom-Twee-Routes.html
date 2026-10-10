@@ -86,7 +86,7 @@ a{color:var(--blue)}
   <p class="who">Welkomstpagina · iPhone staand</p>
   <div class="row">
     <div class="step">
-      <div class="label"><div class="num">1</div><div><b>Welkom</b><span>Bovenaan in één zin wat het is, met een notenbalk die meteen laat zien waar het over gaat. Daaronder de twee keuzes, groot en naast elkaar te vergelijken. Wie al een account heeft, logt in via de link bovenaan.</span></div></div>
+      <div class="label"><div class="num">1</div><div><b>Welkom</b><span>Bovenaan in één zin wat het is, met een notenbalk die meteen laat zien waar het over gaat. Daaronder de twee keuzes, groot en naast elkaar te vergelijken. Wie al een account heeft, logt in via de link bovenaan. Met <b>Niet meer tonen</b> aangevinkt ga je de volgende keer direct naar je eigen deel (besluit Alwin).</span></div></div>
       <div class="phone">
         <div style="display:flex;justify-content:space-between;align-items:center">
           <div class="logo"><i>♪</i>Notenkraker</div>
@@ -122,6 +122,7 @@ a{color:var(--blue)}
           <div class="btn white">Gratis account maken</div>
         </div>
         <p class="xs muted" style="text-align:center;margin:0">Ben je ouder of leraar? Maak een gratis account.</p>
+        <label class="small mark" style="display:flex;gap:8px;align-items:center;justify-content:center"><span style="width:20px;height:20px;border-radius:6px;border:2px solid var(--line);background:#fff;display:inline-block"></span>Niet meer tonen</label>
       </div>
     </div>
 
@@ -147,7 +148,7 @@ a{color:var(--blue)}
     </div>
 
     <div class="step">
-      <div class="label"><div class="num">3</div><div><b>Gratis account maken</b><span>Het bestaande inlogscherm, met eerst de vraag wie je bent. Daarna gaat het zoals nu: Google of e-mail.</span></div></div>
+      <div class="label"><div class="num">3</div><div><b>Gratis account maken</b><span>Het bestaande inlogscherm, met eerst de vraag wie je bent. Daarna gaat het zoals nu: Google of e-mail. Een nieuw account begint leeg; staan er noten op dit apparaat, dan vraagt de app of je die wilt overnemen (besluit Alwin).</span></div></div>
       <div class="phone">
         <div class="small" style="font-weight:600;color:var(--muted)">← Welkom</div>
         <h2 style="margin:0;font-size:28px">Gratis account</h2>
@@ -159,7 +160,11 @@ a{color:var(--blue)}
         </div>
         <div class="btn g">G&nbsp; Doorgaan met Google</div>
         <div class="btn line">Met e-mail</div>
-        <div class="card small" style="background:var(--ok-soft);color:var(--ok)">✓ Je 6 noten van dit apparaat gaan mee naar je account.</div>
+        <div class="card small" style="display:flex;flex-direction:column;gap:8px">
+          <b>Na het inloggen: noten overnemen?</b>
+          <span class="muted">Op dit apparaat staan 6 noten die je kent of in de les hebt. Wil je die in je nieuwe account?</span>
+          <div style="display:flex;gap:8px"><span class="btn orange" style="flex:1;height:40px;font-size:14px">Ja, overnemen</span><span class="btn line" style="flex:1;height:40px;font-size:14px">Nee, leeg beginnen</span></div>
+        </div>
         <p class="xs muted" style="text-align:center;margin:0">Heb je een code van je ouder? Die vul je daarna in.</p>
       </div>
     </div>
@@ -255,7 +260,8 @@ a{color:var(--blue)}
     <ul>
       <li><b>/</b> wordt de welkomstpagina. Wie al eerder koos, gaat direct door: met een sessie naar <code>/app</code>, na "Start zonder account" naar <code>/oefenen</code>. Via het menu kom je altijd terug op de welkomstpagina.</li>
       <li>Het proefconcept (alleen de grepentabel) verdwijnt als losse pagina: de route zonder account neemt het over.</li>
-      <li><b>Overzetten:</b> bij een nieuw account gaan de noten van dit apparaat mee naar het leerlingprofiel. Gespeelde rondes en oefentijd zonder account gaan niet mee (de server heeft ze niet gecontroleerd).</li>
+      <li><b>Niet meer tonen</b> (besluit Alwin): een vinkje op de welkomstpagina. Aangevinkt ga je de volgende keer direct naar je eigen deel; via het menu kom je altijd terug.</li>
+      <li><b>Nieuw account is nieuw</b> (besluit Alwin): het begint leeg. Staan er noten op dit apparaat, dan vraagt de app na het inloggen of je die wilt overnemen. Gespeelde rondes en oefentijd zonder account gaan nooit mee (de server heeft ze niet gecontroleerd).</li>
     </ul>
   </div>
 </div>
