@@ -51,7 +51,10 @@ Regels:
 
 | Route | Scherm | Wie |
 |---|---|---|
-| `/` | Start: dagdoel, spel, grepentabel, jouw noten | leerling |
+| `/` | Welkomstpagina (AC-114): wat Notenkraker is, met twee keuzes: zonder account (`/oefenen`) of gratis account (`/app`). Vinkje "niet meer tonen" stuurt `/` voortaan direct door naar de laatste keuze; `/?welkom` toont hem altijd (menu) | iedereen |
+| `/oefenen` | Zonder account (`AnoniemApp.tsx`): Start, Grepen, Notenspel, Vrij oefenen. Alles in deze browser (lokale client, sleutel `nk-anoniem`); geen ouder, leraar of huiswerk. Neemt de notenstatus van het proefconcept (AC-107) één keer over | iedereen |
+| `/app` | Met account (`AppMetLogin.tsx`); `/app?nieuw` begint bij account maken. Een nieuw account begint leeg; staan er noten van `/oefenen` op het apparaat, dan vraagt de app één keer of die mee moeten (`components/NotenOvernemen.tsx`) | leerling, ouder, leraar |
+| `/start` (later) | Start: dagdoel, spel, grepentabel, jouw noten | leerling |
 | `/grepen/:noteId?` | Grepentabel | leerling, ouder, leraar |
 | `/spel` | Notenspel (tutorial voor nieuwe noten ervoor) | leerling |
 | `/pad` | Niveaupad (AC-59) | leerling |

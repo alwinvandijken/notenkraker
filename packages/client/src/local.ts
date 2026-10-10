@@ -4,9 +4,10 @@ import type { NotenkrakerClient, PracticeSession, Profile, Round, Song, Student,
 /**
  * In-memory/localStorage-implementatie van hetzelfde contract. Voor
  * ontwikkeling zonder Supabase, voor tests, en als fallback wanneer er geen
- * verbinding is. Eén "ouder"-profiel (kinderen onder één login), geen echte auth.
+ * verbinding is, en voor de route zonder account (/oefenen, rol "leerling"). Eén profiel
+ * (standaard "ouder": kinderen onder één login), geen echte auth.
  */
-export function createLocalNotenkraker(storageKey = "notenkraker-local"): NotenkrakerClient {
+export function createLocalNotenkraker(storageKey = "notenkraker-local", opts: { role?: Profile["role"]; displayName?: string } = {}): NotenkrakerClient {
   type State = { students: Student[]; notes: StudentNote[]; rounds: Round[]; practice?: PracticeSession[]; songs: Array<Song & { studentId: string }> };
   const load = (): State => {
     try { const raw = globalThis.localStorage?.getItem(storageKey); if (raw) return JSON.parse(raw) as State; } catch { /* geen storage */ }
@@ -18,7 +19,7 @@ export function createLocalNotenkraker(storageKey = "notenkraker-local"): Notenk
   const now = () => new Date().toISOString();
   const listeners = new Map<string, Set<(n: StudentNote[]) => void>>();
   const emit = (sid: string) => listeners.get(sid)?.forEach((cb) => cb(state.notes.filter((n) => n.studentId === sid)));
-  const profile: Profile = { id: "local", role: "ouder", displayName: "Lokaal" };
+  const profile: Profile = { id: "local", role: opts.role ?? "ouder", displayName: opts.displayName ?? "Lokaal" };
   const authListeners = new Set<(p: Profile | null) => void>();
 
   return {

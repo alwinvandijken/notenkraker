@@ -27,7 +27,8 @@ const clock = (ms: number) => {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 };
 
-export function VrijOefenen() {
+/** `after`: extra blok onder de samenvatting, bijv. de uitnodiging voor een account (zonder account) */
+export function VrijOefenen({ after }: { after?: React.ReactNode } = {}) {
   const { students, studentId } = useApp();
   const student = students.find((s) => s.id === studentId);
   const instrument = getInstrument(student?.instrumentId ?? "altsax");
@@ -181,6 +182,7 @@ export function VrijOefenen() {
           {!summary.saved && <span className="text-sm text-wrong">Opslaan lukte niet; de laatste tussenstand is wel bewaard.</span>}
         </div>
         <Chip primary onClick={() => { setSummary(null); setPhase("klaar-om-te-starten"); }}>Nog een keer</Chip>
+        {after}
       </Card>
     );
   }
