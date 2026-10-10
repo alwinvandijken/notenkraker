@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { instrumentNotes, noteName, parseId, soundingMidi, type Instrument, type NoteId, type NoteStatus } from "@notenkraker/core";
+import { instrumentNotes, midiToPitch, noteName, parseId, soundingMidi, toId, type Instrument, type NoteId, type NoteStatus } from "@notenkraker/core";
 import { playMidi } from "@/audio/synth";
 import { useStatuses, usePref } from "@/lib/poc";
 import { StaffNote, StaffRow } from "@/components/Staff";
@@ -23,6 +23,7 @@ const STATUS: Array<[NoteStatus | "", string]> = [["kent", "Kent al"], ["les", "
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const display = (id: NoteId) => cap(noteName(parseId(id), "nl"));
+const withOctave = (id: NoteId) => `${display(id)}${parseId(id).octave}`;
 
 function octaveLabel(id: NoteId, range: [string, string]): string {
   const o = parseId(id).octave, lo = parseId(range[0]).octave, hi = parseId(range[1]).octave;
@@ -55,6 +56,7 @@ export function Grepentabel({ instrument }: { instrument: Instrument }) {
   const fingering = options[Math.min(alt, Math.max(options.length - 1, 0))] ?? [];
   const needed = useMemo(() => new Set(all.filter((n) => statuses[n]).flatMap((n) => instrument.fingerings[n]?.[0] ?? [])), [all, statuses, instrument]);
   const keyNames = fingering.map((k) => instrument.keyNames[k] ?? k);
+  const sounding = soundingMidi(current, instrument.transposition);
   const counts = { mine: all.filter((n) => statuses[n]).length, les: all.filter((n) => statuses[n] === "les").length, all: all.length };
 
   const select = (n: NoteId) => { setSel(n); setAlt(0); };
@@ -62,8 +64,8 @@ export function Grepentabel({ instrument }: { instrument: Instrument }) {
 
   return (
     <div className="flex flex-col gap-3 p-4 md:p-5 md:h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom))] md:overflow-hidden">
-      <header className="flex flex-wrap items-center gap-x-4 gap-y-2 shrink-0">
-        <div className="flex items-center gap-2.5">
+      <header className="flex flex-wrap items-center gap-x-4 gap-y-3 shrink-0">
+        <div className="flex items-center gap-2.5 w-full lg:w-auto">
           <svg width="36" height="36" viewBox="0 0 40 40" aria-hidden="true">
             <rect width="40" height="40" rx="12" fill="var(--color-fg)" />
             <ellipse cx="17" cy="27" rx="7" ry="5" fill="var(--color-les)" transform="rotate(-20 17 27)" />
@@ -71,9 +73,11 @@ export function Grepentabel({ instrument }: { instrument: Instrument }) {
           </svg>
           <h1 className="font-display font-bold text-xl m-0 leading-tight">Notenkraker<span className="block text-xs font-medium text-muted">{instrument.name}</span></h1>
         </div>
-        <Segmented value={filter} onChange={setFilter} label="Welke noten"
-          options={FILTERS.map(([v, t]) => [v, `${t} (${counts[v]})`] as [Filter, string])} />
-        <span className="ml-auto"><Segmented value={view} onChange={setView} label="Weergave notenkiezer" options={[["buttons", "Knoppen"], ["staff", "Notenbalk"]]} /></span>
+        <div className="flex flex-wrap items-center gap-3 flex-1">
+          <Segmented value={filter} onChange={setFilter} label="Welke noten"
+            options={FILTERS.map(([v, t]) => [v, `${t} (${counts[v]})`] as [Filter, string])} />
+          <span className="ml-auto"><Segmented value={view} onChange={setView} label="Weergave notenkiezer" options={[["buttons", "Knoppen"], ["staff", "Notenbalk"]]} /></span>
+        </div>
       </header>
 
       <main className="grid gap-3 md:flex-1 md:min-h-0 md:grid-cols-[minmax(240px,34%)_1fr] lg:grid-cols-[minmax(280px,32%)_1fr]">
@@ -97,15 +101,17 @@ export function Grepentabel({ instrument }: { instrument: Instrument }) {
         </section>
 
         <section aria-label="Noot" className={`${panel} order-1 md:order-2 p-4 md:p-5 flex flex-col gap-3 md:min-h-0`}>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className={`text-sm font-semibold px-3 py-1.5 rounded-xl border-2 ${statusClass(statuses[current])}`}>
-              {STATUS.find(([v]) => v === (statuses[current] ?? ""))?.[1]}
-            </span>
-            <button type="button" onClick={() => playMidi(soundingMidi(current, instrument.transposition), 1.2)}
-              className="ml-auto inline-flex items-center gap-2 min-h-11 px-4 rounded-full border-2 border-fg font-semibold cursor-pointer">
-              <svg width="20" height="20" viewBox="0 0 22 22" aria-hidden="true"><path d="M3 8h4l5-4v14l-5-4H3z" fill="currentColor" /><path d="M15 7.5a5 5 0 010 7M17.5 5a8.5 8.5 0 010 12" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" /></svg>
-              Laat horen
-            </button>
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <span className={`text-sm font-semibold px-3 py-1.5 rounded-xl border-2 ${statusClass(statuses[current])}`}>
+                {STATUS.find(([v]) => v === (statuses[current] ?? ""))?.[1]}
+              </span>
+              <button type="button" aria-label="Laat horen" title="Laat horen" onClick={() => playMidi(sounding, 1.2)}
+                className="ml-auto w-11 h-11 rounded-full border-2 border-fg flex items-center justify-center cursor-pointer">
+                <svg width="20" height="20" viewBox="0 0 22 22" aria-hidden="true"><path d="M3 8h4l5-4v14l-5-4H3z" fill="currentColor" /><path d="M15 7.5a5 5 0 010 7M17.5 5a8.5 8.5 0 010 12" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" /></svg>
+              </button>
+            </div>
+            <span className="text-muted text-sm">Geschreven {withOctave(current)} · klinkt als {withOctave(toId(midiToPitch(sounding)))}</span>
           </div>
 
           <div className="flex items-center gap-4 md:flex-1 md:min-h-0">
@@ -118,15 +124,17 @@ export function Grepentabel({ instrument }: { instrument: Instrument }) {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2 items-center" role="group" aria-label="Status van deze noot">
-            <span className="text-muted text-sm mr-1">Status</span>
-            {STATUS.map(([v, t]) => {
-              const on = (statuses[current] ?? "") === v;
-              return (
-                <button key={v} type="button" aria-pressed={on} onClick={() => setStatus(current, v || null)}
-                  className={`min-h-11 px-4 rounded-full border-2 font-semibold text-[15px] cursor-pointer ${on ? statusClass(v || undefined) + " ring-2 ring-fg ring-offset-2 ring-offset-surface" : "bg-surface border-line text-fg"}`}>{t}</button>
-              );
-            })}
+          <div className="flex flex-col gap-1.5">
+            <span id="status-label" className="text-muted text-sm">Status</span>
+            <div className="grid grid-cols-4 gap-2" role="group" aria-labelledby="status-label">
+              {STATUS.map(([v, t]) => {
+                const on = (statuses[current] ?? "") === v;
+                return (
+                  <button key={v} type="button" aria-pressed={on} onClick={() => setStatus(current, v || null)}
+                    className={`min-h-11 px-2 rounded-full border-2 font-semibold text-[15px] whitespace-nowrap cursor-pointer ${on ? statusClass(v || undefined) + " ring-2 ring-fg ring-offset-2 ring-offset-surface" : "bg-surface border-line text-fg"}`}>{t}</button>
+                );
+              })}
+            </div>
           </div>
         </section>
       </main>
