@@ -1,4 +1,4 @@
-import { scoreRound, type StatusMap } from "@notenkraker/core";
+import { ageProfile, scoreRound, type StatusMap } from "@notenkraker/core";
 import type { NotenkrakerClient, PracticeSession, Profile, Round, Song, Student, StudentNote } from "./types.js";
 
 /**
@@ -57,7 +57,7 @@ export function createLocalNotenkraker(storageKey = "notenkraker-local", opts: {
     rounds: {
       async submit(sub) {
         const statuses: StatusMap = Object.fromEntries(state.notes.filter((n) => n.studentId === sub.studentId).map((n) => [n.noteId, n.status]));
-        const r: Round = { id: uid(), studentId: sub.studentId, mode: sub.mode, ms: sub.ms, playedAt: now(), answers: sub.answers, ...scoreRound({ mode: sub.mode, lives: 3, ms: sub.ms, answers: sub.answers }, statuses) };
+        const r: Round = { id: uid(), studentId: sub.studentId, mode: sub.mode, ms: sub.ms, playedAt: now(), answers: sub.answers, ...scoreRound({ mode: sub.mode, lives: ageProfile(state.students.find((s) => s.id === sub.studentId)?.ageBand).lives, ms: sub.ms, answers: sub.answers }, statuses) };
         state.rounds.unshift(r); save(); return r;
       },
       async recent(sid, limit = 6) { return state.rounds.filter((r) => r.studentId === sid).slice(0, limit); },

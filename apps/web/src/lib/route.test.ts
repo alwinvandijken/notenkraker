@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appFor, chooseRoute, importableNotes, markImportAsked, offerImport, redirectFor } from "./route";
+import { appFor, chooseRoute, importableNotes, importableProfile, markImportAsked, offerImport, redirectFor } from "./route";
 
 function memory(init: Record<string, string> = {}): Storage {
   const m = new Map(Object.entries(init));
@@ -85,5 +85,11 @@ describe("noten overnemen naar een nieuw account", () => {
     const s = memory({ "nk-anoniem": anoniem });
     markImportAsked(s);
     expect(offerImport(s, 0)).toBe(false);
+  });
+
+  it("neemt ook leeftijd, ervaring en de afgeronde kennismaking mee", () => {
+    const st = JSON.stringify({ students: [{ id: "x", ageBand: "9-12", experience: "lt1", onboardedAt: "2026-10-10T10:00:00Z" }], notes: [] });
+    expect(importableProfile(memory({ "nk-anoniem": st }))).toEqual({ ageBand: "9-12", experience: "lt1", onboardedAt: "2026-10-10T10:00:00Z" });
+    expect(importableProfile(memory())).toEqual({});
   });
 });

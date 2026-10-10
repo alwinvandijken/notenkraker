@@ -4,6 +4,7 @@ import { rightsFor, type Student } from "@notenkraker/client";
 import { client, hasBackend } from "@/lib/client";
 import { useApp } from "@/lib/store";
 import { KindUitnodigen } from "@/components/KindUitnodigen";
+import { Kennismaking } from "@/screens/Kennismaking";
 import { Card, Chip, Ghost } from "@/components/ui";
 
 const PRESETS: Record<string, { kent: string[]; les: string[] }> = {
@@ -24,6 +25,8 @@ export function Kinderen({ onPractice }: { onPractice(studentId: string): void }
   const [error, setError] = useState("");
   const [kindInvite, setKindInvite] = useState<{ name: string; code: string } | null>(null);
   const [leraarCode, setLeraarCode] = useState<{ studentId: string; code: string } | null>(null);
+  /** net toegevoegd kind: de ouder beantwoordt leeftijd en ervaring (AC-115) */
+  const [intake, setIntake] = useState<Student | null>(null);
 
   async function run(action: () => Promise<unknown>) {
     setError("");
@@ -37,12 +40,23 @@ export function Kinderen({ onPractice }: { onPractice(studentId: string): void }
     if (p) { for (const n of p.kent) await client.notes.setStatus(s.id, n, "kent"); for (const n of p.les) await client.notes.setStatus(s.id, n, "les"); }
     setAdding(false); setNewName(""); setPreset("");
     await loadStudents();
+    if (isOuder) setIntake(s);
   }
 
   const inviteKind = (s: Student) => run(async () => setKindInvite({ name: s.name, code: await client.students.inviteCode(s.id, "kind") }));
   const inviteLeraar = (s: Student) => run(async () => setLeraarCode({ studentId: s.id, code: await client.students.inviteCode(s.id, "leraar") }));
   const instrumentName = (id: string) => INSTRUMENTS.find((i) => i.id === id)?.name ?? id;
   const field = "rounded-xl border-2 border-line bg-bg px-3 py-2";
+
+  if (intake) {
+    return (
+      <div className="mt-5 flex flex-col gap-3">
+        <button type="button" onClick={() => setIntake(null)} className="self-start text-sm font-semibold text-muted bg-transparent cursor-pointer -ml-1 px-1">← {rights.studentsTitle}</button>
+        <Kennismaking student={intake} statuses={{}} who="ouder" onDone={() => { setIntake(null); void loadStudents(); }} />
+        <p className="text-sm text-muted text-center m-0">Welke noten {intake.name} al kent, vragen we {intake.name} zelf de eerste keer dat er geoefend wordt.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-3 mt-5">

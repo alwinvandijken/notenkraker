@@ -13,6 +13,7 @@ import { Kinderen } from "@/screens/Kinderen";
 import { Dashboard } from "@/screens/Dashboard";
 import { KindPagina } from "@/screens/KindPagina";
 import { DagPagina } from "@/screens/DagPagina";
+import { Kennismaking } from "@/screens/Kennismaking";
 import { Profiel } from "@/screens/Profiel";
 import { Menu, type MenuItem } from "@/components/Menu";
 import { KoppelMelding } from "@/components/KoppelMelding";
@@ -30,7 +31,7 @@ function greeting(name: string, now = new Date()) {
 }
 
 export function AppMetLogin() {
-  const { profile, students, studentId, statuses, mode, init, selectStudent, setMode, setStatus } = useApp();
+  const { profile, students, studentId, statuses, mode, init, selectStudent, setMode, setStatus, loadStudents } = useApp();
   // ouder en leraar starten op het overzicht, een leerling meteen bij het oefenen
   const [screen, setScreen] = useState<Screen | null>(() => navState()?.screen ?? null);
   /** het kind waarvan de pagina open is (scherm "kind") */
@@ -82,6 +83,20 @@ export function AppMetLogin() {
     </select>
   );
 
+  // eerste keer oefenen met deze leerling: even kennismaken (AC-115); ook als het kind op het toestel van de ouder speelt
+  if (current === "oefenen" && student && !student.onboardedAt) {
+    return (
+      <div className="max-w-[900px] mx-auto px-4 pt-6 pb-12">
+        <header className="flex items-start justify-between gap-3 mb-4">
+          <h1 className="font-display font-extrabold text-3xl sm:text-4xl leading-none m-0">{student.userId === profile.id ? "Notenkraker" : student.name}</h1>
+          {menu}
+        </header>
+        <NotenOvernemen />
+        <Kennismaking key={student.id} student={student} statuses={statuses} onDone={() => void loadStudents()} />
+      </div>
+    );
+  }
+
   // Grepen: de grepentabel van het proefconcept (AC-107) over het hele scherm, met de status van de leerling
   if (current === "oefenen" && mode === "learn" && student) {
     return (
@@ -126,7 +141,7 @@ export function AppMetLogin() {
         const next = { ...day, date }; setDay(next); window.history.replaceState({ screen: "dag", childId, day: next } satisfies NavState, "");
       }} />}
       {current === "kinderen" && <Kinderen onPractice={practice} />}
-      {current === "profiel" && <Profiel onLinked={() => go("oefenen")} />}
+      {current === "profiel" && <Profiel onLinked={() => go("oefenen")} onRedoIntake={() => go("oefenen")} />}
       {current === "oefenen" && (
         <>
           <div className="font-display font-semibold text-lg mt-5 mb-2 flex flex-wrap items-center gap-x-3 gap-y-2">
