@@ -1,8 +1,8 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { promotionCandidates, scoreRound } from "@notenkraker/core";
 import type {
-  AuthApi, NotenkrakerClient, NotesApi, Profile, Progress, Role, Round, RoundsApi, RoundSubmission,
-  Song, SongsApi, Student, StudentNote, StudentsApi,
+  AuthApi, InvitePurpose, NotenkrakerClient, NotesApi, Profile, Progress, Role, Round, RoundsApi, RoundSubmission,
+  SelfRole, Song, SongsApi, Student, StudentNote, StudentsApi,
 } from "./types.js";
 
 /**
@@ -25,7 +25,7 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
       const { error } = await sb.auth.signInWithPassword({ email, password });
       if (error) throw error;
     },
-    async signUpWithPassword(email, password, role: Role, displayName) {
+    async signUpWithPassword(email, password, role: SelfRole, displayName) {
       const { error } = await sb.auth.signUp({ email, password, options: { data: { role, display_name: displayName } } });
       if (error) throw error;
     },
@@ -33,12 +33,16 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
       const { error } = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
       if (error) throw error;
     },
+    async chooseRole(role) {
+      const { error } = await sb.rpc("choose_role", { p_role: role });
+      if (error) throw error;
+    },
     async signOut() { await sb.auth.signOut(); },
     async currentProfile() {
       const { data: { user } } = await sb.auth.getUser();
       if (!user) return null;
       const { data } = await sb.from("profiles").select("id, role, display_name").eq("id", user.id).maybeSingle();
-      return { id: user.id, role: (data?.role ?? "leerling") as Role, displayName: data?.display_name ?? user.email ?? "", email: user.email ?? undefined };
+      return { id: user.id, role: (data?.role ?? null) as Role | null, displayName: data?.display_name ?? user.email ?? "", email: user.email ?? undefined };
     },
     onAuthChange(cb) {
       const { data } = sb.auth.onAuthStateChange(async () => cb(await auth.currentProfile()));
@@ -77,8 +81,13 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
       if (error) throw error;
       return rowToStudent(data.student);
     },
-    async inviteCode(studentId) {
-      const { data, error } = await sb.functions.invoke("invite-code", { body: { studentId } });
+    async claimByCode(code) {
+      const { data, error } = await sb.rpc("claim_student", { p_code: code });
+      if (error) throw error;
+      return rowToStudent(data);
+    },
+    async inviteCode(studentId, purpose: InvitePurpose = "leraar") {
+      const { data, error } = await sb.functions.invoke("invite-code", { body: { studentId, purpose } });
       if (error) throw error;
       return data.code as string;
     },

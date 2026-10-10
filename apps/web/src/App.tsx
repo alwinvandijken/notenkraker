@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { INSTRUMENTS } from "@notenkraker/instruments";
+import { rightsFor, type InvitePurpose } from "@notenkraker/client";
 import { client, hasBackend } from "@/lib/client";
 import { useApp } from "@/lib/store";
 import { Auth } from "@/screens/Auth";
+import { Welkom } from "@/screens/Welkom";
 import { Learn } from "@/screens/Learn";
 import { Game } from "@/screens/Game";
 import { Chip, Ghost, Segmented } from "@/components/ui";
@@ -19,14 +21,22 @@ export function App() {
   const [newInst, setNewInst] = useState("altsax");
   const [preset, setPreset] = useState("");
   const [code, setCode] = useState("");
+  const [invite, setInvite] = useState<{ purpose: InvitePurpose; code: string } | null>(null);
 
   useEffect(() => { void init(); }, [init]);
 
   if (profile === undefined) return <div className="p-6 text-muted">Laden…</div>;
   if (!profile) return <Auth />;
+  const rights = rightsFor(profile.role);
+  if (rights.mustChooseRole) return <Welkom />;
 
   const student = students.find((s) => s.id === studentId);
-  const canManage = profile.role === "leraar" || !hasBackend;
+  const canInvite = rights.canInvite && hasBackend && Boolean(student);
+
+  async function makeInvite(purpose: InvitePurpose) {
+    if (!student) return;
+    setInvite({ purpose, code: await client.students.inviteCode(student.id, purpose) });
+  }
 
   async function addStudent() {
     const name = newName.trim(); if (!name) return;
@@ -49,21 +59,28 @@ export function App() {
 
       <div className="font-display font-semibold text-lg mt-5 mb-2 flex flex-wrap items-center gap-x-3 gap-y-2">
         Leerling
-        <select id="student" aria-label="Leerling" value={studentId ?? ""} onChange={(e) => selectStudent(e.target.value || null)}
+        <select id="student" aria-label="Leerling" value={studentId ?? ""} onChange={(e) => { setInvite(null); selectStudent(e.target.value || null); }}
           className="rounded-xl border-2 border-line bg-surface px-3 py-1.5 font-bold">
           {students.length === 0 && <option value="">— nog geen leerling —</option>}
           {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
-        {canManage && <Ghost onClick={() => setAdding((v) => !v)}>+ leerling</Ghost>}
-        {profile.role === "leraar" && hasBackend && (
+        {rights.canCreateStudents && <Ghost onClick={() => setAdding((v) => !v)}>+ leerling</Ghost>}
+        {rights.canLinkByCode && hasBackend && (
           <form className="flex gap-1" onSubmit={async (e) => { e.preventDefault(); if (!code) return; await client.students.linkByCode(code); setCode(""); await loadStudents(); }}>
             <input id="code" aria-label="Uitnodigingscode" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="Code" className="w-24 rounded-xl border-2 border-line bg-surface px-2 py-1 text-sm" />
-            <Ghost>Koppel</Ghost>
+            <Ghost type="submit">Koppel</Ghost>
           </form>
         )}
         <span className="ml-auto"><Segmented value={mode} options={[["learn", "Grepen"], ["game", "Spel"]]} onChange={setMode} label="Onderdeel" /></span>
       </div>
 
+      {canInvite && (
+        <div className="flex flex-wrap items-center gap-2 mb-2 text-sm">
+          <Ghost onClick={() => makeInvite("leraar")}>Code voor leraar</Ghost>
+          {profile.role === "ouder" && !student?.userId && <Ghost onClick={() => makeInvite("kind")}>Code voor eigen login van {student?.name}</Ghost>}
+          {invite && <span className="rounded-lg border-2 border-line px-2 py-1">{invite.purpose === "kind" ? "Laat je kind inloggen en deze code invoeren" : "Geef deze code aan de leraar"}: <b className="font-mono">{invite.code}</b> (7 dagen geldig)</span>}
+        </div>
+      )}
       {adding && (
         <div className="rounded-2xl border-2 border-line bg-surface p-3 mb-2 flex flex-wrap gap-2 items-center">
           <input id="newName" className="flex-1 min-w-40 rounded-xl border-2 border-line bg-bg px-3 py-2" placeholder="Naam" maxLength={40} value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void addStudent(); }} />

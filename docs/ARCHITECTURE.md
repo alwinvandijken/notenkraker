@@ -13,8 +13,8 @@ Noten leren lezen en spelen voor beginnende muziekleerlingen (vanaf ±8 jaar): g
 | App-type | **PWA** (web, op beginscherm); Capacitor later als App Store nodig is | Microfoon, audio, offline en fullscreen werken in Safari/Chrome; geen App Store-proces voor een gezins-/lesapp |
 | Headless | Frontend praat alleen via `@notenkraker/client` met een **API-contract** (`packages/api/openapi.yaml`); backend is inwisselbaar | Andere frontends (native, docent-dashboard, tv) later zonder de kern te herschrijven |
 | Frontend | **Vite + React 19 + TypeScript**, Tailwind 4, shadcn/ui-stijl componenten, Zustand | Snel, statisch, bekend; muziekonderdelen (notenbalk, grepen) zijn eigen SVG-componenten |
-| Backend | **Supabase**: Postgres + RLS, Auth, PostgREST, Realtime, Edge Functions | Geen eigen server; auth met e-mail/wachtwoord en Google (later meer SSO) |
-| Rollen | `leerling` en `leraar` (een ouder is leraar) | Leraar beheert leerlingen en ziet voortgang; leerling speelt. Koppeling via uitnodigingscode |
+| Backend | **Supabase**: Postgres + RLS, Auth, PostgREST, Realtime, Edge Functions. Project `notenkraker` (ref `mtkkxpycnzleqdkvkegy`), regio West EU (Paris) | Geen eigen server; auth met e-mail/wachtwoord en Google (later meer SSO) |
+| Rollen | `leerling` en `ouder` kies je zelf; `leraar` en `admin` wijst Alwin toe in Supabase (AC-106) | Een ouder heeft één login en maakt daaronder kinderen aan; een kind kan met een code van de ouder een eigen login koppelen. Een leraar koppelt leerlingen met een uitnodigingscode. Een admin leest alles. Zie "Rollen en toegang" |
 | Instrumenten | Versiebeheerde **JSON in de repo** (`packages/instruments`), gevalideerd met Zod | Content, geen gebruikersdata; toevoegen = één bestand + evt. renderer |
 | Domeinlogica | `@notenkraker/core`: puur TypeScript zonder DOM/netwerk | Dezelfde regels in app, Edge Function en tests |
 | Audio | Algoritme in `core/audio` (autocorrelatie + stabiliteitsvolger); browserkant in `apps/web/src/audio` | Platform levert samples, core beslist |
@@ -52,14 +52,14 @@ Regels:
 | Route | Scherm | Wie |
 |---|---|---|
 | `/` | Start: dagdoel, spel, grepentabel, jouw noten | leerling |
-| `/grepen/:noteId?` | Grepentabel | leerling, leraar |
+| `/grepen/:noteId?` | Grepentabel | leerling, ouder, leraar |
 | `/spel` | Notenspel (tutorial voor nieuwe noten ervoor) | leerling |
 | `/pad` | Niveaupad (AC-59) | leerling |
 | `/liedjes`, `/liedjes/:id` | Liedje-modus (AC-65) | leerling |
 | `/leraar`, `/leraar/:studentId` | Overzicht, notenstatus, les klaarzetten, rondes | leraar |
-| `/kies-leerling` | Wie speelt er? (gedeelde gezins-iPad) | leraar-account op een gedeeld toestel |
+| `/kies-leerling` | Wie speelt er? (gedeelde gezins-iPad) | ouderaccount op een gedeeld toestel |
 | `/instellingen` | Skin kiezen, account | iedereen |
-| `/welkom` | Rolkeuze na eerste Google-login | nieuwe gebruiker |
+| `/welkom` | Leerling of ouder kiezen, of als kind een code van de ouder invoeren (na eerste Google-login) | gebruiker zonder rol |
 
 Spel en tutorial zijn schermvullend, zonder navigatiebalk.
 
@@ -93,10 +93,10 @@ Vaste regels: tikvlakken minstens 44 pt (antwoordknoppen in het spel 72 pt of me
 Volledig in [`docs/DATAMODEL.md`](DATAMODEL.md), met de nieuwe tabellen en het migratieplan. Kort:
 
 ```
-profiles         id (= auth.users.id), role, display_name, role_confirmed*
+profiles         id (= auth.users.id), role (null|leerling|ouder|leraar|admin), display_name
 students         id, owner_id, user_id?, name, instrument_id, naming, age_band*, skin_id*, daily_goal*, time_zone*
 teacher_students teacher_id, student_id
-invite_codes     code, student_id, expires_at
+invite_codes     code, student_id, purpose ('leraar'|'kind'), expires_at
 student_notes    student_id, note_id, status ('kent'|'les'|'moet'), introduced_at*
 rounds           id (client), student_id, mode (+'keys'), level_id*, played_at, ms, answers, completed, mistakes, stars, xp, wrong_notes
 songs            id, student_id, title, instrument_id, source, notes
@@ -108,6 +108,21 @@ student_unlocks* student_id, kind, item_id, unlocked_at
 ```
 
 Toegang: `can_access_student(id)` = eigenaar, de leerling zelf, of een gekoppelde leraar. Rondes, niveaus en vrijgespeelde items worden alleen via Edge Functions geschreven (server berekent sterren, XP en beloningen).
+
+### Rollen en toegang
+
+Vastgelegd in `supabase/migrations/0002_rollen.sql`, getest in `supabase/tests/rollen.test.sql`. De UI leest de rechten uit `rightsFor(role)` in `@notenkraker/client`.
+
+| Rol | Hoe je hem krijgt | Mag |
+|---|---|---|
+| (geen) | eerste Google-login | alleen `/welkom`: `choose_role('leerling'|'ouder')` (eenmalig) of `claim_student(code)` |
+| `leerling` | zelf gekozen, of via een kindcode | spelen met het eigen leerlingprofiel; code voor een leraar maken |
+| `ouder` | zelf gekozen | kinderen aanmaken onder de eigen login; codes maken voor een leraar of voor het kind zelf |
+| `leraar` | Alwin zet hem in Supabase (`update profiles set role = 'leraar' where id = …`) | leerlingen aanmaken; leerlingen koppelen met een code (`link-student`) |
+| `admin` | Alwin zet hem in Supabase | alles lezen; schrijven via het dashboard |
+
+- De gebruiker kan alleen `display_name` zelf wijzigen (column grant); de rol nooit. Een rol `leraar` of `admin` in de signup-metadata wordt genegeerd.
+- Een kindcode (`purpose = 'kind'`) kan alleen de eigenaar maken, en alleen zolang het kind nog geen eigen login heeft. Een leraarcode werkt niet als kindcode, en omgekeerd.
 
 ## Noten en toonhoogte
 
@@ -134,9 +149,14 @@ pnpm test && pnpm typecheck && pnpm build
 
 Met Supabase: `supabase start`, migraties toepassen, `.env` met `VITE_SUPABASE_URL` en `VITE_SUPABASE_ANON_KEY`, functions deployen met `supabase functions deploy`.
 
+```
+supabase start && supabase test db          # pgTAP-tests in supabase/tests (Docker nodig)
+supabase functions serve --no-verify-jwt     # lokaal; CLI 2.72 kan de ES256-tokens van lokale auth niet controleren
+```
+
 ## Open vragen
 
-1. **Gedeelde gezins-iPad.** Speelt een kind onder het account van de ouder (kies-leerling-scherm), of heeft elk kind een eigen login? Voorstel: beide mogelijk, met het ouderaccount als standaard en een simpele pincode voor het leraarsdeel. Die pincode is een drempel tegen per ongeluk tikken, geen beveiliging.
+1. **Gedeelde gezins-iPad.** Besloten (AC-106): beide. Standaard spelen kinderen onder het ouderaccount; een kind kan optioneel een eigen Google-login koppelen met een code van de ouder. Nog open: de pincode voor het ouderdeel.
 2. **Liedjes delen.** Per leerling (zoals nu) of per leraar met koppeling aan leerlingen? Beslissen vóór AC-65.
 3. **Meerdere instrumenten per kind.** Nu één instrument per leerlingprofiel; een tweede instrument is een tweede profiel. Goed genoeg?
 4. **Wie mag de notenstatus wijzigen?** In de mock-ups doet alleen de leraar dat. Zonder leraar (kind met eigen account) moet de leerling het zelf kunnen.

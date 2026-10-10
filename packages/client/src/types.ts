@@ -6,11 +6,17 @@ import type { NoteId, NoteStatus, RoundResult } from "@notenkraker/core";
  * Houd dit gelijk aan packages/api/openapi.yaml.
  */
 
-export type Role = "leerling" | "leraar";
+/** leerling en ouder kies je zelf; leraar en admin worden toegewezen (zie docs/ARCHITECTURE.md) */
+export type Role = "leerling" | "ouder" | "leraar" | "admin";
+/** rollen die een gebruiker zelf mag kiezen */
+export type SelfRole = Extract<Role, "leerling" | "ouder">;
+/** waarvoor een uitnodigingscode is: een leraar koppelen of het kind zelf laten inloggen */
+export type InvitePurpose = "leraar" | "kind";
 
 export interface Profile {
   id: string;          // auth user id
-  role: Role;
+  /** null = nog geen rol gekozen (eerste Google-login) */
+  role: Role | null;
   displayName: string;
   email?: string;
 }
@@ -63,7 +69,9 @@ export interface Progress {
 
 export interface AuthApi {
   signInWithPassword(email: string, password: string): Promise<void>;
-  signUpWithPassword(email: string, password: string, role: Role, displayName: string): Promise<void>;
+  signUpWithPassword(email: string, password: string, role: SelfRole, displayName: string): Promise<void>;
+  /** eenmalig na de eerste Google-login */
+  chooseRole(role: SelfRole): Promise<void>;
   signInWithGoogle(redirectTo?: string): Promise<void>;
   signOut(): Promise<void>;
   currentProfile(): Promise<Profile | null>;
@@ -77,7 +85,9 @@ export interface StudentsApi {
   remove(id: string): Promise<void>;
   /** leraar koppelt een leerling via uitnodigingscode */
   linkByCode(code: string): Promise<Student>;
-  inviteCode(studentId: string): Promise<string>;
+  /** kind met eigen login koppelt zich aan het leerlingprofiel dat de ouder aanmaakte */
+  claimByCode(code: string): Promise<Student>;
+  inviteCode(studentId: string, purpose?: InvitePurpose): Promise<string>;
 }
 
 export interface NotesApi {

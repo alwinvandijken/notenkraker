@@ -67,10 +67,11 @@ paths:
         "403": { description: Geen toegang tot deze leerling }
   /invite-code:
     post:
-      summary: Uitnodigingscode voor een leerling (voor koppeling aan een leraar)
-      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [studentId], properties: { studentId: { type: string, format: uuid } } } } } }
+      summary: Uitnodigingscode voor een leerling. 'leraar' koppelt een leraar; 'kind' laat het kind zelf inloggen (alleen de eigenaar/ouder)
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [studentId], properties: { studentId: { type: string, format: uuid }, purpose: { type: string, enum: [leraar, kind], default: leraar } } } } } }
       responses:
-        "200": { description: Code, content: { application/json: { schema: { type: object, properties: { code: { type: string } } } } } }
+        "200": { description: Code (7 dagen geldig), content: { application/json: { schema: { type: object, properties: { code: { type: string } } } } } }
+        "403": { description: Geen toegang tot deze leerling }
   /link-student:
     post:
       summary: Leraar koppelt zichzelf aan een leerling via code
@@ -78,6 +79,15 @@ paths:
       responses:
         "200": { description: Gekoppelde leerling, content: { application/json: { schema: { type: object, properties: { student: { $ref: "#/components/schemas/Student" } } } } } }
         "404": { description: Code onbekend of verlopen }
+x-rpc:
+  description: |
+    Postgres-functies via PostgREST (POST /rest/v1/rpc/<naam>), zie supabase/migrations/0002_rollen.sql.
+    choose_role(p_role: 'leerling'|'ouder') — eenmalig na de eerste Google-login; bij leerling ook een eigen leerlingprofiel.
+    claim_student(p_code) → Student — kind koppelt zijn eigen login aan het leerlingprofiel van de ouder (code met purpose 'kind').
+    create_invite_code(p_student_id, p_purpose) → code — door /invite-code gebruikt.
+  roles: |
+    profiles.role: null (nog kiezen) | leerling | ouder | leraar | admin.
+    leerling en ouder kiest de gebruiker zelf; leraar en admin worden in Supabase toegewezen. admin leest alles.
 x-postgrest:
   description: |
     Tabellen die rechtstreeks via PostgREST (met RLS) gelezen/geschreven worden:

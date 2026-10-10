@@ -10,6 +10,7 @@ interface AppState {
   statuses: StatusMap;
   mode: "learn" | "game";
   init(): Promise<void>;
+  refreshProfile(): Promise<void>;
   loadStudents(): Promise<void>;
   selectStudent(id: string | null): void;
   setStatus(noteId: string, status: StatusMap[string] | null): Promise<void>;
@@ -29,6 +30,12 @@ export const useApp = create<AppState>((set, get) => ({
     const profile = await client.auth.currentProfile();
     set({ profile });
     client.auth.onAuthChange((p) => { set({ profile: p }); if (p) void get().loadStudents(); else set({ students: [], studentId: null, statuses: {} }); });
+    if (profile) await get().loadStudents();
+  },
+
+  async refreshProfile() {
+    const profile = await client.auth.currentProfile();
+    set({ profile });
     if (profile) await get().loadStudents();
   },
 
