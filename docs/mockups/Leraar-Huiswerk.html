@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leraar en huiswerk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EDF2F7;--card:#FFFFFF;--ink:#172440;--muted:#4A5873;--line:#DCE3EC;--blue:#2459C9;--blue-soft:#DCE6FA;--orange:#F4A261;--orange-soft:#FDEBDD;--accent:#C2531A;--ok:#1F7A4D;--ok-soft:#DDF2E5;--grey:#8592AA;--wrong:#C4362B;--wrong-soft:#F8E0DD;--warn-soft:#FCEBD6;--warn:#9A5B12}
+*{box-sizing:border-box}
+body{margin:0;background:#DDE5EF;color:var(--ink);font-family:Lexend,sans-serif}
+a{color:var(--blue)}
+.page{max-width:1500px;margin:0 auto;padding:32px 16px 64px}
+.intro{max-width:820px}
+.intro h1{margin:0 0 8px;font-size:32px}
+.intro p{margin:0 0 6px;color:var(--muted);line-height:1.5}
+.who{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:40px 0 0}
+.row{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start;margin-top:20px}
+.step{display:flex;flex-direction:column;gap:10px;max-width:100%}
+.label{display:flex;gap:10px;align-items:baseline;max-width:340px}
+.num{flex:none;width:28px;height:28px;border-radius:14px;background:var(--ink);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+.label b{font-size:16px}
+.label span{display:block;font-size:13px;color:var(--muted);line-height:1.4;margin-top:2px}
+.phone{width:340px;height:720px;background:var(--bg);border-radius:40px;border:10px solid #172440;padding:34px 14px 14px;overflow:hidden;display:flex;flex-direction:column;gap:12px}
+.ipad{width:1000px;max-width:100%;background:var(--bg);border-radius:28px;border:12px solid #172440;padding:24px;display:flex;flex-direction:column;gap:16px}
+.card{background:var(--card);border-radius:18px;padding:14px}
+.back{font-size:13px;font-weight:600;color:var(--muted)}
+h2.t{margin:0;font-size:26px;line-height:1.05}
+.sub{font-size:13px;color:var(--muted)}
+.muted{color:var(--muted)}
+.small{font-size:13px;line-height:1.4}
+.xs{font-size:11px}
+.cap{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:#fff;border-radius:14px;padding:10px 12px}
+.stat b{display:block;font-size:20px}
+.stat span{font-size:11px;color:var(--muted);line-height:1.3;display:block}
+.lrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.lrow:first-of-type{border-top:0}
+.av{width:36px;height:36px;border-radius:18px;background:var(--blue);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
+.grow{flex:1;min-width:0}
+.name{font-weight:700;font-size:15px}
+.bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:5px}
+.bar i{display:block;height:100%;background:var(--ok);border-radius:4px}
+.bar i.low{background:var(--orange)}
+.badge{font-size:11px;font-weight:600;border-radius:10px;padding:3px 8px;white-space:nowrap;background:var(--ok-soft);color:var(--ok)}
+.badge.warn{background:var(--warn-soft);color:var(--warn)}
+.badge.bad{background:var(--wrong-soft);color:#8E2A22}
+.chev{color:var(--muted);font-size:20px}
+.tabs{display:flex;gap:4px;background:#fff;border-radius:22px;padding:4px}
+.tabs span{flex:1;text-align:center;font-size:13px;padding:8px 0;border-radius:18px;color:var(--muted)}
+.tabs span.on{background:var(--ink);color:#fff;font-weight:600}
+.note{min-width:34px;height:30px;padding:0 9px;border-radius:10px;font-weight:700;font-size:14px;display:inline-flex;align-items:center;justify-content:center;background:var(--blue-soft)}
+.note.les{background:var(--orange);color:var(--ink)}
+.note.add{background:#fff;border:2px dashed var(--line);color:var(--muted);font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;align-items:end;height:70px}
+.day{display:flex;flex-direction:column;align-items:center;justify-content:end;gap:3px;font-size:10px;color:var(--muted);height:100%}
+.day .st{width:100%;display:flex;flex-direction:column;border-radius:6px;overflow:hidden}
+.day.goal .st{outline:2px solid var(--ok);outline-offset:1px}
+.weeks{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;align-items:end;height:80px}
+.wk{display:flex;flex-direction:column;align-items:center;justify-content:end;gap:3px;font-size:11px;color:var(--muted);height:100%}
+.wk i{display:block;width:100%;border-radius:8px;background:var(--blue)}
+.goal-line{position:relative}
+.check{display:flex;gap:8px;align-items:center;font-size:14px;padding:6px 0}
+.box{width:20px;height:20px;border-radius:6px;border:2px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff}
+.box.on{background:var(--ok);border-color:var(--ok)}
+.field{border:2px solid var(--line);border-radius:12px;padding:9px 11px;font-size:14px;background:#fff}
+.stepper{display:flex;align-items:center;gap:10px}
+.stepper b{font-size:22px;min-width:64px;text-align:center}
+.pm{width:36px;height:36px;border-radius:18px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-weight:700}
+.btn{display:flex;align-items:center;justify-content:center;height:48px;border-radius:24px;font-size:16px;font-weight:700;background:var(--accent);color:#fff;margin-top:auto}
+.btn.line{background:#fff;color:var(--ink);border:2px solid var(--line)}
+.dots{display:flex;gap:4px}
+.dots i{width:18px;height:18px;border-radius:5px;background:var(--line)}
+.dots i.ok{background:var(--ok)}
+.dots i.half{background:#9ccdb3}
+.dots i.today{outline:2px solid var(--ink);outline-offset:1px}
+.mark{outline:3px solid var(--accent);outline-offset:3px;border-radius:14px}
+.grid2{display:grid;grid-template-columns:1.25fr 1fr;gap:16px}
+.rules{max-width:1000px;margin-top:44px;background:#fff;border-radius:24px;padding:22px 26px}
+.rules h2{margin:0 0 10px;font-size:22px}
+.rules h3{margin:18px 0 6px;font-size:16px}
+.rules p,.rules li{color:var(--muted);line-height:1.5;font-size:15px;margin:0 0 6px}
+.rules ul{margin:0;padding-left:20px}
+.rules code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="intro">
+    <h1>Leraar: leerlingen, oefentijd en huiswerk</h1>
+    <p>Mock-up voor wat een leraar ziet als hij inlogt. Zelfde opbouw als de ouderapp: een kort overzicht, dan een lijst, dan pagina's met details. Leesbaar op een staande iPhone, op de iPad in kolommen. Details zijn pagina's, geen vensters.</p>
+    <p>Huiswerk bestaat uit vier delen: <b>noten</b> om te oefenen, een <b>oefendoel per dag</b>, een <b>stuk of oefening</b> en een <b>opmerking</b>. De leraar zet het na de les klaar; de leerling ziet het op zijn startscherm; de app meet de oefentijd met het spel en de oefentimer.</p>
+    <p><a href="index.html">← alle mock-ups</a> · bouwt voort op <a href="iPadA-Leraar.html">Leraar (iPad)</a> en <a href="iPadA-Ouder.html">Ouderdashboard</a></p>
+  </div>
+
+  <p class="who">Leraar · iPhone staand</p>
+  <div class="row">
+
+    <div class="step">
+      <div class="label"><div class="num">1</div><div><b>Startscherm</b><span>Drie cijfers over deze week en de leerlingenlijst. Wie achterloopt met zijn huiswerk staat bovenaan. Per leerling één regel: oefentijd tegenover het doel en wanneer de volgende les is.</span></div></div>
+      <div class="phone">
+        <div style="display:flex;justify-content:space-between;align-items:start">
+          <div><h2 class="t">Goedemiddag, Marieke</h2><div class="sub">Deze week, ma 5 – zo 11 okt</div></div>
+          <span class="badge" style="background:#fff;color:var(--ink);border:2px solid var(--line);padding:6px 10px">☰</span>
+        </div>
+        <div class="stats">
+          <div class="stat"><b>9 van 12</b><span>leerlingen geoefend</span></div>
+          <div class="stat"><b>6 van 12</b><span>huiswerk op schema</span></div>
+          <div class="stat"><b>14 u</b><span>samen geoefend</span></div>
+        </div>
+        <div class="card" style="padding:6px 14px">
+          <div class="cap" style="padding-top:8px">Loopt achter</div>
+          <div class="lrow"><span class="av">S</span><div class="grow"><div class="name">Sem</div><div class="xs muted">15 van 100 min · laatst 5 dagen geleden</div><div class="bar"><i class="low" style="width:15%"></i></div></div><span class="chev">›</span></div>
+          <div class="lrow"><span class="av">N</span><div class="grow"><div class="name">Noor</div><div class="xs muted">40 van 100 min · les morgen</div><div class="bar"><i class="low" style="width:40%"></i></div></div><span class="chev">›</span></div>
+          <div class="lrow"><span class="av">D</span><div class="grow"><div class="name">Daan</div><div class="xs muted">geen huiswerk · nog niet geoefend</div></div><span class="badge warn">huiswerk geven</span></div>
+          <div class="cap" style="padding-top:12px">Op schema</div>
+          <div class="lrow"><span class="av">A</span><div class="grow"><div class="name">Annabel</div><div class="xs muted">118 van 100 min · les do</div><div class="bar"><i style="width:100%"></i></div></div><span class="chev">›</span></div>
+          <div class="lrow"><span class="av">L</span><div class="grow"><div class="name">Lotte</div><div class="xs muted">80 van 100 min · les vr</div><div class="bar"><i style="width:80%"></i></div></div><span class="chev">›</span></div>
+          <div class="small muted" style="padding:8px 0 10px">+ 7 andere leerlingen</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="label"><div class="num">2</div><div><b>Leerlingpagina</b><span>Bovenaan het huidige huiswerk met de voortgang per dag. Daaronder oefentijd per dag of per week. Noten en eerdere lessen op eigen pagina's. Tik op een dag voor de dagpagina die al bestaat.</span></div></div>
+      <div class="phone">
+        <div class="back">← Leerlingen</div>
+        <div style="display:flex;justify-content:space-between;align-items:end"><h2 class="t">Lotte</h2><span class="sub">Altsax · les vr 16:00</span></div>
+        <div class="card" style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span class="cap">Huiswerk tot vr 16 okt</span><span class="badge">op schema</span></div>
+          <div class="chips"><span class="note les">D</span><span class="note les">E</span><span class="note les">Fis</span></div>
+          <div class="small">🎵 <b>Toonladder G groot</b>, langzaam, 2× per dag</div>
+          <div class="small" style="background:var(--bg);border-radius:10px;padding:8px 10px">💬 “Let op je ademhaling bij de lange noten.”</div>
+          <div>
+            <div style="display:flex;justify-content:space-between" class="small"><span>20 min per dag, 5 dagen</span><b>4 van 5 dagen</b></div>
+            <div class="dots" style="margin-top:6px"><i class="ok"></i><i class="ok"></i><i class="half"></i><i class="ok"></i><i class="ok"></i><i class="today"></i><i></i></div>
+            <div class="xs muted" style="margin-top:4px">za zo ma di wo · vandaag do · vr</div>
+          </div>
+        </div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span class="cap">Oefentijd</span>
+            <div class="tabs" style="width:150px;padding:3px;background:var(--bg)"><span class="on">dag</span><span>week</span></div></div>
+          <div class="days" style="margin-top:10px">
+            <div class="day goal"><div class="st"><div style="height:30px;background:var(--orange)"></div><div style="height:8px;background:var(--blue)"></div></div>za</div>
+            <div class="day goal"><div class="st"><div style="height:22px;background:var(--orange)"></div><div style="height:12px;background:var(--blue)"></div></div>zo</div>
+            <div class="day"><div class="st"><div style="height:14px;background:var(--blue)"></div></div>ma</div>
+            <div class="day goal"><div class="st"><div style="height:40px;background:var(--orange)"></div><div style="height:6px;background:var(--blue)"></div></div>di</div>
+            <div class="day goal"><div class="st"><div style="height:26px;background:var(--orange)"></div><div style="height:10px;background:var(--blue)"></div></div>wo</div>
+            <div class="day"><div class="st" style="height:5px;background:var(--line)"></div><b style="color:var(--ink)">do</b></div>
+            <div class="day"><div class="st" style="height:5px;background:var(--line)"></div>vr</div>
+          </div>
+          <div class="xs muted" style="margin-top:6px">groen omrand = dagdoel gehaald · 🎷 vrij oefenen · 🎮 spel</div>
+        </div>
+        <div class="card" style="padding:4px 14px">
+          <div class="lrow"><div class="grow"><b>Noten</b><div class="xs muted">5 kent al · 3 in de les · 24 komen nog</div></div><span class="chev">›</span></div>
+          <div class="lrow"><div class="grow"><b>Lessen</b><div class="xs muted">laatste les vr 9 okt · 6 lessen</div></div><span class="chev">›</span></div>
+        </div>
+        <div class="btn">Huiswerk geven</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="label"><div class="num">3</div><div><b>Huiswerk geven</b><span>Na de les, op een eigen pagina. De vorige opgave staat al ingevuld: alleen aanpassen wat verandert. Gekozen noten krijgen de status “In de les” en komen vaker in het spel.</span></div></div>
+      <div class="phone">
+        <div class="back">← Lotte</div>
+        <h2 class="t">Huiswerk voor Lotte</h2>
+        <div class="card" style="display:flex;flex-direction:column;gap:8px">
+          <span class="cap">Noten om te oefenen</span>
+          <div class="chips"><span class="note les">D</span><span class="note les">E</span><span class="note les mark">Fis</span><span class="note add">+ noot</span></div>
+          <span class="xs muted">Tik op een noot om hem weg te halen</span>
+        </div>
+        <div class="card" style="display:flex;flex-direction:column;gap:10px">
+          <span class="cap">Oefendoel</span>
+          <div style="display:flex;justify-content:space-between;align-items:center"><span class="small">Minuten per dag</span><div class="stepper"><span class="pm">−</span><b>20</b><span class="pm">+</span></div></div>
+          <div style="display:flex;justify-content:space-between;align-items:center"><span class="small">Dagen per week</span><div class="stepper"><span class="pm">−</span><b>5</b><span class="pm">+</span></div></div>
+          <span class="xs muted">Telt: notenspel en vrij oefenen (de gespeelde tijd, niet de tijd dat de timer aanstaat)</span>
+        </div>
+        <div class="card" style="display:flex;flex-direction:column;gap:8px">
+          <span class="cap">Stuk of oefening</span>
+          <div class="field">🎵 Toonladder G groot</div>
+          <div class="field muted">Uitleg, bijv. “langzaam, 2× per dag”</div>
+        </div>
+        <div class="card" style="display:flex;flex-direction:column;gap:8px">
+          <span class="cap">Opmerking</span>
+          <div class="field" style="min-height:56px">Let op je ademhaling bij de lange noten.</div>
+        </div>
+        <div class="small muted" style="text-align:center">Geldt tot de volgende les: <b style="color:var(--ink)">vr 16 okt</b> ✎</div>
+        <div class="btn">Opslaan en naar Lotte sturen</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="label"><div class="num">4</div><div><b>Oefentijd per week</b><span>Zelfde blok op de leerlingpagina met “week” gekozen: de laatste weken naast elkaar, met de streep van het weekdoel (20 min × 5 dagen = 100 min).</span></div></div>
+      <div class="phone" style="height:auto">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span class="cap">Oefentijd</span>
+            <div class="tabs" style="width:150px;padding:3px;background:var(--bg)"><span>dag</span><span class="on">week</span></div></div>
+          <div class="goal-line" style="margin-top:14px">
+            <div style="position:absolute;left:0;right:0;top:22px;border-top:2px dashed var(--ok)"></div>
+            <span class="xs" style="position:absolute;right:0;top:6px;color:var(--ok);font-weight:600">doel 100 min</span>
+            <div class="weeks">
+              <div class="wk"><b style="color:var(--ink)">65</b><i style="height:38px"></i>wk 38</div>
+              <div class="wk"><b style="color:var(--ink)">110</b><i style="height:64px;background:var(--ok)"></i>wk 39</div>
+              <div class="wk"><b style="color:var(--ink)">90</b><i style="height:52px"></i>wk 40</div>
+              <div class="wk"><b style="color:var(--ink)">80</b><i style="height:46px;opacity:.6"></i>deze week</div>
+            </div>
+          </div>
+          <div class="xs muted" style="margin-top:8px">tik op een week voor de dagen in die week</div>
+        </div>
+      </div>
+
+      <div class="label" style="margin-top:16px"><div class="num">5</div><div><b>Wat de leerling ziet</b><span>Op het startscherm van de leerling, boven Grepen en Spel. De noten van het huiswerk komen vaker in het spel.</span></div></div>
+      <div class="phone" style="height:auto">
+        <div class="card" style="display:flex;flex-direction:column;gap:10px;border:2px solid var(--orange)">
+          <div style="display:flex;justify-content:space-between"><span class="cap">Huiswerk van Marieke</span><span class="xs muted">tot vr</span></div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="28" r="23" fill="none" stroke="#DCE3EC" stroke-width="7"/><circle cx="28" cy="28" r="23" fill="none" stroke="#1F7A4D" stroke-width="7" stroke-linecap="round" transform="rotate(-90 28 28)" stroke-dasharray="72 145"/></svg>
+            <div><b>Vandaag 10 van 20 min</b><div class="xs muted">4 van 5 dagen gehaald deze week</div></div>
+          </div>
+          <div class="chips"><span class="note les">D</span><span class="note les">E</span><span class="note les">Fis</span></div>
+          <div class="small">🎵 Toonladder G groot · 💬 “Let op je ademhaling…”</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="who">Leraar · iPad liggend</p>
+  <div class="row">
+    <div class="step">
+      <div class="label" style="max-width:640px"><div class="num">6</div><div><b>Startscherm op de iPad</b><span>Links de leerlingenlijst, rechts de dag van vandaag: welke lessen er zijn en bij wie het huiswerk nog moet worden gegeven. Tik op een leerling → de leerlingpagina (2 kolommen op de iPad).</span></div></div>
+      <div class="ipad">
+        <div style="display:flex;justify-content:space-between;align-items:start">
+          <div><h2 class="t" style="font-size:32px">Goedemiddag, Marieke</h2><div class="sub">Deze week, ma 5 – zo 11 okt</div></div>
+          <span class="badge" style="background:#fff;color:var(--ink);border:2px solid var(--line);padding:8px 14px;font-size:14px">Marieke ☰</span>
+        </div>
+        <div class="stats" style="gap:12px">
+          <div class="stat"><b>9 van 12</b><span>leerlingen geoefend deze week</span></div>
+          <div class="stat"><b>6 van 12</b><span>huiswerk op schema</span></div>
+          <div class="stat"><b>14 uur</b><span>samen geoefend deze week</span></div>
+        </div>
+        <div class="grid2">
+          <div class="card" style="padding:8px 16px">
+            <div class="cap" style="padding:8px 0 2px">Leerlingen · achterloper eerst</div>
+            <div class="lrow"><span class="av">S</span><div class="grow"><div class="name">Sem <span class="xs muted" style="font-weight:400">· altsax</span></div><div class="bar"><i class="low" style="width:15%"></i></div></div><div class="small" style="width:150px;text-align:right">15 / 100 min<div class="xs muted">5 dagen niet</div></div><span class="chev">›</span></div>
+            <div class="lrow"><span class="av">N</span><div class="grow"><div class="name">Noor</div><div class="bar"><i class="low" style="width:40%"></i></div></div><div class="small" style="width:150px;text-align:right">40 / 100 min<div class="xs muted">les morgen</div></div><span class="chev">›</span></div>
+            <div class="lrow"><span class="av">D</span><div class="grow"><div class="name">Daan</div><div class="xs muted">geen huiswerk</div></div><div style="width:150px;text-align:right"><span class="badge warn">huiswerk geven</span></div><span class="chev">›</span></div>
+            <div class="lrow"><span class="av">L</span><div class="grow"><div class="name">Lotte</div><div class="bar"><i style="width:80%"></i></div></div><div class="small" style="width:150px;text-align:right">80 / 100 min<div class="xs muted">les vr</div></div><span class="chev">›</span></div>
+            <div class="lrow"><span class="av">A</span><div class="grow"><div class="name">Annabel</div><div class="bar"><i style="width:100%"></i></div></div><div class="small" style="width:150px;text-align:right">118 / 100 min<div class="xs muted">les do</div></div><span class="chev">›</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="card">
+              <div class="cap">Vandaag les</div>
+              <div class="lrow"><div class="grow"><b>15:00 Annabel</b><div class="xs muted">huiswerk 118 van 100 min ✓</div></div><span class="badge warn">nieuw huiswerk</span></div>
+              <div class="lrow"><div class="grow"><b>16:00 Sem</b><div class="xs muted">huiswerk 15 van 100 min</div></div><span class="badge warn">nieuw huiswerk</span></div>
+            </div>
+            <div class="card">
+              <div class="cap">Lastig bij meerdere leerlingen</div>
+              <div class="chips" style="margin-top:8px"><span class="note" style="background:var(--wrong-soft);color:#8E2A22">E · 4 lln</span><span class="note" style="background:var(--wrong-soft);color:#8E2A22">Fis · 3 lln</span><span class="note" style="background:var(--wrong-soft);color:#8E2A22">C hoog · 2 lln</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rules">
+    <h2>Keuzes in dit ontwerp</h2>
+    <h3>Huiswerk</h3>
+    <ul>
+      <li>Eén opgave per leerling tegelijk, geldig tot de volgende les. Een nieuwe opgave vervangt de oude; de oude blijft zichtbaar onder <b>Lessen</b>.</li>
+      <li><b>Noten:</b> gekozen noten krijgen de status “In de les” (bestaat al) en komen daardoor vaker in het notenspel.</li>
+      <li><b>Oefendoel:</b> minuten per dag en dagen per week. Een dag telt als gehaald als de gespeelde tijd (notenspel + vrij oefenen) het dagdoel haalt. Halve dag = lichtgroen.</li>
+      <li><b>Stuk of oefening:</b> een titel en een korte uitleg. Later te koppelen aan een liedje uit <code>songs</code>.</li>
+      <li><b>Opmerking:</b> vrije tekst, zichtbaar voor leerling en ouder.</li>
+      <li><b>Op schema</b> = het aantal gehaalde dagen ligt op koers om het weekdoel te halen voor de volgende les.</li>
+    </ul>
+    <h3>Wie ziet wat</h3>
+    <ul>
+      <li>De leerling ziet het huiswerk op zijn startscherm, de ouder op de kindpagina.</li>
+      <li>Alleen een leraar (of de ouder als die zelf lesgeeft?) kan huiswerk geven. <b>Open vraag.</b></li>
+    </ul>
+    <h3>Techniek (voor later)</h3>
+    <ul>
+      <li>Tabel <code>lessons</code> (staat al gepland): leerling, leraar, datum, tot-datum, minuten per dag, dagen per week, stuk, uitleg, opmerking. Plus <code>lesson_notes</code> voor de noten.</li>
+      <li>Lesdag en -tijd per leerling (<code>teacher_students.lesson_day</code>, <code>lesson_time</code>) voor “vandaag les” en “les vr”.</li>
+      <li>De voortgang wordt berekend uit <code>rounds</code> en <code>practice_sessions</code>, net als het ouderdashboard.</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>

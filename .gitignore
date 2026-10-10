@@ -8,3 +8,4 @@ dev-dist/
 *.log
 .netlify/
 supabase/.temp/
+supabase/.branches

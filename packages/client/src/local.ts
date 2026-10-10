@@ -1,13 +1,13 @@
 import { scoreRound, type StatusMap } from "@notenkraker/core";
-import type { NotenkrakerClient, Profile, Round, Song, Student, StudentNote } from "./types.js";
+import type { NotenkrakerClient, PracticeSession, Profile, Round, Song, Student, StudentNote } from "./types.js";
 
 /**
  * In-memory/localStorage-implementatie van hetzelfde contract. Voor
  * ontwikkeling zonder Supabase, voor tests, en als fallback wanneer er geen
- * verbinding is. Eén "leraar"-profiel, geen echte auth.
+ * verbinding is. Eén "ouder"-profiel (kinderen onder één login), geen echte auth.
  */
 export function createLocalNotenkraker(storageKey = "notenkraker-local"): NotenkrakerClient {
-  type State = { students: Student[]; notes: StudentNote[]; rounds: Round[]; songs: Array<Song & { studentId: string }> };
+  type State = { students: Student[]; notes: StudentNote[]; rounds: Round[]; practice?: PracticeSession[]; songs: Array<Song & { studentId: string }> };
   const load = (): State => {
     try { const raw = globalThis.localStorage?.getItem(storageKey); if (raw) return JSON.parse(raw) as State; } catch { /* geen storage */ }
     return { students: [], notes: [], rounds: [], songs: [] };
@@ -18,7 +18,7 @@ export function createLocalNotenkraker(storageKey = "notenkraker-local"): Notenk
   const now = () => new Date().toISOString();
   const listeners = new Map<string, Set<(n: StudentNote[]) => void>>();
   const emit = (sid: string) => listeners.get(sid)?.forEach((cb) => cb(state.notes.filter((n) => n.studentId === sid)));
-  const profile: Profile = { id: "local", role: "leraar", displayName: "Lokaal" };
+  const profile: Profile = { id: "local", role: "ouder", displayName: "Lokaal" };
   const authListeners = new Set<(p: Profile | null) => void>();
 
   return {
@@ -26,6 +26,7 @@ export function createLocalNotenkraker(storageKey = "notenkraker-local"): Notenk
       async signInWithPassword() { authListeners.forEach((cb) => cb(profile)); },
       async signUpWithPassword() { authListeners.forEach((cb) => cb(profile)); },
       async signInWithGoogle() { authListeners.forEach((cb) => cb(profile)); },
+      async chooseRole() { /* lokaal is er alleen het ouderprofiel */ },
       async signOut() { authListeners.forEach((cb) => cb(null)); },
       async currentProfile() { return profile; },
       onAuthChange(cb) { authListeners.add(cb); return () => authListeners.delete(cb); },
@@ -36,6 +37,7 @@ export function createLocalNotenkraker(storageKey = "notenkraker-local"): Notenk
       async update(id, patch) { const s = state.students.find((x) => x.id === id); if (!s) throw new Error("onbekend"); Object.assign(s, patch); save(); return s; },
       async remove(id) { state.students = state.students.filter((s) => s.id !== id); state.notes = state.notes.filter((n) => n.studentId !== id); save(); },
       async linkByCode() { throw new Error("niet beschikbaar zonder backend"); },
+      async claimByCode() { throw new Error("niet beschikbaar zonder backend"); },
       async inviteCode() { throw new Error("niet beschikbaar zonder backend"); },
     },
     notes: {
@@ -62,6 +64,22 @@ export function createLocalNotenkraker(storageKey = "notenkraker-local"): Notenk
         const rs = state.rounds.filter((r) => r.studentId === sid);
         return { xp: rs.reduce((s, r) => s + r.xp, 0), streakDays: 0, rounds: rs.length, weakNotes: [], promotionCandidates: [] };
       },
+    },
+    // lokaal controleert niemand de klok; alleen voor ontwikkelen zonder backend
+    practice: {
+      async start(sid) {
+        const s: PracticeSession = { id: uid(), studentId: sid, startedAt: now(), endedAt: now(), done: false, playedSeconds: 0, minutes: [], notes: [], label: "sax" };
+        (state.practice ??= []).unshift(s); save(); return s;
+      },
+      async update(id, { minutes, notes, done = false }) {
+        const s = state.practice?.find((x) => x.id === id);
+        if (!s || s.done) throw new Error("sessie is al afgesloten");
+        const elapsed = Math.floor((Date.now() - Date.parse(s.startedAt)) / 1000);
+        const played = Math.min(elapsed, minutes.reduce((n, m) => n + m.s, 0));
+        Object.assign(s, { endedAt: now(), done, minutes, notes, playedSeconds: played, label: played >= 120 && notes.length <= 1 ? "twijfel" : "sax" });
+        save(); return s;
+      },
+      async recent(sid, limit = 20) { return (state.practice ?? []).filter((s) => s.studentId === sid).slice(0, limit); },
     },
     songs: {
       async list(sid) { return state.songs.filter((s) => s.studentId === sid); },

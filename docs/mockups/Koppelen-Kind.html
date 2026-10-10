@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kind koppelen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EDF2F7;--card:#FFFFFF;--ink:#172440;--muted:#4A5873;--line:#DCE3EC;--blue:#2459C9;--orange:#F4A261;--wrong:#C8453B;--ok:#2E8B57}
+*{box-sizing:border-box}
+body{margin:0;background:#DDE5EF;color:var(--ink);font-family:Lexend,sans-serif}
+a{color:var(--blue)}
+button{font-family:inherit}
+.page{max-width:1500px;margin:0 auto;padding:32px 16px 64px}
+.intro{max-width:760px}
+.intro h1{margin:0 0 8px;font-size:32px}
+.intro p{margin:0 0 6px;color:var(--muted);line-height:1.5}
+.row{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start;margin-top:28px}
+.step{display:flex;flex-direction:column;gap:10px;max-width:100%}
+.label{display:flex;gap:10px;align-items:baseline;max-width:390px}
+.num{flex:none;width:28px;height:28px;border-radius:14px;background:var(--ink);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+.label b{font-size:16px}
+.label span{display:block;font-size:13px;color:var(--muted);line-height:1.4;margin-top:2px}
+.who{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:36px 0 0}
+/* apparaten */
+.ipad{width:620px;max-width:100%;height:520px;background:var(--bg);border-radius:28px;border:10px solid #172440;padding:22px;overflow:hidden;display:flex;flex-direction:column;gap:14px}
+.phone{width:320px;height:640px;background:var(--bg);border-radius:40px;border:10px solid #172440;padding:44px 18px 18px;overflow:hidden;display:flex;flex-direction:column;gap:14px;position:relative}
+.phone .url{position:absolute;top:10px;left:18px;right:18px;height:26px;border-radius:13px;background:#fff;font-size:11px;color:var(--muted);display:flex;align-items:center;padding:0 12px;white-space:nowrap;overflow:hidden}
+.card{background:var(--card);border-radius:18px;padding:16px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;height:48px;border-radius:24px;border:0;font-size:16px;font-weight:700;width:100%}
+.btn.dark{background:var(--ink);color:#fff}
+.btn.orange{background:var(--orange);color:var(--ink)}
+.btn.line{background:#fff;color:var(--ink);border:2px solid var(--line)}
+.btn.small{height:38px;font-size:14px;width:auto;padding:0 16px}
+.muted{color:var(--muted)}
+.mark{outline:3px solid var(--orange);outline-offset:3px;border-radius:24px}
+.note{font-size:12px;color:var(--muted);line-height:1.4}
+.banner{border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.4}
+.banner.info{background:#DCE7FB;color:#173F94}
+.banner.ok{background:#DDF2E5;color:#1F6B41}
+.banner.err{background:#F8E0DD;color:#8E2A22}
+.kid{display:flex;align-items:center;gap:12px}
+.av{width:40px;height:40px;border-radius:20px;background:var(--blue);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
+.code{font-family:ui-monospace,Menlo,monospace;font-weight:700;letter-spacing:.18em}
+input{font-family:inherit}
+.field{height:46px;border-radius:14px;border:2px solid var(--line);background:#fff;padding:0 14px;font-size:16px;width:100%}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="intro">
+    <h1>Kind koppelen met een uitnodigingslink</h1>
+    <p>Mock-up voor AC-106. De ouder maakt een kind aan en stuurt een link, of laat een QR-code scannen. Het kind opent de link, logt in met Google en is meteen gekoppeld. Het hoeft niets over te tikken en hoeft geen rol te kiezen.</p>
+    <p>De code blijft als reserve: op het welkomscherm en, voor leerlingen, onder hun naam.</p>
+    <p><a href="index.html">← alle mock-ups</a></p>
+  </div>
+
+  <!-- ─────────────── Ouder ─────────────── -->
+  <p class="who">Ouder · iPad</p>
+  <div class="row">
+    <div class="step">
+      <div class="label"><div class="num">1</div><div><b>Kind aanmaken</b><span>"+ kind" in plaats van "+ leerling". Bij een kind zonder eigen login staat de knop <i>Annabel laten inloggen</i>.</span></div></div>
+      <div class="ipad">
+        <header style="display:flex;justify-content:space-between;align-items:center">
+          <h2 style="margin:0;font-size:26px">Mijn kinderen</h2>
+          <span class="muted" style="font-size:14px">Alwin van Dijken ⏏</span>
+        </header>
+        <div class="card kid">
+          <div class="av">A</div>
+          <div style="flex:1"><b>Annabel</b><div class="muted" style="font-size:13px">Altsaxofoon · 5 noten · nog geen eigen login</div></div>
+          <button class="btn orange small mark">Annabel laten inloggen</button>
+        </div>
+        <div class="card kid">
+          <div class="av" style="background:#8592AA">S</div>
+          <div style="flex:1"><b>Sam</b><div class="muted" style="font-size:13px">Altsaxofoon · logt zelf in ✓</div></div>
+          <button class="btn line small">Code voor leraar</button>
+        </div>
+        <button class="btn line small" style="align-self:flex-start">+ kind</button>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="label"><div class="num">2</div><div><b>Link delen of QR laten scannen</b><span>Delen opent het deelmenu van iPad of telefoon (WhatsApp, AirDrop, mail). De link werkt één keer en is 7 dagen geldig.</span></div></div>
+      <div class="ipad" style="background:rgba(23,36,64,.35);padding:40px 60px">
+        <div class="card" style="display:flex;flex-direction:column;gap:14px;padding:22px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <b style="font-size:20px">Annabel laten inloggen</b><span class="muted" style="font-size:22px">×</span>
+          </div>
+          <div style="display:flex;gap:20px;align-items:center">
+            <svg id="qr" width="150" height="150" viewBox="0 0 29 29" aria-label="QR-code (voorbeeld)" style="flex:none"></svg>
+            <div style="display:flex;flex-direction:column;gap:10px;flex:1;min-width:0">
+              <span style="font-size:14px;line-height:1.4">Laat Annabel deze code scannen met haar eigen iPad of telefoon, of stuur haar de link.</span>
+              <div style="font-size:12px;background:var(--bg);border-radius:10px;padding:8px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">notenkraker.netlify.app/app?koppel=K7M2QX</div>
+              <div style="display:flex;gap:8px"><button class="btn dark small">Delen</button><button class="btn line small">Kopieer link</button></div>
+            </div>
+          </div>
+          <div class="note">Geen link? Laat Annabel inloggen en deze code invullen: <span class="code" style="color:var(--ink)">K7M2QX</span> · geldig tot 17 okt</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────── Kind ─────────────── -->
+  <p class="who">Kind · eigen telefoon of iPad</p>
+  <div class="row">
+    <div class="step">
+      <div class="label"><div class="num">3</div><div><b>Link geopend, nog niet ingelogd</b><span>De app onthoudt de code, zodat hij het inloggen bij Google overleeft.</span></div></div>
+      <div class="phone">
+        <div class="url">notenkraker.netlify.app/app?koppel=K7M2QX</div>
+        <h2 style="margin:12px 0 0;font-size:30px;text-align:center">Notenkraker</h2>
+        <div class="banner info">Je ouder heeft je uitgenodigd. Log in, dan koppelen we je eigen account aan Annabel.</div>
+        <div class="card" style="display:flex;flex-direction:column;gap:10px">
+          <button class="btn dark mark">
+            <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="8" fill="#fff"/><text x="9" y="13" font-size="11" text-anchor="middle" font-weight="700" fill="#2459C9" font-family="Lexend">G</text></svg>
+            Doorgaan met Google</button>
+          <div class="note" style="text-align:center">of</div>
+          <button class="btn line">Inloggen met e-mail</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="label"><div class="num">4</div><div><b>Account kiezen bij Google</b><span>Het scherm van Google zelf. Hier verandert niets.</span></div></div>
+      <div class="phone" style="background:#fff">
+        <div class="url">accounts.google.com</div>
+        <div style="font-size:14px;color:#5f6368;margin-top:6px">Inloggen met Google</div>
+        <div style="font-size:22px;margin-top:4px">Kies een account</div>
+        <div style="border-top:1px solid #e3e3e3;padding:14px 0;display:flex;gap:12px;align-items:center" class="mark">
+          <div class="av" style="background:#E97A3B">a</div><div><div style="font-weight:600">Annabel van Dijken</div><div style="font-size:13px;color:#5f6368">annabelvandijken@gmail.com</div></div>
+        </div>
+        <div style="border-top:1px solid #e3e3e3;padding:14px 0;color:#5f6368;font-size:14px">Een ander account gebruiken</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="label"><div class="num">5</div><div><b>Meteen gekoppeld</b><span>Geen welkomscherm. Een eerder zelf aangemaakt, leeg profiel van het kind wordt opgeruimd.</span></div></div>
+      <div class="phone">
+        <div class="url">notenkraker.netlify.app/app</div>
+        <div class="banner ok">✓ Gekoppeld! Je oefent nu met Annabel, het profiel van je ouder. Je ouder ziet je voortgang.</div>
+        <header style="display:flex;align-items:center;justify-content:space-between">
+          <h2 style="margin:0;font-size:28px">Hoi Annabel!</h2>
+          <div class="av">A</div>
+        </header>
+        <div style="background:var(--ink);color:#fff;border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:12px">
+          <span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--orange)">Notenspel</span>
+          <span style="font-size:22px;font-weight:700">Welke noot is dit?</span>
+          <span class="btn orange">Speel</span>
+        </div>
+        <div class="card"><b>Jouw noten</b><div class="muted" style="font-size:13px;margin-top:4px">G A B C D · door je ouder klaargezet</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────── Uitzonderingen ─────────────── -->
+  <p class="who">Als het anders loopt</p>
+  <div class="row">
+    <div class="step">
+      <div class="label"><div class="num">!</div><div><b>Link verlopen of al gebruikt</b><span>Ook als een ouder per ongeluk de eigen link opent. De onthouden code wordt weggegooid.</span></div></div>
+      <div class="phone">
+        <div class="url">notenkraker.netlify.app/app</div>
+        <div class="banner err">Deze link werkt niet meer: hij is al gebruikt of verlopen. Vraag je ouder om een nieuwe.</div>
+        <h2 style="margin:6px 0 0;font-size:28px;text-align:center">Welkom!</h2>
+        <p class="muted" style="margin:0;text-align:center">Wie ben jij?</p>
+        <div class="card" style="display:flex;flex-direction:column;gap:10px">
+          <button class="btn line">Ik ben leerling</button>
+          <button class="btn line">Ik ben ouder</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="label"><div class="num">R</div><div><b>Reserve: code invullen op het welkomscherm</b><span>Voor wie geen link kan openen. De code staat bovenaan, omdat een kind met een code geen rol hoeft te kiezen.</span></div></div>
+      <div class="phone">
+        <div class="url">notenkraker.netlify.app/app</div>
+        <h2 style="margin:6px 0 0;font-size:28px;text-align:center">Welkom!</h2>
+        <div class="card" style="display:flex;flex-direction:column;gap:10px">
+          <b style="font-size:15px">Heb je een code van je ouder?</b>
+          <div style="display:flex;gap:8px"><input class="field code" value="K7M2QX" aria-label="Code van je ouder"><button class="btn dark small">Koppel</button></div>
+        </div>
+        <p class="muted" style="margin:0;text-align:center;font-size:14px">of</p>
+        <div class="card" style="display:flex;flex-direction:column;gap:10px">
+          <button class="btn line">Ik ben leerling</button>
+          <button class="btn line">Ik ben ouder</button>
+        </div>
+        <div class="note" style="text-align:center">Ben je leraar? Dan maken we je account samen aan.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="label"><div class="num">R</div><div><b>Reserve: later alsnog koppelen</b><span>Voor een leerling die al een rol koos, zoals Annabel nu. De knop staat onder de naam rechtsboven.</span></div></div>
+      <div class="phone">
+        <div class="url">notenkraker.netlify.app/app</div>
+        <header style="display:flex;align-items:center;justify-content:space-between">
+          <h2 style="margin:0;font-size:28px">Hoi annabel!</h2>
+          <div class="av mark">a</div>
+        </header>
+        <div class="card" style="display:flex;flex-direction:column;gap:4px;padding:8px;box-shadow:0 8px 24px rgba(23,36,64,.18)">
+          <div style="padding:10px;font-weight:600" class="mark">Koppelen met code van ouder</div>
+          <div style="padding:10px" class="muted">Uitloggen</div>
+        </div>
+        <div class="card" style="display:flex;flex-direction:column;gap:10px">
+          <b style="font-size:15px">Code van je ouder</b>
+          <div style="display:flex;gap:8px"><input class="field code" placeholder="ABC123" aria-label="Code van je ouder"><button class="btn dark small">Koppel</button></div>
+          <div class="note">Je oefent dan verder met het profiel dat je ouder voor je maakte. Je eigen, nog lege profiel verdwijnt.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Voorbeeld-QR (geen echte code): drie hoekmarkeringen en een vast patroon.
+(function () {
+  const svg = document.getElementById("qr"), n = 29, cells = [];
+  const finder = (x, y) => { for (let i = 0; i < 7; i++) for (let j = 0; j < 7; j++) {
+    const edge = i === 0 || i === 6 || j === 0 || j === 6, core = i > 1 && i < 5 && j > 1 && j < 5;
+    if (edge || core) cells.push([x + i, y + j]); } };
+  const inFinder = (x, y) => (x < 8 && y < 8) || (x > n - 9 && y < 8) || (x < 8 && y > n - 9);
+  let s = 42; const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280;
+  for (let x = 0; x < n; x++) for (let y = 0; y < n; y++) if (!inFinder(x, y) && rnd() > 0.52) cells.push([x, y]);
+  finder(0, 0); finder(n - 7, 0); finder(0, n - 7);
+  svg.innerHTML = '<rect width="29" height="29" fill="#fff"/>' + cells.map(([x, y]) => `<rect x="${x}" y="${y}" width="1" height="1" fill="#172440"/>`).join("");
+})();
+</script>
+</body>
+</html>

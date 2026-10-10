@@ -45,9 +45,16 @@ Content uit de repo, waar de database met een tekst-id naar verwijst:
 | Kolom | Type | Status |
 |---|---|---|
 | `id` | uuid, = `auth.users.id` | bestaat |
-| `role` | `'leerling' \| 'leraar'` | bestaat |
-| `display_name` | text | bestaat |
-| `role_confirmed` | boolean, default false | **nieuw** (AC-63): na Google-login eerst rol laten kiezen |
+| `role` | `null \| 'leerling' \| 'ouder' \| 'leraar' \| 'admin'` | gewijzigd in `0002` (AC-106). `null` = nog kiezen na Google-login. Alleen via `choose_role`/`claim_student` of door beheer te wijzigen |
+| `display_name` | text | bestaat; de enige kolom die de gebruiker zelf mag wijzigen |
+
+Het eerdere voorstel `role_confirmed` is vervallen: `role = null` zegt hetzelfde.
+
+### `invite_codes`
+| Kolom | Type | Status |
+|---|---|---|
+| `code`, `student_id`, `expires_at` | | bestaat |
+| `purpose` | `'leraar' \| 'kind'`, default `'leraar'` | **`0002`**: `kind` laat een kind zijn eigen login koppelen (`claim_student`) |
 
 ### `students`
 | Kolom | Type | Status | Waarvoor |
@@ -174,7 +181,7 @@ NotesApi.markIntroduced(studentId, noteId): Promise<void>
 
 | Migratie | Inhoud | Wanneer |
 |---|---|---|
-| `0002` | `profiles.role_confirmed` en rolkeuze-RPC | AC-63 (handover-sessie) |
+| `0002` ✓ | Rollen `ouder`/`admin`, rol `null` tot keuze, RPC's `choose_role`, `create_invite_code`, `claim_student`; `invite_codes.purpose`; admin leest alles; eigen rol niet meer zelf te wijzigen; `students.owner_id` default `auth.uid()` | AC-63 / AC-106 |
 | `0003` | `students.age_band, skin_id, daily_goal, time_zone`; `student_notes.introduced_at`; `rounds.mode 'keys'`, `rounds.level_id`, idempotente insert; view `note_stats` | Bij het bouwen van de schermen in basislook A |
 | `0004` | `lessons`, `lesson_notes`, RPC `apply_lesson` | Met het leraarscherm |
 | `0005` | `student_levels`, `student_unlocks` | Met niveaus (AC-59) en skins |

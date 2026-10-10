@@ -3,11 +3,12 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 /* Kleine set basiscomponenten in huisstijl. Groeit mee met shadcn/ui-componenten waar nodig. */
 
-export function Chip({ active, className, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { active?: boolean }) {
+/** `primary` = hoofdactie in accentkleur; via een prop, want losse klassen in className winnen niet van bg-surface. */
+export function Chip({ active, primary, className, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { active?: boolean; primary?: boolean }) {
   return (
     <button type="button" aria-pressed={active}
       className={clsx("font-display font-semibold rounded-full border-2 px-4 py-2 cursor-pointer transition focus-visible:outline-3 focus-visible:outline-accent",
-        active ? "border-accent bg-accent-soft" : "border-line bg-surface", className)} {...props} />
+        primary ? "border-accent bg-accent text-white disabled:opacity-60" : active ? "border-accent bg-accent-soft" : "border-line bg-surface", className)} {...props} />
   );
 }
 

@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Oefentimer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EDF2F7;--card:#FFFFFF;--ink:#172440;--muted:#4A5873;--line:#DCE3EC;--blue:#2459C9;--blue-soft:#DCE6FA;--orange:#F4A261;--accent:#C2531A;--ok:#1F7A4D;--ok-soft:#DDF2E5;--grey:#8592AA;--wrong:#C4362B;--wrong-soft:#F8E0DD}
+*{box-sizing:border-box}
+body{margin:0;background:#DDE5EF;color:var(--ink);font-family:Lexend,sans-serif}
+a{color:var(--blue)}
+button{font-family:inherit}
+.page{max-width:1500px;margin:0 auto;padding:32px 16px 64px}
+.intro{max-width:780px}
+.intro h1{margin:0 0 8px;font-size:32px}
+.intro p{margin:0 0 6px;color:var(--muted);line-height:1.5}
+.who{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:36px 0 0}
+.row{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start;margin-top:20px}
+.step{display:flex;flex-direction:column;gap:10px;max-width:100%}
+.label{display:flex;gap:10px;align-items:baseline;max-width:320px}
+.num{flex:none;width:28px;height:28px;border-radius:14px;background:var(--ink);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+.label b{font-size:16px}
+.label span{display:block;font-size:13px;color:var(--muted);line-height:1.4;margin-top:2px}
+.phone{width:320px;height:640px;background:var(--bg);border-radius:40px;border:10px solid #172440;padding:40px 18px 18px;overflow:hidden;display:flex;flex-direction:column;gap:14px;position:relative}
+.card{background:var(--card);border-radius:18px;padding:16px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:26px;border:0;font-size:17px;font-weight:700;width:100%}
+.btn.dark{background:var(--ink);color:#fff}
+.btn.orange{background:var(--orange);color:var(--ink)}
+.btn.line{background:#fff;color:var(--ink);border:2px solid var(--line)}
+.muted{color:var(--muted)}
+.small{font-size:13px;line-height:1.4}
+.mark{outline:3px solid var(--accent);outline-offset:3px}
+.timer{font-size:64px;font-weight:700;letter-spacing:-.02em;line-height:1;text-align:center}
+.state{display:flex;align-items:center;gap:10px;border-radius:16px;padding:12px 14px;font-weight:600;font-size:15px}
+.state.on{background:var(--ok-soft);color:var(--ok)}
+.state.off{background:#E6EBF2;color:var(--muted)}
+.state.bad{background:var(--wrong-soft);color:#8E2A22}
+.pulse{width:12px;height:12px;border-radius:6px;background:currentColor;flex:none}
+.meter{display:flex;gap:3px;align-items:end;height:36px}
+.meter i{flex:1;border-radius:3px;background:var(--ok)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.note{min-width:36px;height:32px;padding:0 9px;border-radius:10px;font-weight:700;font-size:14px;display:inline-flex;align-items:center;justify-content:center;background:var(--blue);color:#fff}
+.note.les{background:var(--orange);color:var(--ink)}
+.ring{width:150px;height:150px;margin:0 auto;position:relative}
+.ring b{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:32px}
+.ring b span{font-size:13px;font-weight:500;color:var(--muted)}
+.mins{display:grid;grid-template-columns:repeat(22,1fr);gap:2px}
+.mins i{height:18px;border-radius:3px;background:var(--ok)}
+.mins i.no{background:var(--line)}
+/* ouder */
+.panel{width:420px;background:#fff;border-radius:24px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;align-items:end;height:90px}
+.day{display:flex;flex-direction:column;align-items:center;justify-content:end;gap:4px;font-size:11px;color:var(--muted);height:100%}
+.day .stack{width:100%;display:flex;flex-direction:column;border-radius:8px;overflow:hidden}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.sess{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line);font-size:14px}
+.badge{font-size:12px;font-weight:600;border-radius:10px;padding:3px 8px;background:var(--ok-soft);color:var(--ok);white-space:nowrap}
+.badge.warn{background:#FCEBD6;color:#9A5B12}
+.rules{max-width:980px;margin-top:40px;background:#fff;border-radius:24px;padding:22px 26px}
+.rules h2{margin:0 0 10px;font-size:22px}
+.rules h3{margin:18px 0 6px;font-size:16px}
+.rules p,.rules li{color:var(--muted);line-height:1.5;font-size:15px;margin:0 0 6px}
+.rules ul{margin:0;padding-left:20px}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="intro">
+    <h1>Oefentimer: vrij oefenen, gemeten met de microfoon</h1>
+    <p>Mock-up voor AC-112. Een leerling zet zelf de oefentimer aan als hij buiten de spelletjes op zijn sax oefent. De timer telt alleen de tijd waarin de microfoon echte tonen van het instrument hoort. Stilte, praten en ander geluid tellen niet. Er wordt geen geluid opgeslagen, alleen per minuut of er gespeeld is en welke noten.</p>
+    <p><a href="index.html">← alle mock-ups</a> · zie ook <a href="iPadA-Ouder.html">Ouderdashboard</a></p>
+  </div>
+
+  <p class="who">Leerling · telefoon of iPad</p>
+  <div class="row">
+    <div class="step">
+      <div class="label"><div class="num">1</div><div><b>Starten</b><span>Op het startscherm van de leerling staat naast Grepen en Spel een derde knop: Vrij oefenen.</span></div></div>
+      <div class="phone">
+        <h2 style="margin:6px 0 0;font-size:28px">Hoi Annabel!</h2>
+        <div class="card" style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;font-size:15px"><b>Dagdoel</b><span class="muted">2 van 20 min</span></div>
+          <div style="height:10px;border-radius:5px;background:var(--line);overflow:hidden"><div style="width:10%;height:100%;background:var(--ok)"></div></div>
+        </div>
+        <div style="background:var(--ink);color:#fff;border-radius:24px;padding:20px;display:flex;flex-direction:column;gap:12px">
+          <span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--orange)">Vrij oefenen</span>
+          <span style="font-size:24px;font-weight:700;line-height:1.15">Pak je sax en speel. Ik tel mee.</span>
+          <span style="font-size:14px;color:#C9D3E6">Alleen tijd waarin ik je sax hoor, telt.</span>
+          <button class="btn orange mark">🎷 Start oefentimer</button>
+        </div>
+        <div class="card" style="display:flex;justify-content:space-between;align-items:center"><b>Notenspel</b><span class="muted">›</span></div>
+        <div class="card" style="display:flex;justify-content:space-between;align-items:center"><b>Grepentabel</b><span class="muted">›</span></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="label"><div class="num">2</div><div><b>Eerste keer: microfoon</b><span>We leggen uit waarom de microfoon nodig is, voordat de browser het vraagt.</span></div></div>
+      <div class="phone">
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:16px;text-align:center">
+          <div style="font-size:56px">🎙️</div>
+          <h2 style="margin:0;font-size:24px">Mag ik meeluisteren?</h2>
+          <p class="muted" style="margin:0;line-height:1.5">Ik luister alleen of ik je sax hoor en welke noot je speelt. Ik neem niets op en stuur geen geluid weg.</p>
+          <div class="card small" style="text-align:left;display:flex;flex-direction:column;gap:6px">
+            <span>✓ Telt alleen tijd met sax-tonen</span>
+            <span>✓ Praten of stilte telt niet mee</span>
+            <span>✓ Je ouder ziet hoe lang en welke noten</span>
+          </div>
+        </div>
+        <button class="btn dark mark">Microfoon aanzetten</button>
+        <button class="btn line">Nu niet</button>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="label"><div class="num">3</div><div><b>Aan het oefenen</b><span>Grote teller met de getelde tijd. Daaronder wat de app nu hoort, en de noten van deze sessie. Het scherm blijft aan.</span></div></div>
+      <div class="phone">
+        <div class="muted small" style="text-align:center">Vrij oefenen</div>
+        <div class="timer">12:40</div>
+        <div class="muted small" style="text-align:center;margin-top:-6px">geteld · timer staat 15:02 aan</div>
+        <div class="state on mark"><span class="pulse"></span>Ik hoor je sax · <b style="font-size:20px">G</b></div>
+        <div class="meter" aria-hidden="true">
+          <i style="height:30%"></i><i style="height:55%"></i><i style="height:80%"></i><i style="height:95%"></i><i style="height:70%"></i><i style="height:85%"></i><i style="height:60%"></i><i style="height:90%"></i><i style="height:75%"></i><i style="height:50%"></i><i style="height:65%"></i><i style="height:40%"></i>
+        </div>
+        <div class="card" style="display:flex;flex-direction:column;gap:8px">
+          <span class="small muted">Gespeeld in deze sessie</span>
+          <div class="chips"><span class="note">G</span><span class="note">A</span><span class="note">B</span><span class="note">C</span><span class="note les">D</span><span class="note les">E</span></div>
+        </div>
+        <div style="margin-top:auto;display:flex;gap:10px">
+          <button class="btn line" style="flex:1">Pauze</button>
+          <button class="btn dark" style="flex:1">Klaar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="who">Wat de timer hoort</p>
+  <div class="row">
+    <div class="step">
+      <div class="label"><div class="num">a</div><div><b>Stilte: timer pauzeert vanzelf</b><span>Na 5 seconden stilte telt de timer niet meer door. Hij gaat verder zodra er weer een toon klinkt.</span></div></div>
+      <div class="phone" style="height:300px">
+        <div class="timer" style="color:var(--grey)">12:40</div>
+        <div class="state off"><span class="pulse"></span>Ik hoor niets · telt niet mee</div>
+        <p class="small muted" style="margin:0">Even rusten mag. Speel weer, dan tel ik verder.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="label"><div class="num">b</div><div><b>Praten of ander geluid</b><span>Geen vaste toonhoogte in het bereik van de altsax, of een klank die niet op een blaasinstrument lijkt: dit telt niet.</span></div></div>
+      <div class="phone" style="height:300px">
+        <div class="timer" style="color:var(--grey)">12:40</div>
+        <div class="state bad"><span class="pulse"></span>Dit klinkt niet als een sax</div>
+        <p class="small muted" style="margin:0">Praten, zingen of muziek op de achtergrond tellen niet mee.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="label"><div class="num">c</div><div><b>Scherm uit of app weg</b><span>Een iPad of telefoon zet de microfoon uit als het scherm op slot gaat. Dan stopt de timer, en dat zeggen we eerlijk.</span></div></div>
+      <div class="phone" style="height:300px">
+        <div class="timer">12:40</div>
+        <div class="state off"><span class="pulse"></span>Timer gestopt: de app was even weg</div>
+        <button class="btn orange">Verder oefenen</button>
+      </div>
+    </div>
+  </div>
+
+  <p class="who">Klaar</p>
+  <div class="row">
+    <div class="step">
+      <div class="label"><div class="num">4</div><div><b>Samenvatting</b><span>De getelde minuten gaan naar het dagdoel. Het balkje laat per minuut zien of er gespeeld is.</span></div></div>
+      <div class="phone">
+        <h2 style="margin:4px 0 0;font-size:26px;text-align:center">Goed gedaan! 🎉</h2>
+        <div class="ring">
+          <svg viewBox="0 0 150 150" width="150" height="150" aria-hidden="true"><circle cx="75" cy="75" r="62" fill="none" stroke="#DCE3EC" stroke-width="14"/><circle cx="75" cy="75" r="62" fill="none" stroke="#1F7A4D" stroke-width="14" stroke-linecap="round" transform="rotate(-90 75 75)" stroke-dasharray="292 390"/></svg>
+          <b>18 min<span>dagdoel 20</span></b>
+        </div>
+        <div class="card" style="display:flex;flex-direction:column;gap:8px">
+          <div class="small" style="display:flex;justify-content:space-between"><span>Gespeeld</span><b>16 van 22 min</b></div>
+          <div class="mins" aria-label="per minuut gespeeld of niet">
+            <i></i><i></i><i></i><i class="no"></i><i></i><i></i><i></i><i></i><i></i><i class="no"></i><i class="no"></i><i></i><i></i><i></i><i></i><i></i><i class="no"></i><i></i><i></i><i class="no"></i><i class="no"></i><i></i>
+          </div>
+          <span class="small muted">Noten: G A B C D E · langste stuk 6 min</span>
+        </div>
+        <button class="btn dark" style="margin-top:auto">Opslaan</button>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="label"><div class="num">5</div><div><b>Wat de ouder ziet</b><span>Op het dashboard is de oefentijd per dag opgesplitst in spelletjes en vrij oefenen. Per sessie staat erbij hoe zeker de meting is.</span></div></div>
+      <div class="panel">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="width:44px;height:44px;border-radius:22px;background:var(--blue);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center">A</span>
+          <div style="flex:1"><b style="font-size:20px">Annabel</b><div class="small muted">Altsaxofoon</div></div>
+          <span class="badge">🔥 5 dagen op rij</span>
+        </div>
+        <div class="days">
+          <div class="day"><div class="stack"><div style="height:10px;background:var(--orange)"></div><div style="height:12px;background:var(--blue)"></div></div>zo</div>
+          <div class="day"><div class="stack"><div style="height:30px;background:var(--orange)"></div><div style="height:10px;background:var(--blue)"></div></div>ma</div>
+          <div class="day"><div class="stack" style="height:6px;background:var(--line)"></div>di</div>
+          <div class="day"><div class="stack"><div style="height:44px;background:var(--orange)"></div><div style="height:14px;background:var(--blue)"></div></div>wo</div>
+          <div class="day"><div class="stack"><div style="height:16px;background:var(--blue)"></div></div>do</div>
+          <div class="day"><div class="stack"><div style="height:24px;background:var(--orange)"></div><div style="height:8px;background:var(--blue)"></div></div>vr</div>
+          <div class="day"><div class="stack"><div style="height:52px;background:var(--orange)"></div><div style="height:10px;background:var(--blue)"></div></div>za</div>
+        </div>
+        <div class="legend"><span><i style="background:var(--orange)"></i>vrij oefenen 🎷</span><span><i style="background:var(--blue)"></i>spelletjes</span></div>
+        <div>
+          <div class="sess"><span style="flex:1">Vrij oefenen · <b>16 min</b> van 22<span class="small muted" style="display:block">vandaag 15:10 · G A B C D E</span></span><span class="badge">sax gehoord</span></div>
+          <div class="sess"><span style="flex:1">Vrij oefenen · <b>9 min</b> van 40<span class="small muted" style="display:block">woensdag · steeds dezelfde noot (G)</span></span><span class="badge warn">twijfelachtig</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rules">
+    <h2>Hoe de timer bepaalt wat telt</h2>
+    <p><b>Besluit Alwin (10 okt):</b> start en einde worden altijd gelogd door de server. Daartussen luistert de app naar sax-tonen. Het resultaat is welk deel van de sessie gespeeld is, bijvoorbeeld 16 van 20 min (80%). Er is dus geen drempel van 30 seconden per minuut meer: elke gespeelde seconde telt, en het percentage laat zien hoeveel van de sessie echt gespeeld is.</p>
+    <h3>Gespeelde tijd telt als</h3>
+    <ul>
+      <li>de microfoon een vaste toonhoogte hoort (minstens 150 ms dezelfde toon; spraak wiebelt);</li>
+      <li>die toon <b>in het bereik van het instrument</b> ligt (altsax: klinkend Des3 tot As5);</li>
+      <li>en de klank op een blaasinstrument lijkt: een duidelijke grondtoon met boventonen, geen ruis of spraak. Dat doet dezelfde toonhoogtedetectie als de spelmodus "microfoon".</li>
+    </ul>
+    <h3>Fraude moeilijker maken</h3>
+    <ul>
+      <li><b>Geen handmatige tijd:</b> de leerling kan geen minuten intypen of de timer vooruitzetten.</li>
+      <li><b>Start en einde door de server:</b> de server zet de tijden met zijn eigen klok en weigert meer gespeelde tijd dan er verstreken is. Elke 30 seconden gaat de tussenstand naar de server.</li>
+      <li><b>Bewijs per minuut:</b> per minuut slaan we op hoeveel seconden er gespeeld is en welke noten. Een ouder ziet dus geen "40 min", maar "9 van 40 min (23%), steeds dezelfde noot".</li>
+      <li><b>Twijfelachtig:</b> een sessie met heel weinig verschillende noten, een volkomen gelijk volume of een heel lange aaneengesloten toon krijgt het label <i>twijfelachtig</i>. Hij telt wel, maar de ouder ziet het.</li>
+      <li><b>Grenzen:</b> hooguit 3 uur per sessie en per dag.</li>
+      <li><b>Eerlijk over de grens:</b> een opname van een sax via een speaker kan de timer misleiden. Helemaal fraudevrij is het dus niet. De samenvatting per minuut en het label maken het wel zichtbaar.</li>
+    </ul>
+    <h3>Privacy</h3>
+    <ul>
+      <li>Geen opname: het geluid wordt in het toestel geanalyseerd en meteen weggegooid.</li>
+      <li>Alleen een samenvatting gaat naar de server: start, einde, en per minuut gespeelde seconden en noten.</li>
+    </ul>
+    <h3>Techniek (voor later)</h3>
+    <ul>
+      <li>Tabel <code>practice_sessions</code> (leerling, start, einde, minuten als JSON, label), alleen te schrijven via de databasefuncties <code>practice_start</code> en <code>practice_update</code>.</li>
+      <li>Het scherm blijft aan met de Wake Lock API. Gaat de app naar de achtergrond, dan stopt de timer.</li>
+      <li>Het dashboard telt de oefentijd als spelletjes plus vrij oefenen.</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>

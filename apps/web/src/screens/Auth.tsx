@@ -1,12 +1,13 @@
 import { useState } from "react";
-import type { Role } from "@notenkraker/client";
+import type { SelfRole } from "@notenkraker/client";
 import { client } from "@/lib/client";
 import { Card, Chip } from "@/components/ui";
+import { pendingInvite } from "@/lib/koppel";
 
-/** Inloggen/registreren: e-mail + wachtwoord of Google. Twee rollen: leerling en leraar. */
+/** Inloggen/registreren: e-mail + wachtwoord of Google. Zelf te kiezen: leerling of ouder; leraren maken we samen aan. */
 export function Auth() {
   const [mode, setMode] = useState<"login" | "signup">("login");
-  const [role, setRole] = useState<Role>("leerling");
+  const [role, setRole] = useState<SelfRole>("leerling");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -27,6 +28,7 @@ export function Auth() {
     <div className="max-w-sm mx-auto mt-8">
       <h1 className="font-display font-extrabold text-4xl text-center">Notenkraker</h1>
       <p className="text-muted text-center mb-5">Noten leren lezen én spelen</p>
+      {pendingInvite(localStorage) && <p role="status" className="rounded-2xl border-2 border-kent px-4 py-3 mb-3 text-sm">Je ouder heeft je uitgenodigd. Log in, dan koppelen we je eigen account.</p>}
       <Card>
         <div className="flex gap-2 justify-center mb-4">
           <Chip active={mode === "login"} onClick={() => setMode("login")}>Inloggen</Chip>
@@ -37,7 +39,7 @@ export function Auth() {
             <>
               <div className="flex gap-2 justify-center">
                 <Chip active={role === "leerling"} onClick={() => setRole("leerling")}>Ik ben leerling</Chip>
-                <Chip active={role === "leraar"} onClick={() => setRole("leraar")}>Ik ben leraar / ouder</Chip>
+                <Chip active={role === "ouder"} onClick={() => setRole("ouder")}>Ik ben ouder</Chip>
               </div>
               <input id="name" className={field} placeholder="Naam" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
             </>
@@ -45,10 +47,10 @@ export function Auth() {
           <input id="email" className={field} type="email" placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
           <input id="password" className={field} type="password" placeholder="Wachtwoord" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === "login" ? "current-password" : "new-password"} required minLength={6} />
           {error && <p className="text-sm text-wrong">{error}</p>}
-          <Chip className="border-accent bg-accent text-white" disabled={busy}>{mode === "login" ? "Inloggen" : "Account maken"}</Chip>
+          <Chip type="submit" primary disabled={busy}>{mode === "login" ? "Inloggen" : "Account maken"}</Chip>
         </form>
         <div className="text-center text-muted text-sm my-3">of</div>
-        <Chip className="w-full" onClick={() => client.auth.signInWithGoogle(window.location.origin)}>Doorgaan met Google</Chip>
+        <Chip className="w-full" onClick={() => client.auth.signInWithGoogle(`${window.location.origin}/app`)}>Doorgaan met Google</Chip>
       </Card>
     </div>
   );

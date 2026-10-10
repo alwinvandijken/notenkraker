@@ -1,8 +1,8 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { promotionCandidates, scoreRound } from "@notenkraker/core";
 import type {
-  AuthApi, NotenkrakerClient, NotesApi, Profile, Progress, Role, Round, RoundsApi, RoundSubmission,
-  Song, SongsApi, Student, StudentNote, StudentsApi,
+  AuthApi, InvitePurpose, NotenkrakerClient, NotesApi, PracticeApi, PracticeSession, Profile, Progress, Role, Round, RoundsApi, RoundSubmission,
+  SelfRole, Song, SongsApi, Student, StudentNote, StudentsApi,
 } from "./types.js";
 
 /**
@@ -25,7 +25,7 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
       const { error } = await sb.auth.signInWithPassword({ email, password });
       if (error) throw error;
     },
-    async signUpWithPassword(email, password, role: Role, displayName) {
+    async signUpWithPassword(email, password, role: SelfRole, displayName) {
       const { error } = await sb.auth.signUp({ email, password, options: { data: { role, display_name: displayName } } });
       if (error) throw error;
     },
@@ -33,12 +33,16 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
       const { error } = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
       if (error) throw error;
     },
+    async chooseRole(role) {
+      const { error } = await sb.rpc("choose_role", { p_role: role });
+      if (error) throw error;
+    },
     async signOut() { await sb.auth.signOut(); },
     async currentProfile() {
       const { data: { user } } = await sb.auth.getUser();
       if (!user) return null;
       const { data } = await sb.from("profiles").select("id, role, display_name").eq("id", user.id).maybeSingle();
-      return { id: user.id, role: (data?.role ?? "leerling") as Role, displayName: data?.display_name ?? user.email ?? "", email: user.email ?? undefined };
+      return { id: user.id, role: (data?.role ?? null) as Role | null, displayName: data?.display_name ?? user.email ?? "", email: user.email ?? undefined };
     },
     onAuthChange(cb) {
       const { data } = sb.auth.onAuthStateChange(async () => cb(await auth.currentProfile()));
@@ -77,8 +81,13 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
       if (error) throw error;
       return rowToStudent(data.student);
     },
-    async inviteCode(studentId) {
-      const { data, error } = await sb.functions.invoke("invite-code", { body: { studentId } });
+    async claimByCode(code) {
+      const { data, error } = await sb.rpc("claim_student", { p_code: code });
+      if (error) throw error;
+      return rowToStudent(data);
+    },
+    async inviteCode(studentId, purpose: InvitePurpose = "leraar") {
+      const { data, error } = await sb.functions.invoke("invite-code", { body: { studentId, purpose } });
       if (error) throw error;
       return data.code as string;
     },
@@ -155,6 +164,31 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
     },
   };
 
+  const rowToSession = (r: Record<string, unknown>): PracticeSession => ({
+    id: r.id as string, studentId: r.student_id as string, startedAt: r.started_at as string, endedAt: r.ended_at as string,
+    done: r.done as boolean, playedSeconds: r.played_seconds as number, minutes: (r.minutes as PracticeSession["minutes"]) ?? [],
+    notes: (r.notes as string[]) ?? [], label: r.label as PracticeSession["label"],
+  });
+
+  // start en update zijn databasefuncties: de server zet de tijd en controleert de minuten
+  const practice: PracticeApi = {
+    async start(studentId) {
+      const { data, error } = await sb.rpc("practice_start", { p_student: studentId });
+      if (error) throw error;
+      return rowToSession(data);
+    },
+    async update(id, { minutes, notes, done = false }) {
+      const { data, error } = await sb.rpc("practice_update", { p_id: id, p_minutes: minutes, p_notes: notes, p_done: done });
+      if (error) throw error;
+      return rowToSession(data);
+    },
+    async recent(studentId, limit = 20) {
+      const { data, error } = await sb.from("practice_sessions").select("*").eq("student_id", studentId).order("started_at", { ascending: false }).limit(limit);
+      if (error) throw error;
+      return (data ?? []).map(rowToSession);
+    },
+  };
+
   const rowToSong = (r: Record<string, unknown>): Song => ({
     id: r.id as string, title: r.title as string, instrumentId: r.instrument_id as string,
     source: r.source as Song["source"], notes: r.notes as Song["notes"], createdAt: r.created_at as string,
@@ -174,7 +208,7 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
     async remove(id) { const { error } = await sb.from("songs").delete().eq("id", id); if (error) throw error; },
   };
 
-  return { auth, students, notes, rounds, songs };
+  return { auth, students, notes, rounds, practice, songs };
 }
 
 /** Lokale scorefunctie, voor optimistische UI en voor de Edge Function (zelfde core). */

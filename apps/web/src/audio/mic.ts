@@ -12,10 +12,12 @@ export class MicListener {
   private raf = 0;
   private listeners = new Set<(r: PitchReading | null) => void>();
 
-  get active() { return this.stream !== null; }
+  get active() { return this.stream?.getAudioTracks().some((t) => t.readyState === "live") ?? false; }
 
   async start(): Promise<boolean> {
-    if (this.stream) return true;
+    if (this.active) return true;
+    // een iPad zet de microfoon uit als de app op de achtergrond gaat; dan opnieuw beginnen
+    if (this.stream) this.stop();
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
       const ac = audioContext();
