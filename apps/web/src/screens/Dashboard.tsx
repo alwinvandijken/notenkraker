@@ -7,15 +7,15 @@ import {
 } from "@notenkraker/client";
 import { client } from "@/lib/client";
 import { useApp } from "@/lib/store";
-import { noteLabel } from "@/lib/noten";
 import { Chip } from "@/components/ui";
 import { Donut } from "@/components/Donut";
-import { DagDetail, ICON } from "@/components/DagDetail";
+import { ICON } from "@/lib/iconen";
 
 /**
  * Startscherm voor een ouder of leraar (mock-up: docs/mockups/iPadA-Ouder.html). Het overzicht
- * houdt het kort: per kind een kaart met deze week en de laatste activiteit. Tik op een kaart
- * voor de pagina van dat kind (KindPagina.tsx) met oefentijd, sessies en noten. Zo blijft het
+ * houdt het kort: per kind een kaart met deze week en de laatste activiteit, zonder noten. Tik
+ * op een kaart voor de pagina van dat kind (KindPagina.tsx), op een dag of activiteit voor de
+ * dagpagina (DagPagina.tsx) met alle details. Zo blijft het
  * ook op een staande iPhone leesbaar. Een leraar ziet wie het langst niet oefende bovenaan.
  */
 export interface Row { student: Student; rounds: Round[]; sessions: PracticeSession[]; summary: ChildSummary; range: [string, string] }
@@ -44,11 +44,10 @@ export function useChildRows(): Row[] | null {
   return rows;
 }
 
-export function Dashboard({ onOpenChild, onManage }: { onOpenChild(studentId: string): void; onManage(): void }) {
+export function Dashboard({ onOpenChild, onOpenDay, onManage }: { onOpenChild(studentId: string): void; onOpenDay(studentId: string, date: string): void; onManage(): void }) {
   const { profile } = useApp();
   const isLeraar = profile?.role === "leraar";
   const rows = useChildRows();
-  const [detail, setDetail] = useState<{ studentId: string; date: string } | null>(null);
 
   if (!rows) return <p className="text-muted">Laden…</p>;
   const who = isLeraar ? "leerlingen" : "kinderen";
@@ -64,7 +63,6 @@ export function Dashboard({ onOpenChild, onManage }: { onOpenChild(studentId: st
   const practiced = rows.filter((r) => r.summary.week.minutes > 0).length;
   const weekMinutes = rows.reduce((n, r) => n + r.summary.week.minutes, 0);
   const activity = rows.flatMap((r) => activityOf(r, rows.length > 1)).sort((a, b) => b.at.localeCompare(a.at)).slice(0, 5);
-  const detailRow = detail && rows.find((r) => r.student.id === detail.studentId);
 
   return (
     <div className="flex flex-col gap-4 min-w-0">
@@ -80,13 +78,9 @@ export function Dashboard({ onOpenChild, onManage }: { onOpenChild(studentId: st
         <section className="rounded-3xl bg-surface p-4 flex flex-col min-w-0 self-start w-full">
           <Label>Laatste activiteit</Label>
           {activity.length === 0 && <p className="text-sm text-muted m-0 mt-2">Nog niets gespeeld.</p>}
-          {activity.map((a) => <ActivityRow key={a.id} item={a} onOpen={() => setDetail({ studentId: a.studentId, date: dateKey(new Date(a.at)) })} />)}
+          {activity.map((a) => <ActivityRow key={a.id} item={a} onOpen={() => onOpenDay(a.studentId, dateKey(new Date(a.at)))} />)}
         </section>
       </div>
-      {detail && detailRow && (
-        <DagDetail name={detailRow.student.name} date={detail.date} rounds={detailRow.rounds} sessions={detailRow.sessions} range={detailRow.range}
-          onDate={(date) => setDetail({ ...detail, date })} onClose={() => setDetail(null)} />
-      )}
     </div>
   );
 }
@@ -150,7 +144,7 @@ export function activityOf(r: Row, withName: boolean): ActivityItem[] {
       id: p.id, at: p.startedAt, studentId: r.student.id, kind: "vrij",
       text: <>{who}{withName ? "oefende vrij" : "Vrij oefenen"}: <b>{playedOfTotal(p.playedSeconds, p.totalSeconds)}</b></>,
       short: `Vrij oefenen: ${playedOfTotal(p.playedSeconds, p.totalSeconds)}`,
-      sub: p.notes.map((n) => noteLabel(n, r.range)).join(" "),
+      sub: "",
       end: <Donut percent={p.percent} size={34}><span className="text-[9px] font-bold">{p.percent}%</span></Donut>,
     })),
   ].sort((a, b) => b.at.localeCompare(a.at));
@@ -208,13 +202,13 @@ export function PracticeChart({ summary: s, onOpenDay }: { summary: ChildSummary
   );
 }
 
-export function SessionRow({ session: p, range, onOpen }: { session: SessionSummary; range: [string, string]; onOpen(): void }) {
+export function SessionRow({ session: p, onOpen }: { session: SessionSummary; onOpen(): void }) {
   return (
     <button type="button" onClick={onOpen}
       className="w-full flex items-center gap-3 py-2.5 border-t border-line first-of-type:border-t-0 text-sm text-left bg-transparent cursor-pointer hover:bg-bg min-w-0">
       <Donut percent={p.percent} size={40}><span className="text-[10px] font-bold">{p.percent}%</span></Donut>
       <span className="flex-1 min-w-0"><b>{playedOfTotal(p.playedSeconds, p.totalSeconds)}</b> gespeeld
-        <span className="block text-xs text-muted truncate">{whenLabel(p.startedAt)}{p.notes.length ? ` · ${p.notes.map((n) => noteLabel(n, range)).join(" ")}` : ""}</span></span>
+        <span className="block text-xs text-muted truncate">{whenLabel(p.startedAt)}</span></span>
       {p.label === "twijfel"
         ? <span className="rounded-xl px-2 py-1 text-xs font-semibold bg-les/25 shrink-0" title="Minuten lang steeds dezelfde noot">twijfel&shy;achtig</span>
         : <span className="rounded-xl px-2 py-1 text-xs font-semibold bg-ok/15 text-ok shrink-0">sax ✓</span>}

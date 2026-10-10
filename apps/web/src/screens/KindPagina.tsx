@@ -5,19 +5,17 @@ import { client, hasBackend } from "@/lib/client";
 import { useApp } from "@/lib/store";
 import { noteLabel } from "@/lib/noten";
 import { KindUitnodigen } from "@/components/KindUitnodigen";
-import { DagDetail } from "@/components/DagDetail";
 import { Chip } from "@/components/ui";
 import { activityOf, ActivityRow, Avatar, Label, PracticeChart, SessionRow, StreakBadge, useChildRows } from "./Dashboard";
 
 /**
  * Pagina van één kind of leerling voor de ouder of leraar: oefentijd per dag, sessies vrij
  * oefenen, rondes van het notenspel en noten, elk in een eigen blok. Op een telefoon onder elkaar, op een
- * iPad in twee kolommen. Tik op een dag of sessie voor het detailpaneel.
+ * iPad in twee kolommen. Tik op een dag of sessie voor de dagpagina met de details.
  */
-export function KindPagina({ studentId, onPractice }: { studentId: string; onPractice(): void }) {
+export function KindPagina({ studentId, onPractice, onOpenDay }: { studentId: string; onPractice(): void; onOpenDay(date: string): void }) {
   const { profile } = useApp();
   const row = useChildRows()?.find((r) => r.student.id === studentId);
-  const [day, setDay] = useState<string | null>(null);
   const [invite, setInvite] = useState<string | null>(null);
 
   if (!row) return <p className="text-muted">Laden…</p>;
@@ -47,19 +45,19 @@ export function KindPagina({ studentId, onPractice }: { studentId: string; onPra
       <div className="grid gap-4 lg:grid-cols-2 min-w-0">
         <section className="rounded-3xl bg-surface p-4 flex flex-col gap-2 min-w-0">
           <div className="flex justify-between gap-2"><Label>Oefentijd</Label><span className="text-xs text-muted">deze week {s.week.minutes} min</span></div>
-          <PracticeChart summary={s} onOpenDay={setDay} />
+          <PracticeChart summary={s} onOpenDay={onOpenDay} />
         </section>
 
         <section className="rounded-3xl bg-surface p-4 flex flex-col gap-1 min-w-0">
           <Label>Vrij oefenen</Label>
           {s.sessions.length === 0 && <p className="text-sm text-muted m-0 mt-1">Nog geen sessies.</p>}
-          {s.sessions.map((p) => <SessionRow key={p.id} session={p} range={range} onOpen={() => setDay(dateKey(new Date(p.startedAt)))} />)}
+          {s.sessions.map((p) => <SessionRow key={p.id} session={p} onOpen={() => onOpenDay(dateKey(new Date(p.startedAt)))} />)}
         </section>
 
         <section className="rounded-3xl bg-surface p-4 flex flex-col gap-1 min-w-0">
           <Label>Notenspel</Label>
           {games.length === 0 && <p className="text-sm text-muted m-0 mt-1">Nog geen notenspel gespeeld.</p>}
-          {games.map((a) => <ActivityRow key={a.id} item={a} onOpen={() => setDay(dateKey(new Date(a.at)))} />)}
+          {games.map((a) => <ActivityRow key={a.id} item={a} onOpen={() => onOpenDay(dateKey(new Date(a.at)))} />)}
         </section>
 
         <section className="rounded-3xl bg-surface p-4 flex flex-col gap-4 min-w-0">
@@ -91,7 +89,6 @@ export function KindPagina({ studentId, onPractice }: { studentId: string; onPra
         </section>
       </div>
 
-      {day && <DagDetail name={student.name} date={day} rounds={row.rounds} sessions={row.sessions} range={range} onDate={setDay} onClose={() => setDay(null)} />}
       {invite && <KindUitnodigen name={student.name} code={invite} onClose={() => setInvite(null)} />}
     </div>
   );
