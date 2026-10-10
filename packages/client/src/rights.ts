@@ -13,6 +13,10 @@ export interface Rights {
   canInvite: boolean;
   /** een leerling koppelen met een code (leraar) */
   canLinkByCode: boolean;
+  /** zich als kind koppelen aan het profiel dat de ouder maakte (link of code) */
+  canClaimByCode: boolean;
+  /** titel van het beheerscherm in het menu, of null als die rol er geen heeft */
+  studentsTitle: "Mijn kinderen" | "Mijn leerlingen" | null;
 }
 
 export function rightsFor(role: Role | null): Rights {
@@ -21,5 +25,7 @@ export function rightsFor(role: Role | null): Rights {
     canCreateStudents: role === "ouder" || role === "leraar",
     canInvite: role === "ouder" || role === "leerling" || role === "leraar",
     canLinkByCode: role === "leraar",
+    canClaimByCode: role === null || role === "leerling",
+    studentsTitle: role === "ouder" ? "Mijn kinderen" : role === "leraar" ? "Mijn leerlingen" : null,
   };
 }

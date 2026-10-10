@@ -162,7 +162,7 @@ export function Game() {
           </p>
           <div className="mb-3"><Segmented value={input} options={[["buttons", "Knoppen"], ["mic", `🎤 ${instrument.name} (microfoon)`]]} onChange={(v) => { setInput(v); localStorage.setItem("nk.input", v); }} label="Antwoorden met" /></div>
           {micError && <p className="text-sm text-muted border border-line rounded-lg p-2 inline-block">{micError}</p>}
-          <div><Chip className="text-xl px-8 py-3 border-accent bg-accent text-white" onClick={start}>▶ Spelen</Chip></div>
+          <div><Chip primary className="text-xl px-8 py-3" onClick={start}>▶ Spelen</Chip></div>
           {history.length > 0 && (
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               {history.map((r) => {

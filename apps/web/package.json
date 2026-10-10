@@ -17,6 +17,7 @@
     "@notenkraker/instruments": "workspace:*",
     "clsx": "^2.1.1",
     "lucide-react": "^0.460.0",
+    "qrcode": "^1.5.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "workbox-window": "^7.4.1",
@@ -24,6 +25,7 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.0",

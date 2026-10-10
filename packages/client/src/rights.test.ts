@@ -18,6 +18,14 @@ describe("rightsFor", () => {
     expect(rightsFor("leraar")).toMatchObject({ canCreateStudents: true, canLinkByCode: true });
   });
 
+  it("alleen een kind (nog zonder rol of leerling) koppelt zich met een code van de ouder", () => {
+    expect([null, "leerling", "ouder", "leraar", "admin"].map((r) => rightsFor(r as never).canClaimByCode)).toEqual([true, true, false, false, false]);
+  });
+
+  it("ouder en leraar krijgen een beheerscherm met de juiste naam", () => {
+    expect([rightsFor("ouder").studentsTitle, rightsFor("leraar").studentsTitle, rightsFor("leerling").studentsTitle]).toEqual(["Mijn kinderen", "Mijn leerlingen", null]);
+  });
+
   it("admin leest alles maar beheert niets in de app", () => {
     expect(rightsFor("admin")).toMatchObject({ canCreateStudents: false, canInvite: false, canLinkByCode: false });
   });

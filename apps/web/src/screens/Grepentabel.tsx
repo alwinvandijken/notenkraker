@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { instrumentNotes, midiToPitch, noteName, parseId, soundingMidi, toId, type Instrument, type NoteId, type NoteStatus } from "@notenkraker/core";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { instrumentNotes, midiToPitch, noteName, parseId, soundingMidi, toId, type Instrument, type NoteId, type NoteStatus, type StatusMap } from "@notenkraker/core";
 import { playMidi } from "@/audio/synth";
 import { useStatuses, usePref } from "@/lib/poc";
 import { StaffNote, StaffRow } from "@/components/Staff";
@@ -13,6 +13,9 @@ import { Segmented } from "@/components/ui";
  * Vanaf 768 px breed (iPad staand en liggend) past alles op één scherm:
  * kopregel, sax links, noot rechts, notenkiezer onderaan als één schuifbare rij.
  * Smaller (telefoon) staat alles onder elkaar en scrolt de pagina.
+ *
+ * Zonder props (proefconcept op /) staat de notenstatus in deze browser. De app met
+ * login op /app geeft de status van de gekozen leerling mee, plus een titel en het menu.
  */
 
 type Filter = "mine" | "les" | "all";
@@ -41,9 +44,24 @@ function statusClass(st: NoteStatus | undefined): string {
 
 const panel = "rounded-3xl bg-surface";
 
-export function Grepentabel({ instrument }: { instrument: Instrument }) {
+export interface GrepentabelProps {
+  instrument: Instrument;
+  /** status van de leerling uit de database; zonder deze prop bewaart de browser de status zelf */
+  student?: { statuses: StatusMap; setStatus(note: NoteId, status: NoteStatus | null): void };
+  /** vervangt "Notenkraker" in de kopregel, bijvoorbeeld de naam van de leerling */
+  title?: string;
+  /** rechts in de kopregel, bijvoorbeeld Grepen/Spel en het menu */
+  actions?: ReactNode;
+  /** onder de kopregel, bijvoorbeeld een melding */
+  notice?: ReactNode;
+  /** helemaal rechts; op een smal scherm naast de titel */
+  menu?: ReactNode;
+}
+
+export function Grepentabel({ instrument, student, title, actions, notice, menu }: GrepentabelProps) {
   const all = useMemo(() => instrumentNotes(instrument), [instrument]);
-  const { statuses, setStatus } = useStatuses(instrument.id, instrument.starterNotes);
+  const local = useStatuses(instrument.id, instrument.starterNotes);
+  const { statuses, setStatus } = student ?? local;
   const [filter, setFilter] = usePref<Filter>("filter", "mine");
   const [view, setView] = usePref<View>("view", "buttons");
   const [showAll, setShowAll] = useState(false);
@@ -71,14 +89,18 @@ export function Grepentabel({ instrument }: { instrument: Instrument }) {
             <ellipse cx="17" cy="27" rx="7" ry="5" fill="var(--color-les)" transform="rotate(-20 17 27)" />
             <path d="M23 26V9l8 4" stroke="var(--color-les)" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          <h1 className="font-display font-bold text-xl m-0 leading-tight">Notenkraker<span className="block text-xs font-medium text-muted">{instrument.name}</span></h1>
+          <h1 className="font-display font-bold text-xl m-0 leading-tight">{title ?? "Notenkraker"}<span className="block text-xs font-medium text-muted">{instrument.name}</span></h1>
+          {menu && <span className="ml-auto lg:hidden">{menu}</span>}
         </div>
         <div className="flex flex-wrap items-center gap-3 flex-1">
           <Segmented value={filter} onChange={setFilter} label="Welke noten"
             options={FILTERS.map(([v, t]) => [v, `${t} (${counts[v]})`] as [Filter, string])} />
           <span className="ml-auto"><Segmented value={view} onChange={setView} label="Weergave notenkiezer" options={[["buttons", "Knoppen"], ["staff", "Notenbalk"]]} /></span>
+          {actions}
+          {menu && <span className="hidden lg:block">{menu}</span>}
         </div>
       </header>
+      {notice}
 
       <main className="grid gap-3 md:flex-1 md:min-h-0 md:grid-cols-[minmax(240px,34%)_1fr] lg:grid-cols-[minmax(280px,32%)_1fr]">
         <section aria-label="Greep" className={`${panel} order-2 md:order-1 p-4 flex flex-col items-center gap-2 md:min-h-0`}>

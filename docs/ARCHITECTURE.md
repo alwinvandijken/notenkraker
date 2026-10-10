@@ -59,7 +59,11 @@ Regels:
 | `/leraar`, `/leraar/:studentId` | Overzicht, notenstatus, les klaarzetten, rondes | leraar |
 | `/kies-leerling` | Wie speelt er? (gedeelde gezins-iPad) | ouderaccount op een gedeeld toestel |
 | `/instellingen` | Skin kiezen, account | iedereen |
-| `/welkom` | Leerling of ouder kiezen, of als kind een code van de ouder invoeren (na eerste Google-login) | gebruiker zonder rol |
+| `/welkom` | Als kind een code van de ouder invoeren, of leerling of ouder kiezen (na eerste Google-login) | gebruiker zonder rol |
+| `/kinderen` | "Mijn kinderen" (ouder) of "Mijn leerlingen" (leraar): aanmaken, kind laten inloggen (link, QR, code), code voor leraar | ouder, leraar |
+| `/profiel` | Naam, e-mail, rol; als leerling alsnog koppelen met een code van de ouder | iedereen |
+
+Nu nog zonder router: `AppMetLogin.tsx` op `/app` wisselt tussen Oefenen, Mijn kinderen en Mijn profiel via het hamburgermenu rechtsboven (`components/Menu.tsx`). Grepen is de grepentabel van het proefconcept (`screens/Grepentabel.tsx`) met de status van de gekozen leerling.
 
 Spel en tutorial zijn schermvullend, zonder navigatiebalk.
 
@@ -123,6 +127,7 @@ Vastgelegd in `supabase/migrations/0002_rollen.sql`, getest in `supabase/tests/r
 
 - De gebruiker kan alleen `display_name` zelf wijzigen (column grant); de rol nooit. Een rol `leraar` of `admin` in de signup-metadata wordt genegeerd.
 - Een kindcode (`purpose = 'kind'`) kan alleen de eigenaar maken, en alleen zolang het kind nog geen eigen login heeft. Een leraarcode werkt niet als kindcode, en omgekeerd.
+- Kind laten inloggen: de ouder deelt de link `/app?koppel=CODE` of laat de QR-code scannen. De app onthoudt de code in localStorage (`lib/koppel.ts`), zodat hij het inloggen bij Google overleeft, en roept na het inloggen `claim_student` aan; het welkomscherm wordt dan overgeslagen. Had het kind al een eigen, ongebruikt leerlingprofiel, dan ruimt `claim_student` dat op. Een kind dat al leerling is, kan ook later koppelen via Mijn profiel. Mock-up: `docs/mockups/Koppelen-Kind.html`.
 
 ## Noten en toonhoogte
 

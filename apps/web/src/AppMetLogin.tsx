@@ -1,28 +1,24 @@
 /** De volledige app met login (AC-63, AC-106), bereikbaar op /app zolang het proefconcept op / staat. */
 import { useEffect, useState } from "react";
-import { INSTRUMENTS } from "@notenkraker/instruments";
-import { rightsFor, type InvitePurpose } from "@notenkraker/client";
+import { rightsFor } from "@notenkraker/client";
+import { getInstrument } from "@notenkraker/instruments";
 import { client, hasBackend } from "@/lib/client";
 import { useApp } from "@/lib/store";
 import { Auth } from "@/screens/Auth";
 import { Welkom } from "@/screens/Welkom";
-import { Learn } from "@/screens/Learn";
+import { Grepentabel } from "@/screens/Grepentabel";
 import { Game } from "@/screens/Game";
-import { Chip, Ghost, Segmented } from "@/components/ui";
+import { Kinderen } from "@/screens/Kinderen";
+import { Profiel } from "@/screens/Profiel";
+import { Menu, type MenuItem } from "@/components/Menu";
+import { KoppelMelding } from "@/components/KoppelMelding";
+import { Chip, Segmented } from "@/components/ui";
 
-const PRESETS: Record<string, { kent: string[]; les: string[] }> = {
-  "1": { kent: ["g4", "a4", "b4", "c5", "d5"], les: [] },
-  "2": { kent: ["c4", "d4", "e4", "f4", "g4", "a4", "b4", "c5", "d5", "e5", "f5", "g5"], les: ["fis4", "gis4", "fis5", "gis5"] },
-};
+type Screen = "oefenen" | "kinderen" | "profiel";
 
 export function AppMetLogin() {
-  const { profile, students, studentId, mode, init, selectStudent, setMode, loadStudents } = useApp();
-  const [adding, setAdding] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newInst, setNewInst] = useState("altsax");
-  const [preset, setPreset] = useState("");
-  const [code, setCode] = useState("");
-  const [invite, setInvite] = useState<{ purpose: InvitePurpose; code: string } | null>(null);
+  const { profile, students, studentId, statuses, mode, init, selectStudent, setMode, setStatus } = useApp();
+  const [screen, setScreen] = useState<Screen>("oefenen");
 
   useEffect(() => { void init(); }, [init]);
 
@@ -32,75 +28,60 @@ export function AppMetLogin() {
   if (rights.mustChooseRole) return <Welkom />;
 
   const student = students.find((s) => s.id === studentId);
-  const canInvite = rights.canInvite && hasBackend && Boolean(student);
+  const items: MenuItem[] = [
+    { key: "oefenen", label: "Oefenen", onSelect: () => setScreen("oefenen"), active: screen === "oefenen" },
+    ...(rights.studentsTitle ? [{ key: "kinderen", label: rights.studentsTitle, onSelect: () => setScreen("kinderen"), active: screen === "kinderen" }] : []),
+    { key: "profiel", label: "Mijn profiel", onSelect: () => setScreen("profiel"), active: screen === "profiel" },
+    { key: "uit", label: "Uitloggen", onSelect: () => void client.auth.signOut() },
+  ];
+  const practice = (id: string) => { selectStudent(id); setScreen("oefenen"); };
+  const menu = <Menu title={profile.displayName || "Menu"} items={items} />;
+  const modeSwitch = <Segmented value={mode} options={[["learn", "Grepen"], ["game", "Spel"]]} onChange={setMode} label="Onderdeel" />;
+  const studentPicker = students.length > 1 && (
+    <select id="student" aria-label={profile.role === "ouder" ? "Kind" : "Leerling"} value={studentId ?? ""} onChange={(e) => selectStudent(e.target.value || null)}
+      className="rounded-xl border-2 border-line bg-surface px-3 py-1.5 font-display font-bold">
+      {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+    </select>
+  );
 
-  async function makeInvite(purpose: InvitePurpose) {
-    if (!student) return;
-    setInvite({ purpose, code: await client.students.inviteCode(student.id, purpose) });
-  }
-
-  async function addStudent() {
-    const name = newName.trim(); if (!name) return;
-    const s = await client.students.create({ name, instrumentId: newInst });
-    const p = PRESETS[preset];
-    if (p) { for (const n of p.kent) await client.notes.setStatus(s.id, n, "kent"); for (const n of p.les) await client.notes.setStatus(s.id, n, "les"); }
-    setAdding(false); setNewName(""); setPreset("");
-    await loadStudents(); selectStudent(s.id);
+  // Grepen: de grepentabel van het proefconcept (AC-107) over het hele scherm, met de status van de leerling
+  if (screen === "oefenen" && mode === "learn" && student) {
+    return (
+      <Grepentabel instrument={getInstrument(student.instrumentId)} title={student.name}
+        student={{ statuses, setStatus: (n, st) => void setStatus(n, st) }}
+        actions={<div className="flex flex-wrap items-center gap-3">{studentPicker}{modeSwitch}</div>} menu={menu}
+        notice={<KoppelMelding />} />
+    );
   }
 
   return (
     <div className="max-w-[900px] mx-auto px-4 pt-6 pb-12">
-      <header className="flex items-start justify-between gap-3">
+      <header className="flex items-start justify-between gap-3 mb-3">
         <div>
           <h1 className="font-display font-extrabold text-4xl leading-none">Notenkraker</h1>
-          <p className="text-muted mt-1">Kies een leerling, tik op een noot en zie wat je indrukt.</p>
+          {screen === "oefenen" && <p className="text-muted mt-1">Tik op een noot en zie wat je indrukt.</p>}
         </div>
-        <Ghost onClick={() => client.auth.signOut()}>{profile.displayName || "Uitloggen"} ⏏</Ghost>
+        {menu}
       </header>
+      <KoppelMelding />
 
-      <div className="font-display font-semibold text-lg mt-5 mb-2 flex flex-wrap items-center gap-x-3 gap-y-2">
-        Leerling
-        <select id="student" aria-label="Leerling" value={studentId ?? ""} onChange={(e) => { setInvite(null); selectStudent(e.target.value || null); }}
-          className="rounded-xl border-2 border-line bg-surface px-3 py-1.5 font-bold">
-          {students.length === 0 && <option value="">— nog geen leerling —</option>}
-          {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-        </select>
-        {rights.canCreateStudents && <Ghost onClick={() => setAdding((v) => !v)}>+ leerling</Ghost>}
-        {rights.canLinkByCode && hasBackend && (
-          <form className="flex gap-1" onSubmit={async (e) => { e.preventDefault(); if (!code) return; await client.students.linkByCode(code); setCode(""); await loadStudents(); }}>
-            <input id="code" aria-label="Uitnodigingscode" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="Code" className="w-24 rounded-xl border-2 border-line bg-surface px-2 py-1 text-sm" />
-            <Ghost type="submit">Koppel</Ghost>
-          </form>
-        )}
-        <span className="ml-auto"><Segmented value={mode} options={[["learn", "Grepen"], ["game", "Spel"]]} onChange={setMode} label="Onderdeel" /></span>
-      </div>
-
-      {canInvite && (
-        <div className="flex flex-wrap items-center gap-2 mb-2 text-sm">
-          <Ghost onClick={() => makeInvite("leraar")}>Code voor leraar</Ghost>
-          {profile.role === "ouder" && !student?.userId && <Ghost onClick={() => makeInvite("kind")}>Code voor eigen login van {student?.name}</Ghost>}
-          {invite && <span className="rounded-lg border-2 border-line px-2 py-1">{invite.purpose === "kind" ? "Laat je kind inloggen en deze code invoeren" : "Geef deze code aan de leraar"}: <b className="font-mono">{invite.code}</b> (7 dagen geldig)</span>}
-        </div>
+      {screen === "kinderen" && <Kinderen onPractice={practice} />}
+      {screen === "profiel" && <Profiel onLinked={() => setScreen("oefenen")} />}
+      {screen === "oefenen" && (
+        <>
+          <div className="font-display font-semibold text-lg mt-5 mb-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+            {studentPicker || (student && <span>{student.name}</span>)}
+            <span className="ml-auto">{modeSwitch}</span>
+          </div>
+          {!hasBackend && <p className="text-xs text-muted border border-line rounded-lg px-3 py-2 mb-2">Zonder backend: gegevens staan alleen in deze browser. Zet VITE_SUPABASE_URL en VITE_SUPABASE_ANON_KEY in .env voor de echte database.</p>}
+          {student ? <Game /> : (
+            <div className="rounded-3xl bg-surface p-6 flex flex-col items-start gap-3">
+              <p className="m-0">{profile.role === "ouder" ? "Voeg eerst een kind toe." : rights.canCreateStudents ? "Voeg eerst een leerling toe." : "Er is nog geen leerlingprofiel."}</p>
+              {rights.studentsTitle && <Chip primary onClick={() => setScreen("kinderen")}>{profile.role === "ouder" ? "+ kind" : "+ leerling"}</Chip>}
+            </div>
+          )}
+        </>
       )}
-      {adding && (
-        <div className="rounded-2xl border-2 border-line bg-surface p-3 mb-2 flex flex-wrap gap-2 items-center">
-          <input id="newName" className="flex-1 min-w-40 rounded-xl border-2 border-line bg-bg px-3 py-2" placeholder="Naam" maxLength={40} value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void addStudent(); }} />
-          <select id="newInst" value={newInst} onChange={(e) => setNewInst(e.target.value)} className="rounded-xl border-2 border-line bg-surface px-3 py-2 font-bold">
-            {INSTRUMENTS.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
-          </select>
-          <select id="preset" value={preset} onChange={(e) => setPreset(e.target.value)} className="rounded-xl border-2 border-line bg-surface px-3 py-2 font-bold">
-            <option value="">Start zonder noten</option>
-            <option value="1">Begin: kent G A B C D</option>
-            <option value="2">Gevorderd: lage C t/m hoge G, fis en gis in de les</option>
-          </select>
-          <Chip onClick={addStudent}>Toevoegen</Chip>
-          <Ghost onClick={() => setAdding(false)}>Annuleren</Ghost>
-        </div>
-      )}
-      {!hasBackend && <p className="text-xs text-muted border border-line rounded-lg px-3 py-2 mb-2">Zonder backend: gegevens staan alleen in deze browser. Zet VITE_SUPABASE_URL en VITE_SUPABASE_ANON_KEY in .env voor de echte database.</p>}
-      {!student && students.length === 0 && <p className="text-muted p-3">Voeg eerst een leerling toe.</p>}
-
-      {mode === "learn" ? <Learn /> : <Game />}
     </div>
   );
 }

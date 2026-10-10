@@ -2,7 +2,7 @@
 -- Draaien: supabase start && supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(30);
+select plan(33);
 
 -- Lege lei (alles wordt aan het eind teruggedraaid), zodat de tellingen niet afhangen van lokale data.
 delete from auth.users;
@@ -130,12 +130,25 @@ select pg_temp.als((select id from ids where naam = 'sam'));
 select throws_ok($$ select claim_student((select code from codes where naam = 'leraar')) $$,
   'P0001', 'code onbekend of verlopen', 'Leraarcode werkt niet om een kind te koppelen');
 
+-- Een kind dat al zelf leerling koos (met een leeg eigen profiel) kan later alsnog koppelen
+select pg_temp.als((select id from ids where naam = 'ouder'));
+insert into codes values ('kind2', create_invite_code((select id from students where name = 'Sam'), 'kind'));
+select pg_temp.als((select id from ids where naam = 'ouder'));
+select throws_ok($$ select claim_student((select code from codes where naam = 'kind2')) $$,
+  'P0001', 'alleen voor leerlingen', 'Een ouder kan zich niet als kind koppelen');
+select pg_temp.als((select id from ids where naam = 'leerling'));
+select lives_ok($$ select claim_student((select code from codes where naam = 'kind2')) $$,
+  'Leerling met eigen profiel koppelt zich met de code');
+select pg_temp.als_beheer();
+select is((select array_agg(name) from students where user_id = (select id from ids where naam = 'leerling')), array['Sam'],
+  'Leerling oefent nu alleen met het profiel van de ouder; het lege eigen profiel is weg');
+
 -- ── Admin leest alles, schrijft niets ────────────────────────────────
 select pg_temp.als_beheer();
 insert into ids values ('admin', pg_temp.nieuwe_gebruiker('admin@x.nl'));
 update profiles set role = 'admin' where id = (select id from ids where naam = 'admin');
 select pg_temp.als((select id from ids where naam = 'admin'));
-select is((select count(*)::int from students), 4, 'Admin ziet alle leerlingen');
+select is((select count(*)::int from students), 3, 'Admin ziet alle leerlingen');
 select is_empty($$ update students set name = 'Gehackt' returning id $$, 'Admin kan leerlingen niet wijzigen');
 
 select * from finish();
