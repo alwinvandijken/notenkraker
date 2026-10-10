@@ -1,0 +1,153 @@
+/**
+ * Notenkraker zonder account op /oefenen (AC-114, mock-up docs/mockups/Welkom-Twee-Routes.html).
+ * Eigen navigatie: Start, Grepen, Notenspel en Vrij oefenen. Alles staat in deze browser
+ * (lokale client, zie lib/client.ts); geen ouder, leraar of huiswerk. Een gratis account maken
+ * kan altijd via het menu en op momenten waar het uitmaakt.
+ */
+import { useEffect, useState } from "react";
+import { childSummary } from "@notenkraker/client";
+import { instrumentNotes, type NoteStatus, type StatusMap } from "@notenkraker/core";
+import { getInstrument } from "@notenkraker/instruments";
+import { client } from "@/lib/client";
+import { useApp } from "@/lib/store";
+import { chooseRoute } from "@/lib/route";
+import { ICON } from "@/lib/iconen";
+import { Grepentabel } from "@/screens/Grepentabel";
+import { Game } from "@/screens/Game";
+import { VrijOefenen } from "@/screens/VrijOefenen";
+import { Menu, type MenuItem } from "@/components/Menu";
+import { Segmented } from "@/components/ui";
+
+type Screen = "start" | "grepen" | "spel" | "vrij";
+const SCREENS: Screen[] = ["start", "grepen", "spel", "vrij"];
+const TITLES: Record<Exclude<Screen, "start">, string> = { grepen: "Grepen", spel: "Notenspel", vrij: "Vrij oefenen" };
+/** het proefconcept (AC-107) bewaarde de notenstatus hier; die nemen we één keer over */
+const POC_KEY = "nk.poc.altsax.status";
+
+/** eerste keer zonder account: een leerlingprofiel "Ik", met de noten uit het proefconcept als die er zijn */
+let ensuring: Promise<void> | null = null;
+/** één keer per pagina, ook als React het effect twee keer draait (StrictMode) */
+const ensureStudent = () => (ensuring ??= createStudentOnce());
+async function createStudentOnce() {
+  if ((await client.students.list()).length > 0) return;
+  const me = await client.students.create({ name: "Ik", instrumentId: "altsax" });
+  let poc: StatusMap = {};
+  try { poc = JSON.parse(localStorage.getItem(POC_KEY) ?? "{}") as StatusMap; } catch { /* niets over te nemen */ }
+  const starter = getInstrument("altsax").starterNotes;
+  const statuses: StatusMap = Object.keys(poc).length ? poc : Object.fromEntries(starter.map((n) => [n, "kent" as NoteStatus]));
+  for (const [noteId, status] of Object.entries(statuses)) await client.notes.setStatus(me.id, noteId, status);
+}
+
+const screenFromState = (): Screen => {
+  const s = window.history.state?.anoniem as Screen | undefined;
+  return s && SCREENS.includes(s) ? s : "start";
+};
+
+export function AnoniemApp() {
+  const { profile, students, studentId, statuses, init, setStatus } = useApp();
+  const [screen, setScreen] = useState<Screen>(screenFromState);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => { void ensureStudent().then(init).then(() => setReady(true)); }, [init]);
+  // terug in de browser (of terugvegen op de iPhone) blijft in de app
+  useEffect(() => {
+    const onPop = () => setScreen(screenFromState());
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  const go = (s: Screen) => { window.history.pushState({ anoniem: s }, ""); setScreen(s); window.scrollTo(0, 0); };
+  const toAccount = (path: string) => { try { chooseRoute(localStorage, "app", false); } catch { /* geen opslag */ } window.location.assign(path); };
+
+  const student = students.find((s) => s.id === studentId);
+  if (!ready || !profile || !student) return <div className="p-6 text-muted">Laden…</div>;
+
+  const items: MenuItem[] = [
+    { key: "start", label: "Start", onSelect: () => go("start"), active: screen === "start" },
+    { key: "grepen", label: `${ICON.vrij} Grepen`, onSelect: () => go("grepen"), active: screen === "grepen" },
+    { key: "spel", label: `${ICON.spel} Notenspel`, onSelect: () => go("spel"), active: screen === "spel" },
+    { key: "vrij", label: "🎙️ Vrij oefenen", onSelect: () => go("vrij"), active: screen === "vrij" },
+    { key: "account", label: "Gratis account maken", onSelect: () => toAccount("/app?nieuw") },
+    { key: "login", label: "Inloggen", onSelect: () => toAccount("/app") },
+    { key: "welkom", label: "Welkomstpagina", onSelect: () => window.location.assign("/?welkom") },
+  ];
+  const menu = <Menu title="Menu" items={items} />;
+  const switcher = screen !== "start" && (
+    <Segmented value={screen} options={[["grepen", "Grepen"], ["spel", "Spel"], ["vrij", "Vrij oefenen"]]} onChange={go} label="Onderdeel" />
+  );
+  const nudge = (text: string) => (
+    <div className="rounded-2xl bg-bg p-4 text-sm text-left flex flex-col gap-2 w-full">
+      <span className="text-muted">{text}</span>
+      <button type="button" onClick={() => toAccount("/app?nieuw")} className="self-start font-semibold text-kent bg-transparent cursor-pointer">Gratis account maken →</button>
+    </div>
+  );
+
+  if (screen === "grepen") {
+    return (
+      <Grepentabel instrument={getInstrument(student.instrumentId)} title="Grepen"
+        student={{ statuses, setStatus: (n, st) => void setStatus(n, st) }}
+        actions={<div className="flex flex-wrap items-center gap-3">{switcher}</div>} menu={menu} notice={<Banner onAccount={() => toAccount("/app?nieuw")} />} />
+    );
+  }
+
+  return (
+    <div className="max-w-[900px] mx-auto px-4 pt-5 pb-12 flex flex-col gap-4">
+      <header className="flex items-center justify-between gap-3">
+        {screen === "start"
+          ? <div className="flex items-center gap-2.5 font-display font-extrabold text-xl"><span className="w-9 h-9 rounded-xl bg-fg text-bg flex items-center justify-center" aria-hidden="true">♪</span>Notenkraker</div>
+          : <h1 className="font-display font-extrabold text-3xl sm:text-4xl leading-none m-0">{TITLES[screen]}</h1>}
+        {menu}
+      </header>
+      <Banner onAccount={() => toAccount("/app?nieuw")} />
+      {switcher && <div className="flex justify-end">{switcher}</div>}
+
+      {screen === "start" && <Start onGo={go} />}
+      {screen === "spel" && <Game />}
+      {screen === "vrij" && <VrijOefenen after={nudge("Wil je dat je ouder of leraar dit ziet? Met een gratis account bewaar je je oefentijd en kijken zij mee.")} />}
+    </div>
+  );
+}
+
+function Banner({ onAccount }: { onAccount(): void }) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl bg-accent-soft px-4 py-2.5 text-sm">
+      <span className="flex-1">Je speelt zonder account. Alles staat alleen op dit apparaat.</span>
+      <button type="button" onClick={onAccount} className="font-semibold text-accent bg-transparent cursor-pointer whitespace-nowrap">Account →</button>
+    </div>
+  );
+}
+
+function Start({ onGo }: { onGo(s: Screen): void }) {
+  const { students, studentId, statuses } = useApp();
+  const student = students.find((s) => s.id === studentId)!;
+  const [today, setToday] = useState<number | null>(null);
+  useEffect(() => {
+    void Promise.all([client.rounds.recent(student.id, 50), client.practice.recent(student.id, 20)]).then(([rounds, sessions]) => {
+      setToday(childSummary({ rounds, sessions, statuses: {}, noteIds: [] }).days[6]!.minutes);
+    });
+  }, [student.id]);
+  const known = instrumentNotes(getInstrument(student.instrumentId)).filter((n) => statuses[n] === "kent").length;
+
+  const tiles: Array<{ s: Exclude<Screen, "start">; icon: string; text: string; tint: string }> = [
+    { s: "grepen", icon: ICON.vrij, text: "Zie welke kleppen bij een noot horen", tint: "bg-kent-soft" },
+    { s: "spel", icon: ICON.spel, text: "Acht noten, drie levens", tint: "bg-kent-soft" },
+    { s: "vrij", icon: "🎙️", text: "De app telt mee als je speelt", tint: "bg-accent-soft" },
+  ];
+  return (
+    <>
+      <h2 className="font-display font-bold text-2xl m-0 mt-1">Wat ga je doen?</h2>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {tiles.map((t) => (
+          <button key={t.s} type="button" onClick={() => onGo(t.s)}
+            className="rounded-3xl bg-surface p-4 flex sm:flex-col items-center sm:items-start gap-3 text-left cursor-pointer border-2 border-transparent hover:border-line">
+            <span className={`w-14 h-14 rounded-2xl ${t.tint} flex items-center justify-center text-3xl shrink-0`} aria-hidden="true">{t.icon}</span>
+            <span><b className="font-display text-lg block">{TITLES[t.s]}</b><span className="text-sm text-muted">{t.text}</span></span>
+          </button>
+        ))}
+      </div>
+      <p className="rounded-2xl bg-surface px-4 py-3 text-sm text-muted m-0">
+        {today ? `Vandaag ${today} min geoefend` : "Vandaag nog niet geoefend"} · {known} {known === 1 ? "noot" : "noten"} die je kent
+      </p>
+    </>
+  );
+}

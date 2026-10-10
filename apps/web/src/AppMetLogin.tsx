@@ -16,6 +16,7 @@ import { DagPagina } from "@/screens/DagPagina";
 import { Profiel } from "@/screens/Profiel";
 import { Menu, type MenuItem } from "@/components/Menu";
 import { KoppelMelding } from "@/components/KoppelMelding";
+import { NotenOvernemen } from "@/components/NotenOvernemen";
 import { Chip, Segmented } from "@/components/ui";
 
 type Screen = "overzicht" | "kind" | "dag" | "oefenen" | "kinderen" | "profiel";
@@ -61,6 +62,7 @@ export function AppMetLogin() {
     { key: "oefenen", label: "Oefenen", onSelect: () => go("oefenen"), active: current === "oefenen" },
     ...(rights.studentsTitle ? [{ key: "kinderen", label: rights.studentsTitle, onSelect: () => go("kinderen"), active: current === "kinderen" }] : []),
     { key: "profiel", label: "Mijn profiel", onSelect: () => go("profiel"), active: current === "profiel" },
+    { key: "welkom", label: "Welkomstpagina", onSelect: () => window.location.assign("/?welkom") },
     { key: "uit", label: "Uitloggen", onSelect: () => void client.auth.signOut() },
   ];
   /** naar een ander scherm, bovenaan beginnen; komt in de browsergeschiedenis */
@@ -86,7 +88,7 @@ export function AppMetLogin() {
       <Grepentabel instrument={getInstrument(student.instrumentId)} title={student.name}
         student={{ statuses, setStatus: (n, st) => void setStatus(n, st) }}
         actions={<div className="flex flex-wrap items-center gap-3">{studentPicker}{modeSwitch}</div>} menu={menu}
-        notice={<KoppelMelding />} />
+        notice={<><KoppelMelding /><NotenOvernemen /></>} />
     );
   }
 
@@ -109,6 +111,7 @@ export function AppMetLogin() {
         {menu}
       </header>
       <KoppelMelding />
+      <NotenOvernemen />
 
       {current === "overzicht" && (
         <Dashboard onManage={() => go("kinderen")}

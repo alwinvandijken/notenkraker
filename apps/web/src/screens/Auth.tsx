@@ -4,9 +4,13 @@ import { client } from "@/lib/client";
 import { Card, Chip } from "@/components/ui";
 import { pendingInvite } from "@/lib/koppel";
 
-/** Inloggen/registreren: e-mail + wachtwoord of Google. Zelf te kiezen: leerling of ouder; leraren maken we samen aan. */
+/**
+ * Inloggen/registreren: e-mail + wachtwoord of Google. Zelf te kiezen: leerling of ouder; leraren
+ * maken we samen aan. /app?nieuw (knop "Gratis account maken" op de welkomstpagina) begint bij
+ * account maken.
+ */
 export function Auth() {
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [mode, setMode] = useState<"login" | "signup">(() => (new URLSearchParams(window.location.search).has("nieuw") ? "signup" : "login"));
   const [role, setRole] = useState<SelfRole>("leerling");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,9 +29,10 @@ export function Auth() {
 
   const field = "w-full rounded-xl border-2 border-line bg-bg px-3 py-2 text-fg";
   return (
-    <div className="max-w-sm mx-auto mt-8">
-      <h1 className="font-display font-extrabold text-4xl text-center">Notenkraker</h1>
-      <p className="text-muted text-center mb-5">Noten leren lezen én spelen</p>
+    <div className="max-w-sm mx-auto mt-6 px-4">
+      <a href="/?welkom" className="text-sm font-semibold text-muted no-underline">← Welkom</a>
+      <h1 className="font-display font-extrabold text-4xl text-center mt-3">{mode === "signup" ? "Gratis account" : "Notenkraker"}</h1>
+      <p className="text-muted text-center mb-5">{mode === "signup" ? "Je voortgang op elk apparaat; ouder en leraar kijken mee" : "Noten leren lezen én spelen"}</p>
       {pendingInvite(localStorage) && <p role="status" className="rounded-2xl border-2 border-kent px-4 py-3 mb-3 text-sm">Je ouder heeft je uitgenodigd. Log in, dan koppelen we je eigen account.</p>}
       <Card>
         <div className="flex gap-2 justify-center mb-4">

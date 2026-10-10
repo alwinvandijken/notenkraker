@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { instrumentNotes, makeSequence, midiToPitch, NoteMatcher, noteName, parseId, scoreRound, soundingMidi, toId, weightedPool, type NoteId, type PitchReading } from "@notenkraker/core";
 import { getInstrument } from "@notenkraker/instruments";
 import type { Round } from "@notenkraker/client";
-import { client } from "@/lib/client";
+import { client, isAnonymous } from "@/lib/client";
 import { useApp } from "@/lib/store";
 import { StaffRow } from "@/components/Staff";
 import { Card, Chip, Segmented } from "@/components/ui";
@@ -16,7 +16,7 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 type Answer = { expected: NoteId; given: NoteId | null; correct: boolean };
 
 export function Game() {
-  const { students, studentId, statuses } = useApp();
+  const { profile, students, studentId, statuses } = useApp();
   const student = students.find((s) => s.id === studentId);
   const instrument = getInstrument(student?.instrumentId ?? "altsax");
   const naming = student?.naming ?? "nl";
@@ -157,7 +157,7 @@ export function Game() {
         <div className="text-center mt-3">
           <p className="text-muted my-3 max-w-[60ch] mx-auto">
             Acht noten op een rij. Tik zo snel mogelijk de juiste naam. Je hebt <b className="text-fg">{LIVES} levens</b>.<br />
-            Noten voor {student?.name ?? "jou"}: <b className="text-fg">{names.map(cap).join(" · ")}</b>
+            Noten voor {!student || isAnonymous || student.userId === profile?.id ? "jou" : student.name}: <b className="text-fg">{names.map(cap).join(" · ")}</b>
             {focus.length > 0 && <><br />Extra vaak: <b className="text-fg">{focus.map(cap).join(" · ")}</b></>}
           </p>
           <div className="mb-3"><Segmented value={input} options={[["buttons", "Knoppen"], ["mic", `🎤 ${instrument.name} (microfoon)`]]} onChange={(v) => { setInput(v); localStorage.setItem("nk.input", v); }} label="Antwoorden met" /></div>
