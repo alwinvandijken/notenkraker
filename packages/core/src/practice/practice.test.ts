@@ -94,4 +94,17 @@ describe("PracticeTracker", () => {
     expect(s.playedMs).toBeLessThanOrEqual(10_000);
     expect(s.playedMs).toBeGreaterThan(9_000);
   });
+
+  it("houdt de gespeelde noten op volgorde bij, met hoe lang elke noot klonk", () => {
+    const t = new PracticeTracker({ ...range, startMs: 0 });
+    feed(t, 0, 1_000, () => tone(67));
+    feed(t, 1_000, 1_500, () => tone(69));
+    feed(t, 1_500, 1_600, () => tone(71)); // te kort voor een noot
+    feed(t, 1_600, 2_000, () => null);
+    feed(t, 2_000, 3_000, () => tone(67));
+    const seq = t.sequence();
+    expect(seq.map((n) => n.midi)).toEqual([67, 69, 67]);
+    expect(seq[0]!.ms).toBeGreaterThan(800);
+    expect(seq[1]!.ms).toBeGreaterThan(300);
+  });
 });

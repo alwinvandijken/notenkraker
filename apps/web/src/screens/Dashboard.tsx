@@ -1,13 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import { instrumentNotes, type StatusMap } from "@notenkraker/core";
 import { getInstrument } from "@notenkraker/instruments";
-import { childSummary, whenLabel, type ChildSummary, type PracticeSession, type Round, type Student } from "@notenkraker/client";
+import { childSummary, dateKey, whenLabel, type ChildSummary, type PracticeSession, type Round, type Student } from "@notenkraker/client";
 import { client, hasBackend } from "@/lib/client";
 import { useApp } from "@/lib/store";
 import { noteLabel } from "@/lib/noten";
 import { KindUitnodigen } from "@/components/KindUitnodigen";
 import { Chip } from "@/components/ui";
+import { Donut } from "@/components/Donut";
+import { DagDetail, ICON } from "@/components/DagDetail";
 
 /**
  * Startscherm voor een ouder of leraar (mock-up: docs/mockups/iPadA-Ouder.html): per kind of
@@ -22,6 +24,7 @@ export function Dashboard({ onPractice, onManage }: { onPractice(studentId: stri
   const isLeraar = profile?.role === "leraar";
   const [rows, setRows] = useState<Row[] | null>(null);
   const [invite, setInvite] = useState<{ name: string; code: string } | null>(null);
+  const [detail, setDetail] = useState<{ studentId: string; date: string } | null>(null);
 
   useEffect(() => {
     let stale = false;
@@ -56,14 +59,19 @@ export function Dashboard({ onPractice, onManage }: { onPractice(studentId: stri
   const weekMinutes = rows.reduce((n, r) => n + r.summary.week.minutes, 0);
   const activity = rows.flatMap((r) => [
     ...r.rounds.slice(0, 6).map((round) => ({
-      id: round.id, at: round.playedAt, name: r.student.name,
-      text: <>speelde het notenspel: <b>{round.answers.filter((a) => a.correct).length} van {round.answers.length} goed</b></>,
+      id: round.id, at: round.playedAt, studentId: r.student.id, kind: "spel" as const,
+      text: <>{r.student.name} speelde het notenspel: <b>{round.answers.filter((a) => a.correct).length} van {round.answers.length} goed</b></>,
+      sub: `${Math.max(1, Math.round(round.ms / 60_000))} min`,
+      end: <span className="text-key text-sm tracking-wider" aria-label={`${round.stars} sterren`}>{"★".repeat(round.stars)}{"☆".repeat(3 - round.stars)}</span>,
     })),
     ...r.summary.sessions.map((p) => ({
-      id: p.id, at: p.startedAt, name: r.student.name,
-      text: <>oefende vrij: <b>{p.playedMinutes} van {p.totalMinutes} min gespeeld</b> ({p.percent}%)</>,
+      id: p.id, at: p.startedAt, studentId: r.student.id, kind: "vrij" as const,
+      text: <>{r.student.name} oefende vrij: <b>{p.playedMinutes} van {p.totalMinutes} min gespeeld</b></>,
+      sub: p.notes.map((n) => noteLabel(n, r.range)).join(" "),
+      end: <Donut percent={p.percent} size={34}><span className="text-[9px] font-bold">{p.percent}%</span></Donut>,
     })),
   ]).sort((a, b) => b.at.localeCompare(a.at)).slice(0, 6);
+  const detailRow = detail && rows.find((r) => r.student.id === detail.studentId);
 
   async function letLogin(s: Student) {
     setInvite({ name: s.name, code: await client.students.inviteCode(s.id, "kind") });
@@ -81,6 +89,7 @@ export function Dashboard({ onPractice, onManage }: { onPractice(studentId: stri
         <div className="grid gap-4 md:grid-cols-2 content-start">
           {rows.map((r) => (
             <ChildCard key={r.student.id} row={r} isOuder={profile?.role === "ouder"}
+              onOpenDay={(date) => setDetail({ studentId: r.student.id, date })}
               onPractice={() => onPractice(r.student.id)} onLetLogin={() => void letLogin(r.student)} />
           ))}
         </div>
@@ -88,12 +97,14 @@ export function Dashboard({ onPractice, onManage }: { onPractice(studentId: stri
           <section className="rounded-3xl bg-surface p-4 flex flex-col">
             <Label>Laatste activiteit</Label>
             {activity.length === 0 && <p className="text-sm text-muted m-0 mt-2">Nog niets gespeeld.</p>}
-            {activity.map(({ id, at, name, text }) => (
-              <div key={id} className="flex gap-3 py-2.5 border-t border-line first-of-type:border-t-0 text-sm">
-                <Avatar name={name} small />
-                <span>{name} {text}
-                  <span className="block text-xs text-muted">{whenLabel(at)}</span></span>
-              </div>
+            {activity.map((a) => (
+              <button key={a.id} type="button" onClick={() => setDetail({ studentId: a.studentId, date: dateKey(new Date(a.at)) })}
+                className="flex items-center gap-3 py-2.5 border-t border-line first-of-type:border-t-0 text-sm text-left bg-transparent cursor-pointer hover:bg-bg rounded-lg">
+                <ActivityIcon kind={a.kind} />
+                <span className="flex-1 min-w-0">{a.text}
+                  <span className="block text-xs text-muted truncate">{whenLabel(a.at)}{a.sub ? ` · ${a.sub}` : ""}</span></span>
+                {a.end}
+              </button>
             ))}
           </section>
           <section className="rounded-3xl bg-surface p-4 flex flex-col gap-3">
@@ -106,13 +117,21 @@ export function Dashboard({ onPractice, onManage }: { onPractice(studentId: stri
         </aside>
       </div>
       {invite && <KindUitnodigen name={invite.name} code={invite.code} onClose={() => setInvite(null)} />}
+      {detail && detailRow && (
+        <DagDetail name={detailRow.student.name} date={detail.date} rounds={detailRow.rounds} sessions={detailRow.sessions} range={detailRow.range}
+          onDate={(date) => setDetail({ ...detail, date })} onClose={() => setDetail(null)} />
+      )}
     </div>
   );
 }
 
-function ChildCard({ row, isOuder, onPractice, onLetLogin }: { row: Row; isOuder: boolean; onPractice(): void; onLetLogin(): void }) {
+function ChildCard({ row, isOuder, onPractice, onLetLogin, onOpenDay }: { row: Row; isOuder: boolean; onPractice(): void; onLetLogin(): void; onOpenDay(date: string): void }) {
   const { student, summary: s, range } = row;
-  const max = Math.max(...s.days.map((d) => d.minutes), 1);
+  const max = Math.max(...s.history.map((d) => d.minutes), 1);
+  const scroller = useRef<HTMLDivElement>(null);
+  // begin bij vandaag (rechts); naar links scrollen gaat terug in de tijd
+  useEffect(() => { const el = scroller.current; if (el) el.scrollLeft = el.scrollWidth; }, []);
+  const todayKey = dateKey(new Date());
   const pct = (n: number) => `${(100 * n) / Math.max(s.notes.total, 1)}%`;
   const today = s.days[6]!.minutes;
   return (
@@ -133,32 +152,37 @@ function ChildCard({ row, isOuder, onPractice, onLetLogin }: { row: Row; isOuder
       <div>
         <div className="flex justify-between"><Label>Oefentijd</Label>
           <span className="text-xs text-muted">{today ? `vandaag ${today} min` : s.daysSinceLast === null ? "" : `laatst ${s.daysSinceLast === 1 ? "gisteren" : `${s.daysSinceLast} dagen geleden`}`}</span></div>
-        <div className="grid grid-cols-7 gap-1.5 items-end h-20 mt-2" aria-label="Oefenminuten per dag">
-          {s.days.map((d, i) => (
-            <div key={i} className="flex flex-col items-center justify-end gap-1 h-full text-[11px] text-muted" title={`${d.free} min vrij oefenen, ${d.game} min spelletjes`}>
+        <div ref={scroller} className="flex overflow-x-auto snap-x snap-mandatory mt-2 -mx-1 pb-1 [scrollbar-width:thin]" aria-label="Oefenminuten per dag, scroll terug in de tijd">
+          {s.history.map((d) => (
+            <button key={d.date} type="button" onClick={() => onOpenDay(d.date)} aria-label={`${d.label}: ${d.free} min vrij oefenen, ${d.game} min notenspel`}
+              className="snap-end shrink-0 basis-1/4 px-1.5 h-28 flex flex-col items-stretch justify-end gap-1 bg-transparent cursor-pointer rounded-xl hover:bg-bg">
+              <span className="text-xs font-semibold text-center">{d.minutes ? `${d.minutes} min` : ""}</span>
               {d.minutes ? (
-                <div className="w-full rounded-lg overflow-hidden flex flex-col" style={{ height: `${Math.max(12, (52 * d.minutes) / max)}px` }}>
-                  <div className="bg-accent" style={{ flex: d.free }} /><div className="bg-kent" style={{ flex: d.game }} />
-                </div>
-              ) : <div className="w-full rounded-lg bg-line h-1.5" />}
-              {d.label}
-            </div>
+                <span className="w-full rounded-lg overflow-hidden flex flex-col" style={{ height: `${Math.max(12, (64 * d.minutes) / max)}px` }}>
+                  <span className="bg-accent" style={{ flex: d.free }} /><span className="bg-kent" style={{ flex: d.game }} />
+                </span>
+              ) : <span className="w-full rounded-lg bg-line h-1.5" />}
+              <span className={`text-[11px] text-center ${d.date === todayKey ? "font-bold text-fg" : "text-muted"}`}>{d.date === todayKey ? "vandaag" : d.label}</span>
+            </button>
           ))}
         </div>
         <div className="flex flex-wrap gap-x-4 text-xs text-muted mt-1.5">
-          <span><i className="inline-block w-2.5 h-2.5 rounded-sm bg-accent mr-1.5" />vrij oefenen</span>
-          <span><i className="inline-block w-2.5 h-2.5 rounded-sm bg-kent mr-1.5" />spelletjes</span>
+          <span><i className="inline-block w-2.5 h-2.5 rounded-sm bg-accent mr-1.5" />{ICON.vrij} vrij oefenen</span>
+          <span><i className="inline-block w-2.5 h-2.5 rounded-sm bg-kent mr-1.5" />{ICON.spel} notenspel</span>
+          <span className="ml-auto">tik op een dag voor details</span>
         </div>
         {s.sessions.length > 0 && (
           <div className="mt-2">
             {s.sessions.map((p) => (
-              <div key={p.id} className="flex items-center gap-2 py-2 border-t border-line text-sm">
-                <span className="flex-1 min-w-0">Vrij oefenen · <b>{p.playedMinutes} van {p.totalMinutes} min</b> ({p.percent}%)
+              <button key={p.id} type="button" onClick={() => onOpenDay(dateKey(new Date(p.startedAt)))}
+                className="w-full flex items-center gap-3 py-2 border-t border-line text-sm text-left bg-transparent cursor-pointer hover:bg-bg">
+                <Donut percent={p.percent} size={36}><span className="text-[9px] font-bold">{p.percent}%</span></Donut>
+                <span className="flex-1 min-w-0">{ICON.vrij} Vrij oefenen · <b>{p.playedMinutes} van {p.totalMinutes} min</b>
                   <span className="block text-xs text-muted truncate">{whenLabel(p.startedAt)}{p.notes.length ? ` · ${p.notes.map((n) => noteLabel(n, range)).join(" ")}` : ""}</span></span>
                 {p.label === "twijfel"
                   ? <span className="rounded-xl px-2.5 py-1 text-xs font-semibold bg-les/25 whitespace-nowrap" title="Minuten lang steeds dezelfde noot">twijfelachtig</span>
                   : <span className="rounded-xl px-2.5 py-1 text-xs font-semibold bg-ok/15 text-ok whitespace-nowrap">sax gehoord</span>}
-              </div>
+              </button>
             ))}
           </div>
         )}
@@ -206,6 +230,10 @@ function Stat({ value, label }: { value: string; label: string }) {
 
 function Label({ children }: { children: React.ReactNode }) {
   return <span className="text-xs font-semibold uppercase tracking-wider text-muted">{children}</span>;
+}
+
+function ActivityIcon({ kind }: { kind: "vrij" | "spel" }) {
+  return <span aria-hidden="true" className={clsx("w-9 h-9 rounded-full flex items-center justify-center text-lg shrink-0", kind === "vrij" ? "bg-accent-soft" : "bg-kent-soft")}>{ICON[kind]}</span>;
 }
 
 function Avatar({ name, small }: { name: string; small?: boolean }) {

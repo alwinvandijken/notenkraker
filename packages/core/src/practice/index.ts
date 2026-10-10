@@ -25,6 +25,9 @@ export type PracticeState = "playing" | "silent" | "noise";
 /** per minuut sinds de start: gespeelde seconden en de klinkende noten (midi) */
 export interface PracticeMinute { s: number; notes: number[] }
 
+/** een gespeelde noot in de volgorde van spelen: klinkende midi en hoe lang hij klonk */
+export interface PlayedNote { midi: number; ms: number }
+
 export interface PracticeSummary {
   elapsedMs: number;
   playedMs: number;
@@ -47,6 +50,9 @@ export class PracticeTracker {
   private lastMs: number | null = null;
   private lastPlayingMs = -Infinity;
   private lastNoiseMs = -Infinity;
+  private played: PlayedNote[] = [];
+  /** stableSince van de toon die als laatste in `played` staat */
+  private playedSince: number | null = null;
 
   constructor(private opts: PracticeOptions) {}
 
@@ -66,8 +72,15 @@ export class PracticeTracker {
     if (held < stableMs) { this.lastNoiseMs = nowMs; return; }
     this.add(prev!, nowMs);
     this.lastPlayingMs = nowMs;
-    if (held >= NOTE_MS) this.minuteNotes(nowMs).add(reading.midi);
+    if (held >= NOTE_MS) {
+      this.minuteNotes(nowMs).add(reading.midi);
+      if (this.playedSince === this.stableSince) this.played[this.played.length - 1]!.ms = held;
+      else { this.played.push({ midi: reading.midi, ms: held }); this.playedSince = this.stableSince; }
+    }
   }
+
+  /** de gespeelde noten op volgorde; een noot telt als hij minstens 300 ms klinkt */
+  sequence(): PlayedNote[] { return this.played; }
 
   state(nowMs: number): PracticeState {
     if (nowMs - this.lastPlayingMs <= RECENT_MS) return "playing";

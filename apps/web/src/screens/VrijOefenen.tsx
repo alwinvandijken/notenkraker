@@ -8,6 +8,8 @@ import { client } from "@/lib/client";
 import { useApp } from "@/lib/store";
 import { noteLabel } from "@/lib/noten";
 import { Card, Chip } from "@/components/ui";
+import { Donut } from "@/components/Donut";
+import { StaffRow } from "@/components/Staff";
 
 /**
  * Vrij oefenen met de oefentimer (AC-112, mock-up: docs/mockups/Oefentimer.html).
@@ -35,7 +37,7 @@ export function VrijOefenen() {
   const [phase, setPhase] = useState<Phase>(() => (localStorage.getItem(MIC_OK) ? "klaar-om-te-starten" : "uitleg"));
   const [error, setError] = useState("");
   const [now, setNow] = useState(() => performance.now());
-  const [summary, setSummary] = useState<{ local: PracticeSummary; saved: PracticeSession | null } | null>(null);
+  const [summary, setSummary] = useState<{ local: PracticeSummary; saved: PracticeSession | null; sequence: number[] } | null>(null);
   const run = useRef<{ tracker: PracticeTracker; mic: MicListener; session: PracticeSession; startMs: number; unsub: () => void } | null>(null);
 
   /** wat er nu naar de server gaat: per minuut seconden en geschreven noten */
@@ -78,10 +80,11 @@ export function VrijOefenen() {
     const r = run.current;
     if (!r) return;
     const local = r.tracker.summary(performance.now());
+    const sequence = r.tracker.sequence().map((n) => n.midi);
     r.unsub(); r.mic.stop();
     const saved = await sync(true);
     run.current = null;
-    setSummary({ local, saved });
+    setSummary({ local, saved, sequence });
     setPhase("samenvatting");
   }
 
@@ -154,7 +157,9 @@ export function VrijOefenen() {
     return (
       <Card className="mt-3 flex flex-col items-center text-center gap-4 max-w-[520px] mx-auto">
         <h2 className="font-display font-bold text-2xl m-0">{playedSec >= 60 ? "Goed gedaan! 🎉" : "Klaar"}</h2>
-        <Ring percent={percent} label={clock(playedSec * 1000)} sub={`van ${clock(totalSec * 1000)}`} />
+        <Donut percent={percent} size={150} stroke={14}>
+          <b className="font-display text-3xl">{clock(playedSec * 1000)}</b><span className="text-xs text-muted mt-1">van {clock(totalSec * 1000)}</span>
+        </Donut>
         <div className="w-full rounded-2xl bg-bg p-4 flex flex-col gap-2 text-left">
           <div className="flex justify-between text-sm"><span>Gespeeld</span><b>{percent}% van de tijd</b></div>
           <div className="flex gap-1 h-6" aria-label="Per minuut: gespeeld of niet">
@@ -163,6 +168,15 @@ export function VrijOefenen() {
             ))}
           </div>
           {notes.length > 0 && <span className="text-sm text-muted">Noten: {notes.map((n) => noteLabel(n, range)).join(" · ")}</span>}
+          {summary.sequence.length > 0 && (
+            <>
+              <span className="text-sm text-muted mt-1">Zo speelde je (de laatste 200 noten, scroll voor meer)</span>
+              <div className="text-fg">
+                <StaffRow clef={instrument.clef} naming={student.naming} height={170}
+                  notes={summary.sequence.slice(-200).map((m) => ({ id: written(m), color: "var(--color-kent)", label: noteLabel(written(m), range) }))} />
+              </div>
+            </>
+          )}
           {summary.saved?.label === "twijfel" && <span className="text-sm text-muted">Ik hoorde steeds dezelfde noot. Je ouder ziet dit als twijfelachtig.</span>}
           {!summary.saved && <span className="text-sm text-wrong">Opslaan lukte niet; de laatste tussenstand is wel bewaard.</span>}
         </div>
@@ -177,17 +191,26 @@ export function VrijOefenen() {
   const s = r.tracker.summary(now);
   const state = r.tracker.state(now);
   const midi = r.tracker.currentMidi(now);
+  // de laatste noten op de balk, nieuwste rechts
+  const seq = r.tracker.sequence().slice(-8);
   return (
     <Card className="mt-3 flex flex-col items-center text-center gap-4 max-w-[520px] mx-auto">
       <div className="text-sm text-muted">Vrij oefenen</div>
       <div className={clsx("font-display font-extrabold text-7xl tabular-nums leading-none", state !== "playing" && "text-muted")}>{clock(s.playedMs)}</div>
       <div className="text-sm text-muted -mt-2">gespeeld · timer staat {clock(s.elapsedMs)} aan · {s.percent}%</div>
       <Status state={state} note={midi === null ? null : noteLabel(written(midi), range)} instrument={instrument.name.toLowerCase()} />
-      <div className="w-full rounded-2xl bg-bg p-4 flex flex-col gap-2 text-left min-h-[84px]">
-        <span className="text-sm text-muted">Gespeeld in deze sessie</span>
-        <div className="flex flex-wrap gap-1.5">
-          {s.notes.map((m) => <span key={m} className="rounded-xl px-2.5 py-1 font-bold bg-kent text-white">{noteLabel(written(m), range)}</span>)}
+      <div className="w-full flex flex-col gap-2 text-left">
+        <span className="text-sm text-muted">{seq.length ? "Zo speelde je net" : "Hier verschijnen de noten die je speelt"}</span>
+        <div className="text-fg">
+          <StaffRow clef={instrument.clef} naming={student.naming} height={190}
+            notes={seq.map((n, i) => ({ id: written(n.midi), color: i === seq.length - 1 && state === "playing" ? "var(--color-ok)" : "var(--color-kent)", label: noteLabel(written(n.midi), range) }))} />
         </div>
+        {s.notes.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs text-muted mr-1">In deze sessie:</span>
+            {s.notes.map((m) => <span key={m} className="rounded-lg px-2 py-0.5 text-sm font-bold bg-kent-soft">{noteLabel(written(m), range)}</span>)}
+          </div>
+        )}
       </div>
       <Chip primary className="text-xl px-10 py-3" onClick={() => void finish()}>Klaar</Chip>
     </Card>
@@ -203,20 +226,6 @@ function Status({ state, note, instrument }: { state: PracticeState; note: strin
       state === "playing" ? "bg-ok/15 text-ok" : state === "noise" ? "bg-wrong/10 text-wrong" : "bg-bg text-muted")}>
       <span className={clsx("w-2.5 h-2.5 rounded-full", state === "playing" ? "bg-ok animate-pulse" : state === "noise" ? "bg-wrong" : "bg-moet")} />
       <span>{text}</span>
-    </div>
-  );
-}
-
-function Ring({ percent, label, sub }: { percent: number; label: string; sub: string }) {
-  const c = 2 * Math.PI * 62;
-  return (
-    <div className="relative w-[150px] h-[150px]">
-      <svg viewBox="0 0 150 150" width="150" height="150" aria-hidden="true">
-        <circle cx="75" cy="75" r="62" fill="none" stroke="var(--color-line)" strokeWidth="14" />
-        <circle cx="75" cy="75" r="62" fill="none" stroke="var(--color-ok)" strokeWidth="14" strokeLinecap="round"
-          transform="rotate(-90 75 75)" strokeDasharray={`${(c * percent) / 100} ${c}`} />
-      </svg>
-      <b className="absolute inset-0 flex flex-col items-center justify-center font-display text-3xl">{label}<span className="text-xs text-muted font-medium">{sub}</span></b>
     </div>
   );
 }

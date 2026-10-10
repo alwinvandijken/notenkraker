@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { childSummary, whenLabel } from "./dashboard.js";
+import { childSummary, dayDetail, whenLabel } from "./dashboard.js";
 import type { PracticeSession, Round } from "./types.js";
 
 // Zaterdag 10 oktober 2026, 16:00 lokale tijd
@@ -97,6 +97,33 @@ describe("childSummary met vrij oefenen", () => {
     const s = childSummary({ rounds: [], sessions: [session(0, 0, 5)], statuses: {}, noteIds, now });
     expect(s.daysSinceLast).toBeNull();
     expect(s.days[6]!.free).toBe(0);
+  });
+});
+
+describe("childSummary: geschiedenis", () => {
+  it("geeft 28 dagen oefentijd, oudste eerst, met datum en label", () => {
+    const s = childSummary({ rounds: [round(0), round(20)], sessions: [session(10, 5, 6)], statuses: {}, noteIds: [], now });
+    expect(s.history).toHaveLength(28);
+    expect(s.history[27]).toMatchObject({ date: "2026-10-10", label: "za 10", game: 2, free: 0 });
+    expect(s.history[17]).toMatchObject({ date: "2026-09-30", free: 5 });
+    expect(s.history[7]).toMatchObject({ date: "2026-09-20", game: 2 });
+  });
+
+  it("geeft per sessie de seconden per minuut mee", () => {
+    const s = childSummary({ rounds: [], sessions: [session(0, 1, 2, { minutes: [{ s: 40, notes: [] }, { s: 20, notes: [] }] })], statuses: {}, noteIds: [], now });
+    expect(s.sessions[0]!.perMinute).toEqual([40, 20]);
+  });
+});
+
+describe("dayDetail", () => {
+  it("geeft alle sessies en rondes van één dag, op tijd", () => {
+    const rounds = [round(0, { id: "a", playedAt: at(0, 9) }), round(1, { id: "b" })];
+    const sessions = [session(0, 10, 12)];
+    const d = dayDetail({ rounds, sessions, date: "2026-10-10" });
+    expect(d.items.map((i) => i.kind)).toEqual(["spel", "vrij"]);
+    expect(d.items[0]).toMatchObject({ kind: "spel", correct: 1, total: 2, minutes: 2, stars: 2 });
+    expect(d.items[1]).toMatchObject({ kind: "vrij", playedMinutes: 10, totalMinutes: 12 });
+    expect(d).toMatchObject({ game: 2, free: 10 });
   });
 });
 
