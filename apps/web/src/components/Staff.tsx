@@ -24,8 +24,8 @@ export function StaffNote({ note, clef, color = "var(--color-accent)" }: { note:
 export interface StaffRowNote { id: NoteId; color?: string; label?: string; sub?: string; selected?: boolean; badge?: { text: string; color: string } }
 
 /** Rij noten op één balk; klikbaar. Vaste hoogte, scrolt horizontaal. */
-export function StaffRow({ notes, clef, naming = "nl", onSelect, cursor, height = 230 }:
-  { notes: StaffRowNote[]; clef: Clef; naming?: NamingScheme; onSelect?: (id: NoteId, index: number) => void; cursor?: number; height?: number }) {
+export function StaffRow({ notes, clef, naming = "nl", onSelect, cursor, height = 230, showNames = true }:
+  { notes: StaffRowNote[]; clef: Clef; naming?: NamingScheme; onSelect?: (id: NoteId, index: number) => void; cursor?: number; height?: number; showNames?: boolean }) {
   const sp = 12, half = sp / 2, x0 = 70, dx = 58, w = x0 + Math.max(notes.length, 1) * dx + 6, h = height, base = 150;
   const y = (s: number) => base - s * half;
   return (
@@ -41,6 +41,7 @@ export function StaffRow({ notes, clef, naming = "nl", onSelect, cursor, height 
           const top = Math.min(cy, base - 4 * sp) - 50;
           return (
             <g key={i} className={onSelect ? "cursor-pointer" : undefined} role={onSelect ? "button" : undefined} tabIndex={onSelect ? 0 : undefined}
+               aria-label={onSelect ? [n.label ?? noteName(p, naming), n.sub].filter(Boolean).join(" ") : undefined} aria-pressed={onSelect ? Boolean(n.selected) : undefined}
                onClick={() => onSelect?.(n.id, i)} onKeyDown={(e) => { if (onSelect && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onSelect(n.id, i); } }}>
               <rect x={cx - 26} y={top} width={52} height={h - top} rx={10} fill={n.selected ? "var(--color-bg)" : "transparent"} stroke={n.selected ? "currentColor" : "none"} strokeWidth={2} />
               {ledgerLines(pos).map((s) => <line key={s} x1={cx - 13} x2={cx + 13} y1={y(s)} y2={y(s)} stroke="currentColor" strokeWidth={1.2} />)}
@@ -50,8 +51,8 @@ export function StaffRow({ notes, clef, naming = "nl", onSelect, cursor, height 
                 ? <line x1={cx + 6.3} x2={cx + 6.3} y1={cy - 1} y2={cy - 34} stroke={col} strokeWidth={1.6} />
                 : <line x1={cx - 6.3} x2={cx - 6.3} y1={cy + 1} y2={cy + 34} stroke={col} strokeWidth={1.6} />}
               {n.badge && <><circle cx={cx} cy={34} r={14} fill={n.badge.color} /><text x={cx} y={39} fontSize={13} fontWeight={800} textAnchor="middle" fill="#fff" fontFamily="var(--font-display)">{n.badge.text}</text></>}
-              <text x={cx} y={h - 26} fontSize={19} fontWeight={800} fill={col} textAnchor="middle" fontFamily="var(--font-display)">{n.label ?? noteName(p, naming)}</text>
-              {n.sub && <text x={cx} y={h - 9} fontSize={10} fill="var(--color-muted)" textAnchor="middle">{n.sub}</text>}
+              {showNames && <text x={cx} y={h - 26} fontSize={19} fontWeight={800} fill={col} textAnchor="middle" fontFamily="var(--font-display)">{n.label ?? noteName(p, naming)}</text>}
+              {showNames && n.sub && <text x={cx} y={h - 9} fontSize={10} fill="var(--color-muted)" textAnchor="middle">{n.sub}</text>}
             </g>
           );
         })}
