@@ -30,7 +30,7 @@ export function KindPagina({ studentId, onPractice, onOpenDay }: { studentId: st
         <div className="flex items-center gap-3">
           <Avatar name={student.name} />
           <div className="flex-1 min-w-0">
-            <div className="text-sm text-muted truncate">{getInstrument(student.instrumentId).name} · {student.userId ? "logt zelf in ✓" : "nog geen eigen login"}</div>
+            <div className="text-sm text-muted truncate">{getInstrument(student.instrumentId).name}{student.ageBand ? ` · ${student.ageBand === "18+" ? "18+" : student.ageBand} jaar` : ""} · {student.userId ? "logt zelf in ✓" : "nog geen eigen login"}</div>
             <StreakBadge summary={s} />
           </div>
         </div>

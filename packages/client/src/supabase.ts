@@ -53,6 +53,8 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
   const rowToStudent = (r: Record<string, unknown>): Student => ({
     id: r.id as string, name: r.name as string, instrumentId: r.instrument_id as string,
     naming: (r.naming as "nl" | "en") ?? "nl", userId: (r.user_id as string | null) ?? null, createdAt: r.created_at as string,
+    ageBand: (r.age_band as Student["ageBand"]) ?? null, experience: (r.experience as Student["experience"]) ?? null,
+    onboardedAt: (r.onboarded_at as string | null) ?? null,
   });
 
   const students: StudentsApi = {
@@ -71,6 +73,9 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
       if (patch.name !== undefined) row.name = patch.name;
       if (patch.instrumentId !== undefined) row.instrument_id = patch.instrumentId;
       if (patch.naming !== undefined) row.naming = patch.naming;
+      if (patch.ageBand !== undefined) row.age_band = patch.ageBand;
+      if (patch.experience !== undefined) row.experience = patch.experience;
+      if (patch.onboardedAt !== undefined) row.onboarded_at = patch.onboardedAt;
       const { data, error } = await sb.from("students").update(row).eq("id", id).select().single();
       if (error) throw error;
       return rowToStudent(data);

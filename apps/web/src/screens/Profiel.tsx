@@ -7,13 +7,22 @@ import { Card, Chip } from "@/components/ui";
 const ROLE_LABEL = { leerling: "Leerling", ouder: "Ouder", leraar: "Leraar", admin: "Beheerder" } as const;
 
 /** "Mijn profiel": wie je bent, en voor een leerling alsnog koppelen met een code van de ouder. */
-export function Profiel({ onLinked }: { onLinked(): void }) {
+export function Profiel({ onLinked, onRedoIntake }: { onLinked(): void; onRedoIntake(): void }) {
   const profile = useApp((s) => s.profile);
   const claimByCode = useApp((s) => s.claimByCode);
+  const { students, loadStudents } = useApp();
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   if (!profile) return null;
   const rights = rightsFor(profile.role);
+  const own = students.find((s) => s.userId === profile.id);
+  /** de kennismaking opnieuw: alles opnieuw vragen, bij de volgende keer oefenen */
+  async function redo() {
+    if (!own) return;
+    await client.students.update(own.id, { ageBand: null, experience: null, onboardedAt: null });
+    await loadStudents();
+    onRedoIntake();
+  }
 
   async function koppel(e: React.FormEvent) {
     e.preventDefault(); if (!code) return;
@@ -31,7 +40,9 @@ export function Profiel({ onLinked }: { onLinked(): void }) {
           <dt className="text-muted">Naam</dt><dd className="m-0 font-semibold">{profile.displayName}</dd>
           {profile.email && <><dt className="text-muted">E-mail</dt><dd className="m-0">{profile.email}</dd></>}
           <dt className="text-muted">Rol</dt><dd className="m-0">{profile.role ? ROLE_LABEL[profile.role] : "nog niet gekozen"}</dd>
+          {own?.ageBand && <><dt className="text-muted">Leeftijd</dt><dd className="m-0">{own.ageBand === "18+" ? "18 jaar of ouder" : `${own.ageBand.replace("-", " – ")} jaar`}</dd></>}
         </dl>
+        {own && <button type="button" onClick={() => void redo()} className="mt-3 text-sm font-semibold text-kent bg-transparent cursor-pointer px-0">Leeftijd en noten opnieuw doen →</button>}
       </Card>
       {rights.canClaimByCode && hasBackend && (
         <Card className="!p-4 flex flex-col gap-2">

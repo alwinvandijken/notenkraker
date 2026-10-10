@@ -6,7 +6,7 @@
  */
 import { useEffect, useState } from "react";
 import { childSummary } from "@notenkraker/client";
-import { instrumentNotes, type NoteStatus, type StatusMap } from "@notenkraker/core";
+import { ageProfile, instrumentNotes, type StatusMap } from "@notenkraker/core";
 import { getInstrument } from "@notenkraker/instruments";
 import { client } from "@/lib/client";
 import { useApp } from "@/lib/store";
@@ -15,6 +15,8 @@ import { ICON } from "@/lib/iconen";
 import { Grepentabel } from "@/screens/Grepentabel";
 import { Game } from "@/screens/Game";
 import { VrijOefenen } from "@/screens/VrijOefenen";
+import { Kennismaking } from "@/screens/Kennismaking";
+import { Donut } from "@/components/Donut";
 import { Menu, type MenuItem } from "@/components/Menu";
 import { Segmented } from "@/components/ui";
 
@@ -31,11 +33,10 @@ const ensureStudent = () => (ensuring ??= createStudentOnce());
 async function createStudentOnce() {
   if ((await client.students.list()).length > 0) return;
   const me = await client.students.create({ name: "Ik", instrumentId: "altsax" });
+  // de notenstatus uit het proefconcept; verder bepaalt de kennismaking de noten
   let poc: StatusMap = {};
   try { poc = JSON.parse(localStorage.getItem(POC_KEY) ?? "{}") as StatusMap; } catch { /* niets over te nemen */ }
-  const starter = getInstrument("altsax").starterNotes;
-  const statuses: StatusMap = Object.keys(poc).length ? poc : Object.fromEntries(starter.map((n) => [n, "kent" as NoteStatus]));
-  for (const [noteId, status] of Object.entries(statuses)) await client.notes.setStatus(me.id, noteId, status);
+  for (const [noteId, status] of Object.entries(poc)) await client.notes.setStatus(me.id, noteId, status);
 }
 
 const screenFromState = (): Screen => {
@@ -44,7 +45,7 @@ const screenFromState = (): Screen => {
 };
 
 export function AnoniemApp() {
-  const { profile, students, studentId, statuses, init, setStatus } = useApp();
+  const { profile, students, studentId, statuses, init, setStatus, loadStudents } = useApp();
   const [screen, setScreen] = useState<Screen>(screenFromState);
   const [ready, setReady] = useState(false);
 
@@ -81,6 +82,19 @@ export function AnoniemApp() {
       <button type="button" onClick={() => toAccount("/app?nieuw")} className="self-start font-semibold text-kent bg-transparent cursor-pointer">Gratis account maken →</button>
     </div>
   );
+
+  // eerste keer: even kennismaken (AC-115)
+  if (!student.onboardedAt) {
+    return (
+      <div className="max-w-[900px] mx-auto px-4 pt-5 pb-12 flex flex-col gap-4">
+        <header className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 font-display font-extrabold text-xl"><span className="w-9 h-9 rounded-xl bg-fg text-bg flex items-center justify-center" aria-hidden="true">♪</span>Notenkraker</div>
+          {menu}
+        </header>
+        <Kennismaking student={student} statuses={statuses} onDone={() => void loadStudents().then(() => go("start"))} />
+      </div>
+    );
+  }
 
   if (screen === "grepen") {
     return (
@@ -127,10 +141,11 @@ function Start({ onGo }: { onGo(s: Screen): void }) {
     });
   }, [student.id]);
   const known = instrumentNotes(getInstrument(student.instrumentId)).filter((n) => statuses[n] === "kent").length;
+  const goal = ageProfile(student.ageBand).dailyGoal;
 
   const tiles: Array<{ s: Exclude<Screen, "start">; icon: string; text: string; tint: string }> = [
     { s: "grepen", icon: ICON.vrij, text: "Zie welke kleppen bij een noot horen", tint: "bg-kent-soft" },
-    { s: "spel", icon: ICON.spel, text: "Acht noten, drie levens", tint: "bg-kent-soft" },
+    { s: "spel", icon: ICON.spel, text: `${ageProfile(student.ageBand).roundLength} noten, ${ageProfile(student.ageBand).lives} levens`, tint: "bg-kent-soft" },
     { s: "vrij", icon: "🎙️", text: "De app telt mee als je speelt", tint: "bg-accent-soft" },
   ];
   return (
@@ -145,9 +160,13 @@ function Start({ onGo }: { onGo(s: Screen): void }) {
           </button>
         ))}
       </div>
-      <p className="rounded-2xl bg-surface px-4 py-3 text-sm text-muted m-0">
-        {today ? `Vandaag ${today} min geoefend` : "Vandaag nog niet geoefend"} · {known} {known === 1 ? "noot" : "noten"} die je kent
-      </p>
+      <div className="rounded-3xl bg-surface p-4 flex items-center gap-4">
+        <Donut percent={Math.round((100 * (today ?? 0)) / goal)} size={56} stroke={7}><span className="text-[10px] font-bold">{today ?? 0}/{goal}</span></Donut>
+        <div className="min-w-0">
+          <b className="block">Dagdoel: {goal} minuten</b>
+          <span className="text-sm text-muted">{today ? `Vandaag ${today} min geoefend` : "Vandaag nog niet geoefend"} · {known} {known === 1 ? "noot" : "noten"} die je kent</span>
+        </div>
+      </div>
     </>
   );
 }

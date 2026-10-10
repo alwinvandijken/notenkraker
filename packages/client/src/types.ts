@@ -1,4 +1,4 @@
-import type { NoteId, NoteStatus, RoundResult } from "@notenkraker/core";
+import type { AgeBand, Experience, NoteId, NoteStatus, RoundResult } from "@notenkraker/core";
 
 /**
  * Het contract tussen frontends en backend. Elke frontend praat alleen met
@@ -29,6 +29,11 @@ export interface Student {
   /** auth user van de leerling zelf, als die een eigen login heeft */
   userId?: string | null;
   createdAt: string;
+  /** uit de kennismaking (AC-115); null = niet ingevuld */
+  ageBand?: AgeBand | null;
+  experience?: Experience | null;
+  /** kennismaking afgerond of overgeslagen; null = nog vragen */
+  onboardedAt?: string | null;
 }
 
 export interface StudentNote { studentId: string; noteId: NoteId; status: NoteStatus; updatedAt: string }
@@ -96,7 +101,7 @@ export interface AuthApi {
 export interface StudentsApi {
   list(): Promise<Student[]>;
   create(input: { name: string; instrumentId: string; naming?: "nl" | "en" }): Promise<Student>;
-  update(id: string, patch: Partial<Pick<Student, "name" | "instrumentId" | "naming">>): Promise<Student>;
+  update(id: string, patch: Partial<Pick<Student, "name" | "instrumentId" | "naming" | "ageBand" | "experience" | "onboardedAt">>): Promise<Student>;
   remove(id: string): Promise<void>;
   /** leraar koppelt een leerling via uitnodigingscode */
   linkByCode(code: string): Promise<Student>;
