@@ -48,7 +48,7 @@ export function Auth() {
           <Chip type="submit" className="border-accent bg-accent text-white" disabled={busy}>{mode === "login" ? "Inloggen" : "Account maken"}</Chip>
         </form>
         <div className="text-center text-muted text-sm my-3">of</div>
-        <Chip className="w-full" onClick={() => client.auth.signInWithGoogle(window.location.origin)}>Doorgaan met Google</Chip>
+        <Chip className="w-full" onClick={() => client.auth.signInWithGoogle(`${window.location.origin}/app`)}>Doorgaan met Google</Chip>
       </Card>
     </div>
   );
