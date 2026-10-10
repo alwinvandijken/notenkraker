@@ -1,0 +1,14 @@
+[build]
+  base = "/"
+  command = "corepack enable && pnpm install --frozen-lockfile && pnpm --filter @notenkraker/web... build"
+  publish = "apps/web/dist"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"

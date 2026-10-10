@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+/* Ontwerptokens: warm, speels, één accent. Donker/licht volgt het systeem. */
+@theme {
+  --font-display: "Baloo 2", "Comic Sans MS", system-ui, sans-serif;
+  --font-sans: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --color-bg: #f4f1ea;
+  --color-surface: #ffffff;
+  --color-fg: #22263a;
+  --color-muted: #6f7384;
+  --color-line: #d4d1c7;
+  --color-accent: #e0862e;
+  --color-accent-soft: #fbe6d2;
+  --color-kent: #3d9a63;
+  --color-kent-soft: #d8efe0;
+  --color-moet: #8a7fd6;
+  --color-moet-soft: #e6e2f8;
+  --color-wrong: #d8323c;
+  --color-pressed: #22263a;
+  --color-open: #ffffff;
+  --color-key: #3b9ad9;
+  --color-key-shadow: #2a78ab;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #1a1c26; --color-surface: #252836; --color-fg: #f0ecdf; --color-muted: #a2a6b5; --color-line: #3d4154;
+    --color-accent: #f2a04f; --color-accent-soft: #4a3520; --color-kent: #5cc088; --color-kent-soft: #1f3f2c;
+    --color-moet: #a89cf0; --color-moet-soft: #332e52; --color-pressed: #f0ecdf; --color-open: #252836;
+    color-scheme: dark;
+  }
+}
+
+html, body, #root { height: 100%; }
+body { background: var(--color-bg); color: var(--color-fg); font-family: var(--font-sans); margin: 0; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+button { font: inherit; }

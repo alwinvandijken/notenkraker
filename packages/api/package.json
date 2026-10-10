@@ -1,0 +1,7 @@
+{
+  "name": "@notenkraker/api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "OpenAPI-contract van de Notenkraker-backend",
+  "scripts": { "test": "echo 'no tests'", "typecheck": "echo 'no ts'", "build": "echo 'contract only'" }
+}

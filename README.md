@@ -1,40 +1,33 @@
 # Notenkraker
 
-Interactieve grepentabel en notenspel voor beginnende muziekleerlingen (vanaf ±8 jaar). Begonnen als altsax-grepentabel voor één leerling; wordt instrument-onafhankelijk (zie Linear AC-104).
+Noten leren lezen én spelen, voor beginnende muziekleerlingen (vanaf ±8 jaar). Grepentabel per instrument, een notenspel en meeluisteren via de microfoon. Begonnen als altsax-app voor één leerling; opgezet als headless PWA zodat andere instrumenten en frontends erbij kunnen.
 
-- **Grepen**: tik op een noot, zie de noot op de notenbalk, de Nederlandse naam (fis, gis, bes…) en welke kleppen je indrukt — getekend zoals ze op de sax zitten (duim/octaafklep, 1‑2‑3, 4‑5‑6, pinkkleppen links en rechts, bis‑knopje).
-- **Leerlingen**: per leerling een status per noot — *kent al*, *in de les*, *moet nog leren* — zodat elk kind alleen zijn eigen noten ziet. Pinkkleppen verschijnen pas als een noot ze nodig heeft.
-- **Spel**: acht noten op een rij, tik zo snel mogelijk de juiste naam. Drie levens, timer, sterren; noten die in de les zijn komen vaker voorbij. Rondes worden per leerling bewaard.
+- **Grepen** — tik op een noot, zie de notenbalk, de naam (fis, bes…) en welke kleppen je indrukt, getekend zoals ze op het instrument zitten.
+- **Leerlingen** — per leerling een status per noot: kent al / in de les / moet nog leren. Rollen: leerling en leraar (ouder).
+- **Spel** — acht noten op een rij, naam tikken of op je instrument spelen; levens, timer, sterren, XP.
 
-## Draaien
+## Snel starten
 
-Open `index.html` in een browser. Er is geen build‑stap en geen afhankelijkheid behalve Google Fonts.
-
-Zonder database draait de pagina in geheugen: leerlingen en statussen gaan verloren bij herladen (de pagina meldt dit).
-
-## Bestanden
-
-| Bestand | Doel |
-|---|---|
-| `index.html` | Standalone versie (compleet HTML‑document) |
-| `artifact.html` | Dezelfde pagina zonder `<html>/<head>/<body>`‑skelet, zoals gepubliceerd als Claude‑artifact (het artifact voegt het skelet zelf toe) |
-
-Beide bestanden horen inhoudelijk gelijk te blijven; `index.html` is `artifact.html` met een skelet eromheen.
-
-## Data
-
-De pagina gebruikt, als die beschikbaar is, de artifact‑database (`window.claude.use("db")`):
-
-```
-leerlingen/{id}                  { naam, instrument, aangemaakt }
-leerlingen/{id}/noten/{nootId}   { status: "kent" | "les" | "moet", bijgewerkt }
-leerlingen/{id}/rondes/{auto}    { datum, ms, fouten, sterren, af, fout_noten[] }
+```bash
+pnpm install
+pnpm dev          # http://localhost:5173 — zonder .env draait de app lokaal (geen login, data in de browser)
+pnpm test
+pnpm build
 ```
 
-Noot‑ids zijn de Nederlandse naam plus octaafnummer van de **geschreven** toon: `g4`, `fis4`, `bes5`, `c6`.
+Met de echte backend: kopieer `apps/web/.env.example` naar `apps/web/.env` en vul de Supabase-URL en anon key in. Schema en Edge Functions staan in `supabase/`.
 
-## Muzikale aannames
+## Structuur
 
-- Bereik: geschreven lage bes (B♭3) t/m hoge f (F6).
-- Grepen zijn de standaard altsaxgrepen; de linkerpink is getekend met twee kleppen (G♯ en "laag") zoals op het instrument van de maker.
-- Geluid in het spel klinkt op altsax‑toonhoogte (geschreven toon min een grote sext).
+```
+apps/web               React PWA (Vite, Tailwind, Zustand)
+packages/core          muziektheorie, instrumentmodel, spelregels, toonherkenning — puur TS, met tests
+packages/instruments   instrumentdefinities (altsax.json, …) + schematest
+packages/client        SDK over het API-contract; implementaties: Supabase en lokaal
+packages/api           openapi.yaml — het contract tussen frontend en backend
+supabase/              migraties (schema + RLS), Edge Functions (rounds, invite-code, link-student)
+docs/ARCHITECTURE.md   keuzes en lagen
+legacy/                de oorspronkelijke één-bestands versie (Claude-artifact)
+```
+
+Zie [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) voor de keuzes en het datamodel; het werk staat in het Linear-project *Notenkraker*.

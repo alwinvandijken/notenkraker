@@ -1,0 +1,88 @@
+openapi: 3.1.0
+info:
+  title: Notenkraker API
+  version: 0.1.0
+  description: |
+    Contract tussen frontends en de headless backend. Leesacties lopen via
+    PostgREST (Supabase) met Row Level Security; commando's met logica via
+    Edge Functions. `@notenkraker/client` is de referentie-implementatie.
+servers:
+  - url: https://{project}.supabase.co/functions/v1
+    variables: { project: { default: "notenkraker" } }
+security:
+  - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    NoteId:
+      type: string
+      description: Nederlandse nootnaam + octaaf van de geschreven toon, bv. g4, fis4, bes3
+      pattern: "^[a-g](is|es|s)?-?\\d$"
+    NoteStatus: { type: string, enum: [kent, les, moet] }
+    Answer:
+      type: object
+      required: [expected, given, correct]
+      properties:
+        expected: { $ref: "#/components/schemas/NoteId" }
+        given: { oneOf: [{ $ref: "#/components/schemas/NoteId" }, { type: "null" }] }
+        correct: { type: boolean }
+    RoundSubmission:
+      type: object
+      required: [studentId, mode, ms, answers]
+      properties:
+        studentId: { type: string, format: uuid }
+        mode: { type: string, enum: [buttons, mic] }
+        ms: { type: integer }
+        answers: { type: array, items: { $ref: "#/components/schemas/Answer" } }
+    Round:
+      allOf:
+        - $ref: "#/components/schemas/RoundSubmission"
+        - type: object
+          required: [id, playedAt, completed, mistakes, stars, xp, wrongNotes]
+          properties:
+            id: { type: string, format: uuid }
+            playedAt: { type: string, format: date-time }
+            completed: { type: boolean }
+            mistakes: { type: integer }
+            stars: { type: integer, minimum: 0, maximum: 3 }
+            xp: { type: integer }
+            wrongNotes: { type: array, items: { $ref: "#/components/schemas/NoteId" } }
+    Student:
+      type: object
+      required: [id, name, instrumentId, naming]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        instrumentId: { type: string }
+        naming: { type: string, enum: [nl, en] }
+        userId: { type: [string, "null"], format: uuid }
+paths:
+  /rounds:
+    post:
+      summary: Ronde inleveren; server berekent sterren en XP
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/RoundSubmission" } } } }
+      responses:
+        "200": { description: Opgeslagen ronde, content: { application/json: { schema: { type: object, properties: { round: { $ref: "#/components/schemas/Round" } } } } } }
+        "403": { description: Geen toegang tot deze leerling }
+  /invite-code:
+    post:
+      summary: Uitnodigingscode voor een leerling (voor koppeling aan een leraar)
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [studentId], properties: { studentId: { type: string, format: uuid } } } } } }
+      responses:
+        "200": { description: Code, content: { application/json: { schema: { type: object, properties: { code: { type: string } } } } } }
+  /link-student:
+    post:
+      summary: Leraar koppelt zichzelf aan een leerling via code
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [code], properties: { code: { type: string } } } } } }
+      responses:
+        "200": { description: Gekoppelde leerling, content: { application/json: { schema: { type: object, properties: { student: { $ref: "#/components/schemas/Student" } } } } } }
+        "404": { description: Code onbekend of verlopen }
+x-postgrest:
+  description: |
+    Tabellen die rechtstreeks via PostgREST (met RLS) gelezen/geschreven worden:
+    students (select/insert/update/delete), student_notes (select/upsert/delete),
+    rounds (select), songs (select/insert/delete), attempts (select/insert).
+    Instrumentdefinities zijn geen API-data maar versiebeheerde content
+    (packages/instruments); een niet-TypeScript frontend leest de JSON-bestanden
+    uit de repo of een gepubliceerde kopie.

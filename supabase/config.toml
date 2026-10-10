@@ -1,0 +1,10 @@
+project_id = "notenkraker"
+
+[auth]
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["https://notenkraker.netlify.app"]
+
+[auth.external.google]
+enabled = true
+client_id = "env(GOOGLE_CLIENT_ID)"
+secret = "env(GOOGLE_CLIENT_SECRET)"

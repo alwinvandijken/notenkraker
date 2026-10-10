@@ -1,0 +1,581 @@
+{
+  "id": "altsax",
+  "name": "Altsaxofoon",
+  "family": "woodwind",
+  "clef": "G",
+  "transposition": -9,
+  "range": [
+    "bes3",
+    "f6"
+  ],
+  "starterNotes": [
+    "g4",
+    "a4",
+    "b4",
+    "c5",
+    "d5"
+  ],
+  "layout": {
+    "kind": "keys",
+    "viewBox": [
+      0,
+      0,
+      200,
+      318
+    ],
+    "axis": {
+      "x": 100,
+      "y1": 44,
+      "y2": 298
+    },
+    "keys": [
+      {
+        "id": "oct",
+        "shape": "pill",
+        "x": 48,
+        "y": 54,
+        "w": 36,
+        "h": 16,
+        "label": "Oct",
+        "group": "thumb"
+      },
+      {
+        "id": "fF",
+        "shape": "circle",
+        "x": 100,
+        "y": 30,
+        "r": 7,
+        "label": "",
+        "group": "left",
+        "optional": true
+      },
+      {
+        "id": "L1",
+        "shape": "circle",
+        "x": 100,
+        "y": 62,
+        "r": 15,
+        "label": "1",
+        "group": "left"
+      },
+      {
+        "id": "bis",
+        "shape": "circle",
+        "x": 120,
+        "y": 82,
+        "r": 5,
+        "label": "",
+        "group": "left",
+        "auto": true
+      },
+      {
+        "id": "L2",
+        "shape": "circle",
+        "x": 100,
+        "y": 102,
+        "r": 15,
+        "label": "2",
+        "group": "left"
+      },
+      {
+        "id": "L3",
+        "shape": "circle",
+        "x": 100,
+        "y": 142,
+        "r": 15,
+        "label": "3",
+        "group": "left"
+      },
+      {
+        "id": "pD",
+        "shape": "pill",
+        "x": 44,
+        "y": 96,
+        "w": 28,
+        "h": 12,
+        "label": "D",
+        "group": "palm",
+        "optional": true
+      },
+      {
+        "id": "pEb",
+        "shape": "pill",
+        "x": 44,
+        "y": 114,
+        "w": 28,
+        "h": 12,
+        "label": "E♭",
+        "group": "palm",
+        "optional": true
+      },
+      {
+        "id": "pF",
+        "shape": "pill",
+        "x": 44,
+        "y": 132,
+        "w": 28,
+        "h": 12,
+        "label": "F",
+        "group": "palm",
+        "optional": true
+      },
+      {
+        "id": "gs",
+        "shape": "oval",
+        "x": 52,
+        "y": 176,
+        "w": 44,
+        "h": 20,
+        "label": "G♯",
+        "group": "pinkyL",
+        "auto": true
+      },
+      {
+        "id": "low",
+        "shape": "oval",
+        "x": 56,
+        "y": 204,
+        "w": 44,
+        "h": 20,
+        "label": "laag",
+        "group": "pinkyL",
+        "auto": true
+      },
+      {
+        "id": "R4",
+        "shape": "circle",
+        "x": 100,
+        "y": 200,
+        "r": 15,
+        "label": "4",
+        "group": "right"
+      },
+      {
+        "id": "R5",
+        "shape": "circle",
+        "x": 100,
+        "y": 240,
+        "r": 15,
+        "label": "5",
+        "group": "right"
+      },
+      {
+        "id": "R6",
+        "shape": "circle",
+        "x": 100,
+        "y": 280,
+        "r": 15,
+        "label": "6",
+        "group": "right"
+      },
+      {
+        "id": "sE",
+        "shape": "pill",
+        "x": 150,
+        "y": 196,
+        "w": 28,
+        "h": 12,
+        "label": "E",
+        "group": "side",
+        "optional": true
+      },
+      {
+        "id": "sC",
+        "shape": "pill",
+        "x": 150,
+        "y": 214,
+        "w": 28,
+        "h": 12,
+        "label": "C",
+        "group": "side",
+        "optional": true
+      },
+      {
+        "id": "sBb",
+        "shape": "pill",
+        "x": 150,
+        "y": 232,
+        "w": 28,
+        "h": 12,
+        "label": "B♭",
+        "group": "side",
+        "optional": true
+      },
+      {
+        "id": "eb",
+        "shape": "oval",
+        "x": 150,
+        "y": 264,
+        "w": 44,
+        "h": 20,
+        "label": "E♭",
+        "group": "pinkyR",
+        "auto": true
+      },
+      {
+        "id": "lc",
+        "shape": "oval",
+        "x": 150,
+        "y": 290,
+        "w": 44,
+        "h": 20,
+        "label": "C",
+        "group": "pinkyR",
+        "auto": true
+      }
+    ],
+    "captions": [
+      {
+        "text": "linkerhand",
+        "x": 100,
+        "y": 36
+      },
+      {
+        "text": "rechterhand",
+        "x": 100,
+        "y": 176
+      },
+      {
+        "text": "duim",
+        "x": 48,
+        "y": 40
+      },
+      {
+        "text": "pink links",
+        "x": 52,
+        "y": 160,
+        "group": "pinkyL"
+      },
+      {
+        "text": "pink rechts",
+        "x": 150,
+        "y": 248,
+        "group": "pinkyR"
+      },
+      {
+        "text": "handpalm",
+        "x": 44,
+        "y": 86,
+        "group": "palm"
+      },
+      {
+        "text": "zijkant",
+        "x": 150,
+        "y": 186,
+        "group": "side"
+      }
+    ],
+    "merge": {
+      "cs": "low",
+      "lb": "low",
+      "lbb": "low"
+    }
+  },
+  "fingerings": {
+    "bes3": [
+      [
+        "L1",
+        "L2",
+        "L3",
+        "R4",
+        "R5",
+        "R6",
+        "lc",
+        "lbb"
+      ]
+    ],
+    "b3": [
+      [
+        "L1",
+        "L2",
+        "L3",
+        "R4",
+        "R5",
+        "R6",
+        "lc",
+        "lb"
+      ]
+    ],
+    "c4": [
+      [
+        "L1",
+        "L2",
+        "L3",
+        "R4",
+        "R5",
+        "R6",
+        "lc"
+      ]
+    ],
+    "cis4": [
+      [
+        "L1",
+        "L2",
+        "L3",
+        "R4",
+        "R5",
+        "R6",
+        "lc",
+        "cs"
+      ]
+    ],
+    "d4": [
+      [
+        "L1",
+        "L2",
+        "L3",
+        "R4",
+        "R5",
+        "R6"
+      ]
+    ],
+    "es4": [
+      [
+        "L1",
+        "L2",
+        "L3",
+        "R4",
+        "R5",
+        "R6",
+        "eb"
+      ]
+    ],
+    "e4": [
+      [
+        "L1",
+        "L2",
+        "L3",
+        "R4",
+        "R5"
+      ]
+    ],
+    "f4": [
+      [
+        "L1",
+        "L2",
+        "L3",
+        "R4"
+      ]
+    ],
+    "fis4": [
+      [
+        "L1",
+        "L2",
+        "L3",
+        "R5"
+      ]
+    ],
+    "g4": [
+      [
+        "L1",
+        "L2",
+        "L3"
+      ]
+    ],
+    "gis4": [
+      [
+        "L1",
+        "L2",
+        "L3",
+        "gs"
+      ]
+    ],
+    "a4": [
+      [
+        "L1",
+        "L2"
+      ]
+    ],
+    "bes4": [
+      [
+        "L1",
+        "bis"
+      ],
+      [
+        "L1",
+        "R4"
+      ]
+    ],
+    "b4": [
+      [
+        "L1"
+      ]
+    ],
+    "c5": [
+      [
+        "L2"
+      ],
+      [
+        "L1",
+        "sC"
+      ]
+    ],
+    "cis5": [
+      []
+    ],
+    "d5": [
+      [
+        "oct",
+        "L1",
+        "L2",
+        "L3",
+        "R4",
+        "R5",
+        "R6"
+      ]
+    ],
+    "es5": [
+      [
+        "oct",
+        "L1",
+        "L2",
+        "L3",
+        "R4",
+        "R5",
+        "R6",
+        "eb"
+      ]
+    ],
+    "e5": [
+      [
+        "oct",
+        "L1",
+        "L2",
+        "L3",
+        "R4",
+        "R5"
+      ]
+    ],
+    "f5": [
+      [
+        "oct",
+        "L1",
+        "L2",
+        "L3",
+        "R4"
+      ]
+    ],
+    "fis5": [
+      [
+        "oct",
+        "L1",
+        "L2",
+        "L3",
+        "R5"
+      ]
+    ],
+    "g5": [
+      [
+        "oct",
+        "L1",
+        "L2",
+        "L3"
+      ]
+    ],
+    "gis5": [
+      [
+        "oct",
+        "L1",
+        "L2",
+        "L3",
+        "gs"
+      ]
+    ],
+    "a5": [
+      [
+        "oct",
+        "L1",
+        "L2"
+      ]
+    ],
+    "bes5": [
+      [
+        "oct",
+        "L1",
+        "bis"
+      ]
+    ],
+    "b5": [
+      [
+        "oct",
+        "L1"
+      ]
+    ],
+    "c6": [
+      [
+        "oct",
+        "L2"
+      ]
+    ],
+    "cis6": [
+      [
+        "oct"
+      ]
+    ],
+    "d6": [
+      [
+        "oct",
+        "pD"
+      ]
+    ],
+    "es6": [
+      [
+        "oct",
+        "pD",
+        "pEb"
+      ]
+    ],
+    "e6": [
+      [
+        "oct",
+        "pD",
+        "pEb",
+        "sE"
+      ],
+      [
+        "oct",
+        "fF",
+        "L2",
+        "L3"
+      ]
+    ],
+    "f6": [
+      [
+        "oct",
+        "pD",
+        "pEb",
+        "pF",
+        "sE"
+      ],
+      [
+        "oct",
+        "fF",
+        "L2"
+      ]
+    ]
+  },
+  "keyNames": {
+    "oct": "octaafklep (duim links)",
+    "fF": "voorste F-klep",
+    "L1": "1",
+    "L2": "2",
+    "L3": "3",
+    "R4": "4",
+    "R5": "5",
+    "R6": "6",
+    "bis": "bis-knopje",
+    "gs": "G♯-klep (pink links)",
+    "cs": "C♯-klep (pink links)",
+    "lb": "lage B-klep (pink links)",
+    "lbb": "lage B♭-klep (pink links)",
+    "low": "lage klep (pink links)",
+    "eb": "E♭-klep (pink rechts)",
+    "lc": "lage C-klep (pink rechts)",
+    "pD": "handpalmklep D",
+    "pEb": "handpalmklep E♭",
+    "pF": "handpalmklep F",
+    "sE": "zijklep E (rechts)",
+    "sC": "zijklep C (rechts)",
+    "sBb": "zijklep B♭ (rechts)"
+  }
+}
