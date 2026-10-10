@@ -1,4 +1,4 @@
-import type { NoteId, NoteStatus } from "@notenkraker/core";
+import type { AgeBand, Experience, NoteId, NoteStatus } from "@notenkraker/core";
 
 /**
  * Twee manieren om Notenkraker te gebruiken (AC-114, mock-up docs/mockups/Welkom-Twee-Routes.html):
@@ -43,6 +43,16 @@ export function importableNotes(storage: Storage): Array<{ noteId: NoteId; statu
     const first = state?.students?.[0]?.id;
     return (state?.notes ?? []).filter((n) => n.studentId === first).map(({ noteId, status }) => ({ noteId, status }));
   } catch { return []; }
+}
+
+/** leeftijd, ervaring en de afgeronde kennismaking van het profiel zonder account (AC-115) */
+export function importableProfile(storage: Storage): { ageBand?: AgeBand; experience?: Experience; onboardedAt?: string } {
+  try {
+    const first = (JSON.parse(storage.getItem(ANONIEM_KEY) ?? "null") as
+      { students?: Array<{ ageBand?: AgeBand | null; experience?: Experience | null; onboardedAt?: string | null }> } | null)?.students?.[0];
+    if (!first) return {};
+    return Object.fromEntries(Object.entries({ ageBand: first.ageBand, experience: first.experience, onboardedAt: first.onboardedAt }).filter(([, v]) => v));
+  } catch { return {}; }
 }
 
 /** een nieuw account begint leeg; vraag één keer of de noten van dit apparaat mee moeten */

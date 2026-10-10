@@ -104,7 +104,7 @@ Volledig in [`docs/DATAMODEL.md`](DATAMODEL.md), met de nieuwe tabellen en het m
 
 ```
 profiles         id (= auth.users.id), role (null|leerling|ouder|leraar|admin), display_name
-students         id, owner_id, user_id?, name, instrument_id, naming, age_band*, skin_id*, daily_goal*, time_zone*
+students         id, owner_id, user_id?, name, instrument_id, naming, age_band ('6-8'|'9-12'|'13-17'|'18+'), experience ('nieuw'|'lt1'|'1-3'|'gt3'), onboarded_at, skin_id*, daily_goal*, time_zone*
 teacher_students teacher_id, student_id
 invite_codes     code, student_id, purpose ('leraar'|'kind'), expires_at
 student_notes    student_id, note_id, status ('kent'|'les'|'moet'), introduced_at*
@@ -152,6 +152,14 @@ Mock-up: `docs/mockups/Oefentimer.html`. Start en einde van een sessie legt de s
 - Label `twijfel`: minstens 2 min gespeeld met maar één noot. De sessie telt wel mee; de ouder ziet het label.
 - Er wordt geen geluid opgeslagen of verstuurd. Een opname via een speaker kan de timer misleiden; de minuten en het label maken dat zichtbaar, niet onmogelijk.
 - Een iPad zet de microfoon uit als de app naar de achtergrond gaat; die tijd telt niet. Het scherm blijft aan met de Wake Lock API.
+
+### Kennismaking (AC-115)
+
+Mock-up: `docs/mockups/Kennismaking.html`. De eerste keer oefenen met een leerling zonder `onboarded_at` toont `screens/Kennismaking.tsx`: leeftijdsgroep, hoe lang al spelen en een korte notentoets, elk op een eigen pagina; al beantwoorde vragen worden overgeslagen. Een ouder die een kind toevoegt beantwoordt alleen leeftijd en ervaring; de toets doet het kind zelf. Overslaan of "net begonnen": geen toets, de startnoten op "Komt nog".
+
+- `core/learner`: `ageProfile(band)` (rondelengte, levens, stopwatch, dagdoel: 6–8 jaar 5 noten/4 levens/geen stopwatch/10 min; 9–12 8/3/15 min; 13–17 en 18+ 8/3/20 min), `noteLadder` (startnoten, dan stamtonen naar afstand, dan kruizen en mollen), `PlacementTest` (8 noten, goed +2 treden, fout of "weet ik niet" −1; uitslag = alles tot en met de lastigste goede noot, behalve wat fout ging) en `nextNewNote`.
+- Het notenspel gebruikt `ageProfile` en voegt de eerstvolgende nieuwe noot aan de pool toe. De Edge Function `rounds` leest `age_band` voor het aantal levens.
+- Het dagdoel staat op het startscherm zonder account; Mijn profiel kan de kennismaking opnieuw starten.
 
 ## Instrumentmodel
 

@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { client } from "@/lib/client";
 import { useApp } from "@/lib/store";
-import { importableNotes, markImportAsked, offerImport } from "@/lib/route";
+import { importableNotes, importableProfile, markImportAsked, offerImport } from "@/lib/route";
 import { Chip } from "@/components/ui";
 
 /**
  * Een nieuw account begint leeg (besluit Alwin, AC-114). Staan er noten van "zonder account" op
  * dit apparaat en heeft de leerling in zijn account nog geen noten, dan vragen we één keer of
- * die mee moeten. Alleen de notenstatus; rondes en oefentijd zonder account gaan niet mee.
+ * die mee moeten: de notenstatus en wat de kennismaking opleverde (leeftijd, ervaring). Rondes
+ * en oefentijd zonder account gaan niet mee.
  */
 export function NotenOvernemen() {
   const { profile, studentId, students } = useApp();
@@ -29,13 +30,16 @@ export function NotenOvernemen() {
   async function take() {
     setBusy(true);
     for (const n of notes) await client.notes.setStatus(own!.id, n.noteId, n.status);
-    useApp.getState().selectStudent(own!.id); // statussen opnieuw laden
+    // leeftijd en kennismaking gaan mee, dan hoeft die niet opnieuw (AC-115)
+    const extra = importableProfile(localStorage);
+    if (Object.keys(extra).length) await client.students.update(own!.id, extra);
+    await useApp.getState().loadStudents(); // student en statussen opnieuw laden
     done();
   }
   return (
     <section role="status" className="rounded-3xl bg-surface border-2 border-kent p-4 mb-4 flex flex-col gap-3">
       <b className="font-display text-lg">Noten van dit apparaat overnemen?</b>
-      <p className="m-0 text-sm text-muted">Zonder account heb je op dit apparaat {notes.length} {notes.length === 1 ? "noot" : "noten"} een status gegeven. Wil je die in je nieuwe account?</p>
+      <p className="m-0 text-sm text-muted">Zonder account heb je op dit apparaat {notes.length} {notes.length === 1 ? "noot" : "noten"} een status gegeven{importableProfile(localStorage).ageBand ? " en je leeftijd ingevuld" : ""}. Wil je dat in je nieuwe account?</p>
       <div className="flex flex-wrap gap-2">
         <Chip primary disabled={busy} onClick={() => void take()}>Ja, overnemen</Chip>
         <Chip disabled={busy} onClick={done}>Nee, leeg beginnen</Chip>

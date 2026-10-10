@@ -24,12 +24,14 @@ Deno.serve(async (req) => {
   if (!studentId || !Array.isArray(answers)) return json({ error: "ongeldige ronde" }, 400);
 
   // RLS controleert of de aanroeper bij deze leerling mag
-  const { data: student } = await user.from("students").select("id").eq("id", studentId).maybeSingle();
+  const { data: student } = await user.from("students").select("id, age_band").eq("id", studentId).maybeSingle();
   if (!student) return json({ error: "geen toegang" }, 403);
+  // levens per leeftijdsgroep, zoals core/learner.ageProfile: 6–8 jaar 4, anders 3 (AC-115)
+  const lives = student.age_band === "6-8" ? 4 : 3;
 
   const { data: notes } = await service.from("student_notes").select("note_id,status").eq("student_id", studentId);
   const statuses = Object.fromEntries((notes ?? []).map((n) => [n.note_id, n.status]));
-  const score = scoreRound(answers, 3, statuses);
+  const score = scoreRound(answers, lives, statuses);
 
   const { data: round, error } = await service.from("rounds").insert({
     student_id: studentId, mode, ms, answers,

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { instrumentNotes, makeSequence, midiToPitch, NoteMatcher, noteName, parseId, scoreRound, soundingMidi, toId, weightedPool, type NoteId, type PitchReading } from "@notenkraker/core";
+import { ageProfile, instrumentNotes, makeSequence, nextNewNote, noteLadder, midiToPitch, NoteMatcher, noteName, parseId, scoreRound, soundingMidi, toId, weightedPool, type NoteId, type PitchReading } from "@notenkraker/core";
 import { getInstrument } from "@notenkraker/instruments";
 import type { Round } from "@notenkraker/client";
 import { client, isAnonymous } from "@/lib/client";
@@ -9,7 +9,6 @@ import { Card, Chip, Segmented } from "@/components/ui";
 import { playMidi } from "@/audio/synth";
 import { MicListener } from "@/audio/mic";
 
-const LENGTH = 8, LIVES = 3;
 const fmt = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, "0")}.${String(Math.floor(ms % 1000)).padStart(3, "0")}`;
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -22,6 +21,11 @@ export function Game() {
   const naming = student?.naming ?? "nl";
   const all = useMemo(() => instrumentNotes(instrument), [instrument]);
   const name = (id: NoteId) => noteName(parseId(id), naming);
+  // rondelengte, levens en stopwatch per leeftijdsgroep (AC-115)
+  const { roundLength: LENGTH, lives: LIVES, showTimer } = ageProfile(student?.ageBand);
+  const ladder = useMemo(() => noteLadder(instrument.range, instrument.starterNotes), [instrument]);
+  // de noten die je kent of oefent, plus de eerstvolgende nieuwe noot
+  const newNote = Object.keys(statuses).length ? nextNewNote(ladder, statuses) : null;
 
   const [input, setInput] = useState<"buttons" | "mic">(() => (localStorage.getItem("nk.input") as "buttons" | "mic") || "buttons");
   const [seq, setSeq] = useState<NoteId[]>([]);
@@ -37,7 +41,10 @@ export function Game() {
   const mic = useRef<MicListener | null>(null);
   const matcher = useRef(new NoteMatcher({ expectedMidi: 0 }));
 
-  const pool = useMemo(() => weightedPool(statuses, instrument.starterNotes.length ? instrument.starterNotes : all.slice(0, 5)), [statuses, instrument, all]);
+  const pool = useMemo(() => {
+    const base = weightedPool(statuses, instrument.starterNotes.length ? instrument.starterNotes : all.slice(0, 5));
+    return newNote ? [...base, newNote, newNote] : base;
+  }, [statuses, instrument, all, newNote]);
   const names = useMemo(() => {
     // vaste volgorde: stamtonen vanaf c, daarna de kruizen/mollen
     const have = new Set(pool.map((n) => name(n)));
@@ -114,7 +121,7 @@ export function Game() {
         <div className="flex items-center justify-between font-display font-extrabold text-xl">
           <button type="button" onClick={quit} aria-label="Stoppen" className="bg-transparent border-0 text-xl px-2 py-1 cursor-pointer">✕</button>
           <div className="text-[#e0506a] tracking-widest">{running ? `${lives} × ♥` : ""}</div>
-          <div className="tabular-nums text-muted">{fmt(elapsed)}</div>
+          <div className="tabular-nums text-muted">{showTimer ? fmt(elapsed) : ""}</div>
         </div>
         <StaffRow clef={instrument.clef} naming={naming} height={200} cursor={running ? pos : undefined}
           notes={(seq.length ? seq : []).map((n, i) => {
@@ -126,7 +133,7 @@ export function Game() {
           {result ? (
             <div className="py-2">
               <div className="text-5xl text-key tracking-[6px]">{"★".repeat(result.stars)}{"☆".repeat(3 - result.stars)}</div>
-              <div className="text-3xl text-fg">{result.completed ? fmt(elapsed) : "Levens op!"}</div>
+              <div className="text-3xl text-fg">{result.completed ? (showTimer ? fmt(elapsed) : "Gehaald!") : "Levens op!"}</div>
               <div>{result.mistakes === 0 ? "Foutloos!" : `${result.mistakes} fout${result.mistakes === 1 ? "" : "en"}`} · +{result.xp} XP</div>
             </div>
           ) : msg}
@@ -156,9 +163,10 @@ export function Game() {
       {!running && (
         <div className="text-center mt-3">
           <p className="text-muted my-3 max-w-[60ch] mx-auto">
-            Acht noten op een rij. Tik zo snel mogelijk de juiste naam. Je hebt <b className="text-fg">{LIVES} levens</b>.<br />
-            Noten voor {!student || isAnonymous || student.userId === profile?.id ? "jou" : student.name}: <b className="text-fg">{names.map(cap).join(" · ")}</b>
+            {LENGTH === 8 ? "Acht" : LENGTH} noten op een rij. Tik {showTimer ? "zo snel mogelijk " : ""}de juiste naam. Je hebt <b className="text-fg">{LIVES} levens</b>.<br />
+            Noten voor {!student || isAnonymous || student.userId === profile?.id ? "jou" : student.name}: <b className="text-fg">{names.filter((n) => !newNote || n !== name(newNote) || Object.keys(statuses).some((id) => name(id) === n)).map(cap).join(" · ")}</b>
             {focus.length > 0 && <><br />Extra vaak: <b className="text-fg">{focus.map(cap).join(" · ")}</b></>}
+            {newNote && <><br />Nieuw: <b className="text-accent">{cap(name(newNote))}</b></>}
           </p>
           <div className="mb-3"><Segmented value={input} options={[["buttons", "Knoppen"], ["mic", `🎤 ${instrument.name} (microfoon)`]]} onChange={(v) => { setInput(v); localStorage.setItem("nk.input", v); }} label="Antwoorden met" /></div>
           {micError && <p className="text-sm text-muted border border-line rounded-lg p-2 inline-block">{micError}</p>}
