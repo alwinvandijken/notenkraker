@@ -11,12 +11,13 @@ import { Game } from "@/screens/Game";
 import { VrijOefenen } from "@/screens/VrijOefenen";
 import { Kinderen } from "@/screens/Kinderen";
 import { Dashboard } from "@/screens/Dashboard";
+import { KindPagina } from "@/screens/KindPagina";
 import { Profiel } from "@/screens/Profiel";
 import { Menu, type MenuItem } from "@/components/Menu";
 import { KoppelMelding } from "@/components/KoppelMelding";
 import { Chip, Segmented } from "@/components/ui";
 
-type Screen = "overzicht" | "oefenen" | "kinderen" | "profiel";
+type Screen = "overzicht" | "kind" | "oefenen" | "kinderen" | "profiel";
 
 function greeting(name: string, now = new Date()) {
   const h = now.getHours();
@@ -27,6 +28,8 @@ export function AppMetLogin() {
   const { profile, students, studentId, statuses, mode, init, selectStudent, setMode, setStatus } = useApp();
   // ouder en leraar starten op het overzicht, een leerling meteen bij het oefenen
   const [screen, setScreen] = useState<Screen | null>(null);
+  /** het kind waarvan de pagina open is (scherm "kind") */
+  const [childId, setChildId] = useState<string | null>(null);
 
   useEffect(() => { void init(); }, [init]);
 
@@ -39,7 +42,7 @@ export function AppMetLogin() {
   const current: Screen = screen ?? (hasDashboard ? "overzicht" : "oefenen");
   const student = students.find((s) => s.id === studentId);
   const items: MenuItem[] = [
-    ...(hasDashboard ? [{ key: "overzicht", label: "Overzicht", onSelect: () => setScreen("overzicht"), active: current === "overzicht" }] : []),
+    ...(hasDashboard ? [{ key: "overzicht", label: "Overzicht", onSelect: () => setScreen("overzicht"), active: current === "overzicht" || current === "kind" }] : []),
     { key: "oefenen", label: "Oefenen", onSelect: () => setScreen("oefenen"), active: current === "oefenen" },
     ...(rights.studentsTitle ? [{ key: "kinderen", label: rights.studentsTitle, onSelect: () => setScreen("kinderen"), active: current === "kinderen" }] : []),
     { key: "profiel", label: "Mijn profiel", onSelect: () => setScreen("profiel"), active: current === "profiel" },
@@ -66,10 +69,15 @@ export function AppMetLogin() {
   }
 
   return (
-    <div className={`${current === "overzicht" ? "max-w-[1240px]" : "max-w-[900px]"} mx-auto px-4 pt-6 pb-12`}>
+    <div className={`${current === "overzicht" || current === "kind" ? "max-w-[1240px]" : "max-w-[900px]"} mx-auto px-4 pt-6 pb-12`}>
       <header className="flex items-start justify-between gap-3 mb-4">
-        <div>
-          <h1 className="font-display font-extrabold text-4xl leading-none">{current === "overzicht" ? greeting(profile.displayName) : "Notenkraker"}</h1>
+        <div className="min-w-0">
+          {current === "kind" && (
+            <button type="button" onClick={() => setScreen("overzicht")} className="text-sm font-semibold text-muted bg-transparent cursor-pointer mb-2 -ml-1 px-1">← Overzicht</button>
+          )}
+          <h1 className="font-display font-extrabold text-3xl sm:text-4xl leading-none">
+            {current === "overzicht" ? greeting(profile.displayName) : current === "kind" ? (students.find((s) => s.id === childId)?.name ?? "") : "Notenkraker"}
+          </h1>
           {current === "overzicht" && <p className="text-muted mt-1">Zo ging het oefenen deze week</p>}
           {current === "oefenen" && <p className="text-muted mt-1">{mode === "vrij" ? "Speel wat je wilt. Ik tel mee hoe lang ik je hoor." : "Speel het notenspel."}</p>}
         </div>
@@ -77,7 +85,8 @@ export function AppMetLogin() {
       </header>
       <KoppelMelding />
 
-      {current === "overzicht" && <Dashboard onPractice={practice} onManage={() => setScreen("kinderen")} />}
+      {current === "overzicht" && <Dashboard onOpenChild={(id) => { setChildId(id); setScreen("kind"); window.scrollTo(0, 0); }} onManage={() => setScreen("kinderen")} />}
+      {current === "kind" && childId && <KindPagina studentId={childId} onPractice={() => practice(childId)} />}
       {current === "kinderen" && <Kinderen onPractice={practice} />}
       {current === "profiel" && <Profiel onLinked={() => setScreen("oefenen")} />}
       {current === "oefenen" && (

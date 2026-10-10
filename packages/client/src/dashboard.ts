@@ -31,6 +31,8 @@ export interface SessionSummary {
   startedAt: string;
   playedMinutes: number;
   totalMinutes: number;
+  playedSeconds: number;
+  totalSeconds: number;
   /** gespeeld als deel van de sessie, 0..100 */
   percent: number;
   notes: string[];
@@ -60,6 +62,7 @@ function sessionSummary(p: PracticeSession): SessionSummary {
   return {
     id: p.id, startedAt: p.startedAt, notes: p.notes, label: p.label, perMinute: p.minutes.map((m) => m.s),
     playedMinutes: Math.round(p.playedSeconds / 60), totalMinutes: Math.round(totalSec / 60),
+    playedSeconds: p.playedSeconds, totalSeconds: Math.round(totalSec),
     percent: totalSec ? Math.min(100, Math.round((100 * p.playedSeconds) / totalSec)) : 0,
   };
 }
@@ -128,6 +131,18 @@ export function dayDetail({ rounds, sessions, date }: { rounds: Round[]; session
     game: toMinutes(rounds.filter((r) => onDay(r.playedAt)).reduce((n, r) => n + r.ms, 0)),
     free: toMinutes(sessions.filter((p) => onDay(p.startedAt)).reduce((n, p) => n + p.playedSeconds, 0) * 1000),
   };
+}
+
+/** korte tijden in seconden, langere in hele minuten: "12 s", "16 min" */
+export function durationLabel(seconds: number): string {
+  return seconds < 60 ? `${Math.round(seconds)} s` : `${Math.round(seconds / 60)} min`;
+}
+
+/** gespeeld van totaal, in één eenheid als dat kan: "12 van 13 s", "16 van 22 min", "40 s van 2 min" */
+export function playedOfTotal(played: number, total: number): string {
+  if (total < 60) return `${Math.round(played)} van ${Math.round(total)} s`;
+  if (played >= 60) return `${Math.round(played / 60)} van ${Math.round(total / 60)} min`;
+  return `${durationLabel(played)} van ${durationLabel(total)}`;
 }
 
 /** "vandaag 15:20", "gisteren", "woensdag" (deze week) of "1 okt" */

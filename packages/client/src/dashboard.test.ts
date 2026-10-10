@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { childSummary, dayDetail, whenLabel } from "./dashboard.js";
+import { childSummary, dayDetail, durationLabel, playedOfTotal, whenLabel } from "./dashboard.js";
 import type { PracticeSession, Round } from "./types.js";
 
 // Zaterdag 10 oktober 2026, 16:00 lokale tijd
@@ -112,6 +112,21 @@ describe("childSummary: geschiedenis", () => {
   it("geeft per sessie de seconden per minuut mee", () => {
     const s = childSummary({ rounds: [], sessions: [session(0, 1, 2, { minutes: [{ s: 40, notes: [] }, { s: 20, notes: [] }] })], statuses: {}, noteIds: [], now });
     expect(s.sessions[0]!.perMinute).toEqual([40, 20]);
+    expect(s.sessions[0]).toMatchObject({ playedSeconds: 60, totalSeconds: 120 });
+  });
+});
+
+describe("durationLabel", () => {
+  it("toont korte tijden in seconden en langere in minuten", () => {
+    expect(durationLabel(12)).toBe("12 s");
+    expect(durationLabel(59)).toBe("59 s");
+    expect(durationLabel(60)).toBe("1 min");
+    expect(durationLabel(16 * 60 + 20)).toBe("16 min");
+  });
+  it("zet gespeeld en totaal in dezelfde eenheid: \"12 van 13 s\", \"16 van 22 min\"", () => {
+    expect(playedOfTotal(12, 13)).toBe("12 van 13 s");
+    expect(playedOfTotal(40, 90)).toBe("40 s van 2 min");
+    expect(playedOfTotal(960, 1320)).toBe("16 van 22 min");
   });
 });
 

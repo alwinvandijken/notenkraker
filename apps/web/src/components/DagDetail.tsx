@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import clsx from "clsx";
-import { dateKey, dayDetail, type PracticeSession, type Round } from "@notenkraker/client";
+import { dateKey, dayDetail, playedOfTotal, type PracticeSession, type Round } from "@notenkraker/client";
 import { noteLabel } from "@/lib/noten";
 import { Donut } from "@/components/Donut";
 
@@ -35,21 +35,26 @@ export function DagDetail({ name, date, rounds, sessions, range, onDate, onClose
     <div className="fixed inset-0 z-50 bg-fg/40 flex items-center justify-center p-3" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-label={`${name}, ${longDate(date)}`} onClick={(e) => e.stopPropagation()}
         className="bg-bg rounded-3xl shadow-2xl w-full sm:w-4/5 h-[90vh] sm:h-4/5 flex flex-col overflow-hidden">
-        <header className="flex items-center gap-2 px-5 py-4 bg-surface border-b border-line">
-          <button type="button" aria-label="Vorige dag" onClick={() => onDate(shift(-1))} className="w-11 h-11 rounded-full bg-bg font-bold cursor-pointer">◀</button>
-          <div className="flex-1 min-w-0 text-center">
-            <div className="font-display font-bold text-xl truncate">{name} · {longDate(date)}</div>
-            <div className="text-sm text-muted">{ICON.vrij} {d.free} min vrij oefenen · {ICON.spel} {d.game} min notenspel</div>
+        <header className="px-4 sm:px-5 pt-3 pb-3 bg-surface border-b border-line flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <div className="flex-1 min-w-0 font-display font-bold text-lg sm:text-xl truncate">{name}</div>
+            <button type="button" aria-label="Sluiten" onClick={onClose} className="w-11 h-11 rounded-full border-2 border-line bg-surface font-bold cursor-pointer shrink-0">✕</button>
           </div>
-          <button type="button" aria-label="Volgende dag" disabled={isToday} onClick={() => onDate(shift(1))} className="w-11 h-11 rounded-full bg-bg font-bold cursor-pointer disabled:opacity-30">▶</button>
-          <button type="button" aria-label="Sluiten" onClick={onClose} className="w-11 h-11 rounded-full border-2 border-line bg-surface font-bold cursor-pointer ml-1">✕</button>
+          <div className="flex items-center gap-2">
+            <button type="button" aria-label="Vorige dag" onClick={() => onDate(shift(-1))} className="w-10 h-10 rounded-full bg-bg font-bold cursor-pointer shrink-0">◀</button>
+            <div className="flex-1 min-w-0 text-center">
+              <div className="font-semibold first-letter:uppercase">{longDate(date)}</div>
+              <div className="text-xs sm:text-sm text-muted">{ICON.vrij} {d.free} min vrij · {ICON.spel} {d.game} min spel</div>
+            </div>
+            <button type="button" aria-label="Volgende dag" disabled={isToday} onClick={() => onDate(shift(1))} className="w-10 h-10 rounded-full bg-bg font-bold cursor-pointer disabled:opacity-30 shrink-0">▶</button>
+          </div>
         </header>
 
         <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-3">
           {d.items.length === 0 && <p className="text-muted m-auto">Deze dag is er niet geoefend.</p>}
           {d.items.map((it) => it.kind === "vrij" ? (
             <section key={it.id} className="rounded-2xl bg-surface p-4 flex gap-4 items-start">
-              <Donut percent={it.percent} size={72} stroke={9}><b className="font-display text-base">{it.percent}%</b></Donut>
+              <Donut percent={it.percent} size={60} stroke={8}><b className="font-display text-sm">{it.percent}%</b></Donut>
               <div className="flex-1 min-w-0 flex flex-col gap-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-display font-bold text-lg">{ICON.vrij} Vrij oefenen</span>
@@ -58,7 +63,7 @@ export function DagDetail({ name, date, rounds, sessions, range, onDate, onClose
                     ? <span className="ml-auto rounded-xl px-2.5 py-1 text-xs font-semibold bg-les/25" title="Minuten lang steeds dezelfde noot">twijfelachtig</span>
                     : <span className="ml-auto rounded-xl px-2.5 py-1 text-xs font-semibold bg-ok/15 text-ok">sax gehoord</span>}
                 </div>
-                <div><b>{it.playedMinutes} van {it.totalMinutes} min gespeeld</b></div>
+                <div><b>{playedOfTotal(it.playedSeconds, it.totalSeconds)} gespeeld</b></div>
                 {it.perMinute.length > 0 && (
                   <div className="flex gap-0.5 h-5" aria-label="Per minuut gespeeld">
                     {it.perMinute.map((sec, i) => (
@@ -73,7 +78,7 @@ export function DagDetail({ name, date, rounds, sessions, range, onDate, onClose
             </section>
           ) : (
             <section key={it.id} className="rounded-2xl bg-surface p-4 flex gap-4 items-center">
-              <span className="w-[72px] h-[72px] rounded-full bg-kent-soft flex items-center justify-center text-3xl shrink-0" aria-hidden="true">{ICON.spel}</span>
+              <span className="w-[60px] h-[60px] rounded-full bg-kent-soft flex items-center justify-center text-3xl shrink-0" aria-hidden="true">{ICON.spel}</span>
               <div className="flex-1 min-w-0 flex flex-col gap-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-display font-bold text-lg">Notenspel</span>
