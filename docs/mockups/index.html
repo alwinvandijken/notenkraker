@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notenkraker mock-ups</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;700&display=swap">
+<style>
+:root { --bg: #DCE3EC; --ink: #172440; --muted: #4A5873; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: Lexend, system-ui, sans-serif; }
+.wrap { padding-inline: 32px; padding-block: 32px 64px; display: flex; flex-direction: column; gap: 40px; }
+header { display: flex; flex-direction: column; gap: 6px; }
+h1 { margin: 0; font-size: 34px; }
+h2 { margin: 0; font-size: 22px; }
+p { margin: 0; color: var(--muted); max-width: 70ch; }
+a { color: #2459C9; }
+.row { display: flex; flex-direction: column; gap: 14px; }
+.boards { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+figure { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+figcaption { font-size: 14px; font-weight: 600; display: flex; gap: 10px; }
+figcaption a { font-weight: 400; }
+.frame { overflow: hidden; border-radius: 18px; box-shadow: 0 2px 10px rgba(23,36,64,0.12); background: #fff; }
+.frame iframe { border: 0; transform-origin: 0 0; display: block; }
+.ipad .frame { width: 590px; height: 410px; }
+.ipad iframe { width: 1180px; height: 820px; transform: scale(0.5); }
+.phone .frame { width: 273px; height: 591px; border-radius: 28px; }
+.phone iframe { width: 390px; height: 844px; transform: scale(0.7); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Notenkraker mock-ups</h1>
+    <p>Basislook is richting A (Notenbalk). Richting B (Podium) staat erbij als bron voor ideeën, zoals het niveaupad en antwoorden met kleppen. Klik op "open" om een scherm op ware grootte te zien; de knoppen tussen schermen werken. Zie ook <a href="../features.html">het featureoverzicht</a>.</p>
+  </header>
+
+  <section class="row ipad">
+    <h2>iPad liggend · richting A: Notenbalk (basislook)</h2>
+    <div class="boards">
+      <figure><div class="frame"><iframe src="iPadA-Home.html" title="Start leerling" loading="lazy"></iframe></div><figcaption>Start leerling <a href="iPadA-Home.html">open</a></figcaption></figure>
+      <figure><div class="frame"><iframe src="iPadA-Grepen.html" title="Grepentabel" loading="lazy"></iframe></div><figcaption>Grepentabel <a href="iPadA-Grepen.html">open</a></figcaption></figure>
+      <figure><div class="frame"><iframe src="iPadA-Spel.html" title="Notenspel" loading="lazy"></iframe></div><figcaption>Notenspel <a href="iPadA-Spel.html">open</a></figcaption></figure>
+      <figure><div class="frame"><iframe src="iPadA-Leraar.html" title="Leraar/ouder" loading="lazy"></iframe></div><figcaption>Leraar/ouder <a href="iPadA-Leraar.html">open</a></figcaption></figure>
+    </div>
+  </section>
+
+  <section class="row ipad">
+    <h2>iPad liggend · richting B: Podium (ideeën)</h2>
+    <div class="boards">
+      <figure><div class="frame"><iframe src="iPadB-Home.html" title="Start met niveaupad" loading="lazy"></iframe></div><figcaption>Start met niveaupad <a href="iPadB-Home.html">open</a></figcaption></figure>
+      <figure><div class="frame"><iframe src="iPadB-Spel.html" title="Spel: antwoord met kleppen" loading="lazy"></iframe></div><figcaption>Spel: antwoord met kleppen <a href="iPadB-Spel.html">open</a></figcaption></figure>
+    </div>
+  </section>
+
+  <section class="row phone">
+    <h2>iPhone · richting A</h2>
+    <div class="boards">
+      <figure><div class="frame"><iframe src="Phone-Home.html" title="Start leerling" loading="lazy"></iframe></div><figcaption>Start <a href="Phone-Home.html">open</a></figcaption></figure>
+      <figure><div class="frame"><iframe src="Phone-Grepen.html" title="Grepentabel" loading="lazy"></iframe></div><figcaption>Grepentabel <a href="Phone-Grepen.html">open</a></figcaption></figure>
+      <figure><div class="frame"><iframe src="Phone-Spel.html" title="Notenspel" loading="lazy"></iframe></div><figcaption>Notenspel <a href="Phone-Spel.html">open</a></figcaption></figure>
+      <figure><div class="frame"><iframe src="Phone-Leraar.html" title="Leraar/ouder" loading="lazy"></iframe></div><figcaption>Leraar/ouder <a href="Phone-Leraar.html">open</a></figcaption></figure>
+    </div>
+  </section>
+</div>
+</body>
+</html>

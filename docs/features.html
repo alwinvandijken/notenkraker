@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notenkraker features</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+body { margin: 0; }
+/* Layout: één leeskolom; features als kaarten per rol, elk met status en iPad/iPhone-uitwerking naast elkaar */
+:root {
+  --bg: #EDF2F7;
+  --surface: #FFFFFF;
+  --ink: #172440;
+  --muted: #4A5873;
+  --line: #D5DEEA;
+  --blue: #2459C9;
+  --blue-soft: #DCE6FA;
+  --orange: #F4A261;
+  --orange-soft: #FDEBDD;
+  --orange-ink: #6B3A16;
+  --idea: #6A4FB3;
+  --idea-soft: #ECE6FA;
+  --font-display: "Lexend", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F1729; --surface: #18233B; --ink: #E8EEF8; --muted: #A9B6CF; --line: #2B3A5C;
+    --blue: #7EA6F5; --blue-soft: #1D2F57; --orange: #F4A261; --orange-soft: #3A2616; --orange-ink: #F8C9A1;
+    --idea: #B9A4F2; --idea-soft: #2A2148; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F1729; --surface: #18233B; --ink: #E8EEF8; --muted: #A9B6CF; --line: #2B3A5C;
+  --blue: #7EA6F5; --blue-soft: #1D2F57; --orange: #F4A261; --orange-soft: #3A2616; --orange-ink: #F8C9A1;
+  --idea: #B9A4F2; --idea-soft: #2A2148; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.55; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 72px; display: flex; flex-direction: column; gap: 48px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(32px, 5vw, 46px); line-height: 1.1; }
+h2 { font-size: 26px; }
+h3 { font-size: 19px; }
+p { margin: 0; max-width: 68ch; }
+a { color: var(--blue); }
+a:focus-visible, button:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+
+header.top { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font-family: var(--font-display); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); }
+.lead { font-size: 19px; color: var(--muted); }
+.meta { display: flex; flex-wrap: wrap; gap: 10px 20px; font-size: 15px; color: var(--muted); }
+
+.legend { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.filter { font-family: var(--font-display); font-size: 15px; font-weight: 500; height: 44px; padding: 0 18px; border-radius: 22px; border: 2px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+.filter[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.count { font-variant-numeric: tabular-nums; opacity: 0.75; }
+
+.pill { font-family: var(--font-display); font-size: 12.5px; font-weight: 600; padding: 4px 10px; border-radius: 10px; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+.pill::before { content: ""; width: 8px; height: 8px; border-radius: 4px; }
+.s-v0 { background: var(--blue-soft); color: var(--blue); }
+.s-v0::before { background: var(--blue); }
+.s-plan { background: var(--orange-soft); color: var(--orange-ink); }
+.s-plan::before { background: var(--orange); }
+.s-idee { background: var(--idea-soft); color: var(--idea); }
+.s-idee::before { background: transparent; border: 2px dashed var(--idea); width: 6px; height: 6px; }
+.ref { font-family: var(--font-display); font-size: 12.5px; font-weight: 500; color: var(--muted); }
+
+section.group { display: flex; flex-direction: column; gap: 18px; }
+.group-head { display: flex; flex-direction: column; gap: 6px; }
+.group-head p { color: var(--muted); }
+.cards { display: flex; flex-direction: column; gap: 14px; }
+
+.feature { background: var(--surface); border-radius: 22px; padding: 22px 24px; display: flex; flex-direction: column; gap: 14px; }
+.f-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.f-head h3 { flex: 1 1 260px; min-width: 0; }
+.f-what { color: var(--ink); }
+.devices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.device { border: 1.5px solid var(--line); border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.device .lbl { font-family: var(--font-display); font-size: 13px; font-weight: 600; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.device p { font-size: 15.5px; }
+.f-foot { font-size: 14.5px; color: var(--muted); }
+.f-foot a { font-weight: 700; }
+
+.skins { background: var(--surface); border-radius: 22px; padding: 26px; display: flex; flex-direction: column; gap: 18px; }
+.layers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.layer { border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.layer.fixed { background: var(--bg); }
+.layer.skin { background: var(--blue-soft); }
+.layer.reward { background: var(--orange-soft); }
+.layer h3 { font-size: 16px; }
+.layer p { font-size: 15px; }
+.layer.reward p, .layer.reward h3 { color: var(--orange-ink); }
+.note { border-left: 0; background: var(--idea-soft); color: var(--ink); border-radius: 16px; padding: 14px 16px; font-size: 15.5px; }
+
+.uxui { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.uxui > div { background: var(--surface); border-radius: 18px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+
+@media (max-width: 720px) {
+  .devices, .layers, .uxui { grid-template-columns: minmax(0, 1fr); }
+  .feature { padding: 18px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .filter { transition: background 0.15s, color 0.15s; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <span class="eyebrow">Notenkraker · functioneel overzicht</span>
+    <h1>Wat de app doet, en waar je dat ziet</h1>
+    <p class="lead">Alle functies die er nu zijn en die we willen, per rol. Bij elke functie staat hoe die op de iPad (eerste prioriteit) en de iPhone in beeld komt. Basislook is richting A, Notenbalk.</p>
+    <div class="meta">
+      <span>Bijgewerkt 10 okt 2026</span>
+      <a href="mockups/index.html">Mock-ups bekijken</a>
+      <a href="https://linear.app/apexchef/project/notenkraker-29e8e83e0da9">Linear-project</a>
+    </div>
+  </header>
+
+  <div class="legend" role="group" aria-label="Filter op status">
+    <button class="filter" id="f-all" data-f="all" aria-pressed="true">Alles <span class="count" data-c="all"></span></button>
+    <button class="filter" id="f-v0" data-f="v0" aria-pressed="false"><span class="pill s-v0">Werkt al in v0</span><span class="count" data-c="v0"></span></button>
+    <button class="filter" id="f-plan" data-f="plan" aria-pressed="false"><span class="pill s-plan">Gepland</span><span class="count" data-c="plan"></span></button>
+    <button class="filter" id="f-idee" data-f="idee" aria-pressed="false"><span class="pill s-idee">Nieuw idee</span><span class="count" data-c="idee"></span></button>
+  </div>
+
+  <section class="group">
+    <div class="group-head">
+      <span class="eyebrow">Rol 1</span>
+      <h2>Leerling</h2>
+      <p>Een kind van rond de 8 jaar, vaak op de iPad op de muziekstandaard of op schoot. Grote tikvlakken, weinig tekst, één ding per scherm.</p>
+    </div>
+    <div class="cards">
+
+      <article class="feature" data-s="v0">
+        <div class="f-head"><h3>Grepentabel</h3><span class="pill s-v0">Werkt al in v0</span></div>
+        <p class="f-what">Per noot zien welke kleppen je indrukt, getekend zoals ze op de sax zitten: octaafklep, 1-2-3, bis, 4-5-6 en de pinkkleppen.</p>
+        <div class="devices">
+          <div class="device"><span class="lbl">iPad</span><p>Twee panelen naast elkaar: links de sax op ware volgorde, rechts de noot op de balk met een grote notennaam. Onderaan een balk om een noot te kiezen, met een stip voor de status.</p></div>
+          <div class="device"><span class="lbl">iPhone</span><p>Balk en notennaam compact bovenaan, de sax in het midden, en de notenkiezer als horizontale rij die je met je duim schuift.</p></div>
+        </div>
+        <p class="f-foot">Scherm: <a href="mockups/iPadA-Grepen.html">iPad · Grepentabel</a> en <a href="mockups/Phone-Grepen.html">iPhone · Grepentabel</a></p>
+      </article>
+
+      <article class="feature" data-s="plan">
+        <div class="f-head"><h3>Laat horen: toon per noot, en de voorste F-klep</h3><span class="pill s-plan">Gepland</span><span class="ref">AC-62</span></div>
+        <p class="f-what">Een knop die de noot laat klinken, zodat het kind hoort hoe hij moet klinken. De voorste F-klep wordt toegevoegd aan de tekening.</p>
+        <div class="devices">
+          <div class="device"><span class="lbl">iPad</span><p>Knop "Laat horen" met luidsprekericoon rechtsboven in het notenpaneel.</p></div>
+          <div class="device"><span class="lbl">iPhone</span><p>Ronde luidsprekerknop in de kopbalk, naast de titel.</p></div>
+        </div>
+      </article>
+
+      <article class="feature" data-s="v0">
+        <div class="f-head"><h3>Notenstatus: kent al, in de les, komt nog</h3><span class="pill s-v0">Werkt al in v0</span></div>
+        <p class="f-what">Elke noot heeft per leerling een status. Die bepaalt welke noten in het spel komen. De leraar zet de status, de leerling ziet hem.</p>
+        <div class="devices">
+          <div class="device"><span class="lbl">iPad</span><p>Paneel "Jouw noten" rechts op het startscherm: een raster van notenblokjes. Gevuld blauw is gekend, oranje is in de les, gestippelde rand komt nog. Kleur en vorm verschillen, zodat het ook zonder kleurzicht leesbaar is.</p></div>
+          <div class="device"><span class="lbl">iPhone</span><p>Hetzelfde raster in vijf kolommen onder de spelkaart.</p></div>
+        </div>
+      </article>
+
+      <article class="feature" data-s="v0">
+        <div class="f-head"><h3>Notenspel</h3><span class="pill s-v0">Werkt al in v0</span></div>
+        <p class="f-what">Acht noten op een rij, de naam tikken, drie levens, een timer en sterren aan het eind. Elke ronde wordt per leerling bewaard.</p>
+        <div class="devices">
+          <div class="device"><span class="lbl">iPad</span><p>Schermvullend. Bovenaan voortgang in acht blokjes, harten en de tijd. In het midden één grote notenbalk. Onderaan zeven grote knoppen C tot B, in de duimzone van een kind dat de iPad vasthoudt.</p></div>
+          <div class="device"><span class="lbl">iPhone</span><p>Zelfde opbouw, antwoordknoppen in een raster van 4 bij 2, met de achtste plek voor "met je sax".</p></div>
+        </div>
+        <p class="f-foot">Scherm: <a href="mockups/iPadA-Spel.html">iPad · Notenspel</a> en <a href="mockups/Phone-Spel.html">iPhone · Notenspel</a></p>
+      </article>
+
+      <article class="feature" data-s="idee">
+        <div class="f-head"><h3>Hint: toon de greep</h3><span class="pill s-idee">Nieuw idee</span><span class="ref">uit de mock-up</span></div>
+        <p class="f-what">Als het kind vastloopt, kan het de greep van de huidige noot laten zien. Een hint kost misschien een ster maar geen leven.</p>
+        <div class="devices">
+          <div class="device"><span class="lbl">iPad</span><p>Kleine knop rechtsonder in het notenvak; de greep schuift in als klein paneel naast de balk.</p></div>
+          <div class="device"><span class="lbl">iPhone</span><p>Knop onder de balk; de greep verschijnt als onderblad dat de balk zichtbaar laat.</p></div>
+        </div>
+      </article>
+
+      <article class="feature" data-s="plan">
+        <div class="f-head"><h3>Mini-tutorial voor een nieuwe noot</h3><span class="pill s-plan">Gepland</span><span class="ref">AC-57</span></div>
+        <p class="f-what">Komt er een nieuwe noot in het spel, dan krijgt het kind eerst een korte kennismaking: waar hij op de balk staat, welke greep, hoe hij klinkt.</p>
+        <div class="devices">
+          <div class="device"><span class="lbl">iPad</span><p>Een tussenscherm vóór de ronde, in de opbouw van de grepentabel: balk, greep en "Laat horen", met één grote knop "Ik snap het".</p></div>
+          <div class="device"><span class="lbl">iPhone</span><p>Drie korte stappen om doorheen te vegen: balk, greep, geluid.</p></div>
+        </div>
+        <p class="f-foot">Nog niet getekend.</p>
+      </article>
+
+      <article class="feature" data-s="plan">
+        <div class="f-head"><h3>Dagdoel en niveaus</h3><span class="pill s-plan">Gepland</span><span class="ref">AC-59</span></div>
+        <p class="f-what">Een doel per dag (bijvoorbeeld drie rondes) en niveaus die je met sterren haalt.</p>
+        <div class="devices">
+          <div class="device"><span class="lbl">iPad</span><p>Dagdoel-balk rechtsboven op het startscherm. Het niveaupad uit richting B kan als eigen scherm "Jouw pad" terugkomen binnen de rustige basislook.</p></div>
+          <div class="device"><span class="lbl">iPhone</span><p>Dagdoel-kaart bovenaan het startscherm; het pad als verticale lijst.</p></div>
+        </div>
+      </article>
+
+      <article class="feature" data-s="plan">
+        <div class="f-head"><h3>Antwoorden door kleppen in te drukken</h3><span class="pill s-plan">Gepland</span><span class="ref">AC-61</span></div>
+        <p class="f-what">Een spelvariant: in plaats van de naam te tikken drukt het kind de greep in op een getekende sax.</p>
+        <div class="devices">
+          <div class="device"><span class="lbl">iPad</span><p>Balk links, grote tikbare sax rechts met knoppen "Wissen" en "Klaar". Werkt goed op de iPad door de ruimte.</p></div>
+          <div class="device"><span class="lbl">iPhone</span><p>Balk klein bovenaan, sax vult de rest. Kleppen worden kleiner; minimaal 44 pt tikvlak houden.</p></div>
+        </div>
+        <p class="f-foot">Scherm: <a href="mockups/iPadB-Spel.html">iPad · B Podium · Spel: antwoord met kleppen</a> (in basislook A over te zetten)</p>
+      </article>
+
+      <article class="feature" data-s="plan">
+        <div class="f-head"><h3>Meespelen met de microfoon</h3><span class="pill s-plan">Gepland</span><span class="ref">AC-64</span></div>
+        <p class="f-what">De app luistert naar de sax en herkent de toon, zodat het kind in het spel kan antwoorden door de noot te spelen.</p>
+        <div class="devices">
+          <div class="device"><span class="lbl">iPad</span><p>Achtste antwoordknop "Met je sax". Tijdens luisteren een grote toonmeter onder de balk die laat zien of je te hoog, goed of te laag zit.</p></div>
+          <div class="device"><span class="lbl">iPhone</span><p>Zelfde knop in het antwoordraster; de toonmeter vervangt dan de antwoordknoppen.</p></div>
+        </div>
+      </article>
+
+      <article class="feature" data-s="plan">
+        <div class="f-head"><h3>Liedje-modus</h3><span class="pill s-plan">Gepland</span><span class="ref">AC-65</span></div>
+        <p class="f-what">Een vaste reeks noten naspelen terwijl de app meeluistert.</p>
+        <div class="devices">
+          <div class="device"><span class="lbl">iPad</span><p>Liggend is ideaal: een hele regel bladmuziek in beeld, de huidige noot uitgelicht. Tegel "Liedjes" op het startscherm.</p></div>
+          <div class="device"><span class="lbl">iPhone</span><p>Twee maten tegelijk in beeld, schuift mee met het spelen.</p></div>
+        </div>
+      </article>
+
+      <article class="feature" data-s="plan">
+        <div class="f-head"><h3>Ritme meeluisteren</h3><span class="pill s-plan">Gepland</span><span class="ref">AC-67</span></div>
+        <p class="f-what">Metronoom, nootlengtes en rusten, als laatste stap in het meespelen.</p>
+        <div class="devices">
+          <div class="device"><span class="lbl">iPad</span><p>Bouwt voort op de liedje-modus: een tikkende maatlijn boven de balk.</p></div>
+          <div class="device"><span class="lbl">iPhone</span><p>Idem, metronoom als klein knipperend blokje in de kopbalk.</p></div>
+        </div>
+      </article>
+
+      <article class="feature" data-s="idee">
+        <div class="f-head"><h3>Skins: thema's die bij het kind passen</h3><span class="pill s-idee">Nieuw idee</span></div>
+        <p class="f-what">De leerling kiest een uiterlijk dat bij hem of haar past. Zie de uitwerking hieronder.</p>
+        <div class="devices">
+          <div class="device"><span class="lbl">iPad</span><p>Kiezen via het profielmenu rechtsboven ("Annabel · Altsax"), met grote voorbeeldkaartjes.</p></div>
+          <div class="device"><span class="lbl">iPhone</span><p>Via de avatarknop rechtsboven, als volledig scherm met voorbeeldkaartjes.</p></div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="group">
+    <div class="group-head">
+      <span class="eyebrow">Rol 2</span>
+      <h2>Leraar en ouder</h2>
+      <p>Volwassene die de voortgang volgt en bepaalt wat er geoefend wordt. Meer informatie per scherm mag, maar het blijft aanraakbediening.</p>
+    </div>
+    <div class="cards">
+      <article class="feature" data-s="v0">
+        <div class="f-head"><h3>Leerlingen beheren</h3><span class="pill s-v0">Werkt al in v0</span></div>
+        <p class="f-what">Leerlingen toevoegen met naam en instrument, en wisselen tussen leerlingen.</p>
+        <div class="devices">
+          <div class="device"><span class="lbl">iPad</span><p>Vaste zijbalk links met alle leerlingen en "Leerling toevoegen".</p></div>
+          <div class="device"><span class="lbl">iPhone</span><p>Leerling-wisselaar als knop bovenaan; tikken opent een lijst.</p></div>
+        </div>
+        <p class="f-foot">Scherm: <a href="mockups/iPadA-Leraar.html">iPad · Leraar/ouder</a> en <a href="mockups/Phone-Leraar.html">iPhone · Leraar/ouder</a></p>
+      </article>
+
+      <article class="feature" data-s="v0">
+        <div class="f-head"><h3>Notenstatus zetten</h3><span class="pill s-v0">Werkt al in v0</span></div>
+        <p class="f-what">Per noot de status kiezen: kent al, in de les, komt nog.</p>
+        <div class="devices">
+          <div class="device"><span class="lbl">iPad</span><p>Lijst met per noot een keuzeknop met drie delen, en rechts hoe vaak de noot fout ging.</p></div>
+          <div class="device"><span class="lbl">iPhone</span><p>Zelfde lijst met korte labels: Kent, Les, Nog.</p></div>
+        </div>
+      </article>
+
+      <article class="feature" data-s="idee">
+        <div class="f-head"><h3>Les van vandaag klaarzetten</h3><span class="pill s-idee">Nieuw idee</span><span class="ref">uit de mock-up</span></div>
+        <p class="f-what">Na de les in één keer de nieuwe noten op "in de les" zetten en eventueel een dagdoel kiezen, zodat het kind thuis meteen het juiste oefent.</p>
+        <div class="devices">
+          <div class="device"><span class="lbl">iPad</span><p>Hoofdknop rechtsboven in het leerlingoverzicht.</p></div>
+          <div class="device"><span class="lbl">iPhone</span><p>Brede knop onderaan het scherm, binnen bereik van de duim.</p></div>
+        </div>
+      </article>
+
+      <article class="feature" data-s="plan">
+        <div class="f-head"><h3>Statistieken: welke noten gaan vaak mis</h3><span class="pill s-plan">Gepland</span><span class="ref">AC-60</span></div>
+        <p class="f-what">Uit de opgeslagen rondes halen welke noten vaak fout gaan, en met welke noot ze verward worden.</p>
+        <div class="devices">
+          <div class="device"><span class="lbl">iPad</span><p>Kaart "Gaat vaak mis" met de lastigste noten, plus de lijst laatste rondes met score, tijd en sterren.</p></div>
+          <div class="device"><span class="lbl">iPhone</span><p>Eén melding bovenaan ("E en D gaan deze week vaak mis") en een apart tabblad Rondes.</p></div>
+        </div>
+      </article>
+
+      <article class="feature" data-s="plan">
+        <div class="f-head"><h3>Bladmuziek uploaden</h3><span class="pill s-plan">Gepland</span><span class="ref">AC-66</span></div>
+        <p class="f-what">Een foto van een bladzijde uit het lesboek wordt omgezet naar noten (OMR met Audiveris), met een stap om fouten te verbeteren. Daarna is het een liedje voor de liedje-modus.</p>
+        <div class="devices">
+          <div class="device"><span class="lbl">iPad</span><p>Camera of bestand kiezen, dan de herkende noten naast de foto om te verbeteren. Hier verdient de iPad zich terug.</p></div>
+          <div class="device"><span class="lbl">iPhone</span><p>Foto maken gaat prima; verbeteren beter op de iPad of computer.</p></div>
+        </div>
+        <p class="f-foot">Nog niet getekend.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="group">
+    <div class="group-head">
+      <span class="eyebrow">Voor iedereen</span>
+      <h2>Platform</h2>
+    </div>
+    <div class="cards">
+      <article class="feature" data-s="plan">
+        <div class="f-head"><h3>Inloggen en rollen</h3><span class="pill s-plan">Gepland</span><span class="ref">AC-63</span></div>
+        <p class="f-what">Inloggen met e-mail en wachtwoord of Google; rollen leerling en leraar. Gehost op Netlify met Supabase als backend.</p>
+        <div class="devices">
+          <div class="device"><span class="lbl">iPad</span><p>Na inloggen kiest een gedeelde gezins-iPad wie er speelt, met grote naamkaarten.</p></div>
+          <div class="device"><span class="lbl">iPhone</span><p>Eén account per toestel, meteen naar het startscherm.</p></div>
+        </div>
+      </article>
+
+      <article class="feature" data-s="plan">
+        <div class="f-head"><h3>Meerdere instrumenten</h3><span class="pill s-plan">Gepland</span><span class="ref">AC-104</span></div>
+        <p class="f-what">Niet alleen de altsax: een instrumentmodel met een eigen grepenweergave per instrumentfamilie.</p>
+        <div class="devices">
+          <div class="device"><span class="lbl">iPad</span><p>Instrument staat bij de leerling ("Annabel · Altsax"). Het linkerpaneel van de grepentabel wisselt per familie: kleppen, ventielen, toetsen of snaren.</p></div>
+          <div class="device"><span class="lbl">iPhone</span><p>Idem; de grepenweergave moet per familie in een smalle kolom passen.</p></div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="group" id="skins">
+    <div class="group-head">
+      <span class="eyebrow">Uitwerking nieuw idee</span>
+      <h2>Skins als laag bovenop basislook A</h2>
+      <p>Basislook A (Notenbalk) blijft de rustige standaard. Een skin verandert het uiterlijk, nooit de werking: knoppen blijven op dezelfde plek en even groot, zodat een leraar elk scherm herkent.</p>
+    </div>
+    <div class="skins">
+      <div class="layers">
+        <div class="layer fixed"><h3>Vast (A)</h3><p>Indeling, grootte van tikvlakken, notenbalk, grepentekening, statuskleuren en leesbaarheid.</p></div>
+        <div class="layer skin"><h3>Skin</h3><p>Kleuren, lettertype voor koppen, vormen van kaarten, achtergrondillustratie, geluidjes en de animatie bij goed of fout.</p></div>
+        <div class="layer reward"><h3>Beloning</h3><p>Nieuwe skins vrijspelen met sterren of niveaus. Dat geeft het niveaupad een doel.</p></div>
+      </div>
+      <p>Afstemmen kan op <strong>leeftijd</strong> (speels en groot voor 6–8, strakker voor 9–12, rustig voor tieners en volwassenen) en <strong>niveau</strong> (meer skins naarmate je verder komt).</p>
+      <p class="note">Voorstel voor geslacht: geen jongens- of meisjesskin, maar thema's als ruimte, sport, dieren of podium, en het kind kiest zelf. Je bereikt hetzelfde, en een kind dat buiten het verwachte vakje valt, voelt zich niet buitengesloten.</p>
+    </div>
+  </section>
+
+  <section class="group">
+    <div class="group-head">
+      <span class="eyebrow">Begrippen</span>
+      <h2>UX en UI</h2>
+    </div>
+    <div class="uxui">
+      <div><h3>UX: gebruikerservaring</h3><p>Hoe het werkt en voelt: welke stappen een kind doorloopt, wat het eerst ziet, of het snapt wat het moet doen en zin heeft om terug te komen. Bijvoorbeeld: de antwoordknoppen onderaan in de duimzone, of een tutorial vóór een nieuwe noot.</p></div>
+      <div><h3>UI: gebruikersinterface</h3><p>Hoe het eruitziet: kleuren, lettertypes, knoppen, iconen en de indeling op het scherm. Bijvoorbeeld: blauw voor gekend, oranje voor in de les, of de ronde vorm van de kleppen. Skins zijn puur UI.</p></div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  var cards = Array.prototype.slice.call(document.querySelectorAll('.feature'));
+  var counts = { all: cards.length, v0: 0, plan: 0, idee: 0 };
+  cards.forEach(function (c) { counts[c.getAttribute('data-s')]++; });
+  document.querySelectorAll('[data-c]').forEach(function (el) { el.textContent = counts[el.getAttribute('data-c')]; });
+  var buttons = Array.prototype.slice.call(document.querySelectorAll('.filter'));
+  function apply(f) {
+    buttons.forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-f') === f)); });
+    cards.forEach(function (c) { c.hidden = f !== 'all' && c.getAttribute('data-s') !== f; });
+    try { localStorage.setItem('nk-filter', f); } catch (e) {}
+  }
+  buttons.forEach(function (b) { b.addEventListener('click', function () { apply(b.getAttribute('data-f')); }); });
+  var saved = null;
+  try { saved = localStorage.getItem('nk-filter'); } catch (e) {}
+  if (saved && counts[saved] !== undefined) apply(saved);
+})();
+</script>
+</body>
+</html>

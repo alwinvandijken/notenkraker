@@ -75,4 +75,4 @@ Voorstel om uit te werken (met Alwin afstemmen voor je bouwt):
 - Commitberichten in het Nederlands, kort. Geen "Generated with Claude Code"-footer.
 - Werk op de branch in de worktree; maak aan het eind een PR naar `main`.
 - Vraag eerst voordat je iets in een dashboard verwijdert of een betaald plan kiest.
-- Vervolg na deze handover: technische implementatie van de mock-ups in basislook A, architectuur en datamodel verder uitwerken (skins als themalaag, niveaus, dagdoel). Mock-ups: https://claude.ai/artifact/HMfEAxCdmRDtSYoDkQJo2f · Features: https://claude.ai/artifact/SzYMiEVnHYz6CSACD7WFcn
+- Vervolg na deze handover: technische implementatie van de mock-ups in basislook A, architectuur en datamodel verder uitwerken (skins als themalaag, niveaus, dagdoel). Mock-ups: `docs/mockups/index.html` · Features: `docs/features.html`
