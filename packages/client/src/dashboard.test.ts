@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { childSummary, whenLabel } from "./dashboard.js";
-import type { Round } from "./types.js";
+import type { PracticeSession, Round } from "./types.js";
 
 // Zaterdag 10 oktober 2026, 16:00 lokale tijd
 const now = new Date(2026, 9, 10, 16, 0);
@@ -58,6 +58,45 @@ describe("childSummary", () => {
   it("vat de week samen: rondes en minuten van de laatste 7 dagen", () => {
     const s = childSummary({ rounds: [round(0), round(6), round(7)], statuses, noteIds, now });
     expect(s.week).toEqual({ rounds: 2, minutes: 4 });
+  });
+});
+
+function session(daysAgo: number, playedMin: number, totalMin: number, opts: Partial<PracticeSession> = {}): PracticeSession {
+  const start = at(daysAgo, 17);
+  return {
+    id: `p${daysAgo}${playedMin}`, studentId: "s1", startedAt: start, endedAt: new Date(Date.parse(start) + totalMin * 60_000).toISOString(),
+    done: true, playedSeconds: playedMin * 60, minutes: [], notes: ["g4", "a4"], label: "sax", ...opts,
+  };
+}
+
+describe("childSummary met vrij oefenen", () => {
+  const noteIds = ["g4", "a4"];
+
+  it("telt per dag spelletjes en vrij oefenen apart, en samen", () => {
+    const s = childSummary({ rounds: [round(0)], sessions: [session(0, 16, 20), session(2, 8, 10)], statuses: {}, noteIds, now });
+    expect(s.days[6]).toMatchObject({ game: 2, free: 16, minutes: 18 });
+    expect(s.days[4]).toMatchObject({ game: 0, free: 8, minutes: 8 });
+    expect(s.week.minutes).toBe(26);
+  });
+
+  it("geeft per sessie de gespeelde minuten, de duur en het percentage", () => {
+    const s = childSummary({ rounds: [], sessions: [session(0, 16, 20), session(3, 2, 40, { label: "twijfel" })], statuses: {}, noteIds, now });
+    expect(s.sessions).toEqual([
+      expect.objectContaining({ playedMinutes: 16, totalMinutes: 20, percent: 80, label: "sax" }),
+      expect.objectContaining({ playedMinutes: 2, totalMinutes: 40, percent: 5, label: "twijfel" }),
+    ]);
+  });
+
+  it("telt een dag met alleen vrij oefenen mee voor dagen op rij en laatst geoefend", () => {
+    const s = childSummary({ rounds: [round(1)], sessions: [session(0, 10, 12)], statuses: {}, noteIds, now });
+    expect(s.streak).toBe(2);
+    expect(s.daysSinceLast).toBe(0);
+  });
+
+  it("telt een sessie zonder gespeelde tijd niet als geoefend", () => {
+    const s = childSummary({ rounds: [], sessions: [session(0, 0, 5)], statuses: {}, noteIds, now });
+    expect(s.daysSinceLast).toBeNull();
+    expect(s.days[6]!.free).toBe(0);
   });
 });
 

@@ -8,6 +8,7 @@ import { Auth } from "@/screens/Auth";
 import { Welkom } from "@/screens/Welkom";
 import { Grepentabel } from "@/screens/Grepentabel";
 import { Game } from "@/screens/Game";
+import { VrijOefenen } from "@/screens/VrijOefenen";
 import { Kinderen } from "@/screens/Kinderen";
 import { Dashboard } from "@/screens/Dashboard";
 import { Profiel } from "@/screens/Profiel";
@@ -46,7 +47,7 @@ export function AppMetLogin() {
   ];
   const practice = (id: string) => { selectStudent(id); setScreen("oefenen"); };
   const menu = <Menu title={profile.displayName || "Menu"} items={items} />;
-  const modeSwitch = <Segmented value={mode} options={[["learn", "Grepen"], ["game", "Spel"]]} onChange={setMode} label="Onderdeel" />;
+  const modeSwitch = <Segmented value={mode} options={[["learn", "Grepen"], ["game", "Spel"], ["vrij", "🎷 Vrij oefenen"]]} onChange={setMode} label="Onderdeel" />;
   const studentPicker = students.length > 1 && (
     <select id="student" aria-label={profile.role === "ouder" ? "Kind" : "Leerling"} value={studentId ?? ""} onChange={(e) => selectStudent(e.target.value || null)}
       className="rounded-xl border-2 border-line bg-surface px-3 py-1.5 font-display font-bold">
@@ -70,7 +71,7 @@ export function AppMetLogin() {
         <div>
           <h1 className="font-display font-extrabold text-4xl leading-none">{current === "overzicht" ? greeting(profile.displayName) : "Notenkraker"}</h1>
           {current === "overzicht" && <p className="text-muted mt-1">Zo ging het oefenen deze week</p>}
-          {current === "oefenen" && <p className="text-muted mt-1">Tik op een noot en zie wat je indrukt.</p>}
+          {current === "oefenen" && <p className="text-muted mt-1">{mode === "vrij" ? "Speel wat je wilt. Ik tel mee hoe lang ik je hoor." : "Speel het notenspel."}</p>}
         </div>
         {menu}
       </header>
@@ -86,7 +87,7 @@ export function AppMetLogin() {
             <span className="ml-auto">{modeSwitch}</span>
           </div>
           {!hasBackend && <p className="text-xs text-muted border border-line rounded-lg px-3 py-2 mb-2">Zonder backend: gegevens staan alleen in deze browser. Zet VITE_SUPABASE_URL en VITE_SUPABASE_ANON_KEY in .env voor de echte database.</p>}
-          {student ? <Game /> : (
+          {student ? (mode === "vrij" ? <VrijOefenen key={student.id} /> : <Game />) : (
             <div className="rounded-3xl bg-surface p-6 flex flex-col items-start gap-3">
               <p className="m-0">{profile.role === "ouder" ? "Voeg eerst een kind toe." : rights.canCreateStudents ? "Voeg eerst een leerling toe." : "Er is nog geen leerlingprofiel."}</p>
               {rights.studentsTitle && <Chip primary onClick={() => setScreen("kinderen")}>{profile.role === "ouder" ? "+ kind" : "+ leerling"}</Chip>}

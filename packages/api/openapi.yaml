@@ -85,6 +85,10 @@ x-rpc:
     choose_role(p_role: 'leerling'|'ouder') — eenmalig na de eerste Google-login; bij leerling ook een eigen leerlingprofiel.
     claim_student(p_code) → Student — kind koppelt zijn eigen login aan het leerlingprofiel van de ouder (code met purpose 'kind').
     create_invite_code(p_student_id, p_purpose) → code — door /invite-code gebruikt.
+    practice_start(p_student) → PracticeSession — vrij oefenen starten; de server zet started_at (0003_oefensessies.sql).
+    practice_update(p_id, p_minutes, p_notes, p_done) → PracticeSession — elke 30 s en bij Klaar. p_minutes is
+      [{ s: 0..60, notes: [NoteId] }] per minuut sinds de start. De server zet ended_at, weigert meer minuten dan er
+      verstreken zijn, kapt de gespeelde tijd af op de verstreken tijd (max 3 uur) en geeft het label sax|twijfel.
   roles: |
     profiles.role: null (nog kiezen) | leerling | ouder | leraar | admin.
     leerling en ouder kiest de gebruiker zelf; leraar en admin worden in Supabase toegewezen. admin leest alles.
@@ -92,7 +96,7 @@ x-postgrest:
   description: |
     Tabellen die rechtstreeks via PostgREST (met RLS) gelezen/geschreven worden:
     students (select/insert/update/delete), student_notes (select/upsert/delete),
-    rounds (select), songs (select/insert/delete), attempts (select/insert).
+    rounds (select), practice_sessions (select), songs (select/insert/delete), attempts (select/insert).
     Instrumentdefinities zijn geen API-data maar versiebeheerde content
     (packages/instruments); een niet-TypeScript frontend leest de JSON-bestanden
     uit de repo of een gepubliceerde kopie.

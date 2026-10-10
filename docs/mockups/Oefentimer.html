@@ -212,18 +212,20 @@ button{font-family:inherit}
 
   <div class="rules">
     <h2>Hoe de timer bepaalt wat telt</h2>
-    <h3>Een minuut telt als</h3>
+    <p><b>Besluit Alwin (10 okt):</b> start en einde worden altijd gelogd door de server. Daartussen luistert de app naar sax-tonen. Het resultaat is welk deel van de sessie gespeeld is, bijvoorbeeld 16 van 20 min (80%). Er is dus geen drempel van 30 seconden per minuut meer: elke gespeelde seconde telt, en het percentage laat zien hoeveel van de sessie echt gespeeld is.</p>
+    <h3>Gespeelde tijd telt als</h3>
     <ul>
-      <li>de microfoon in die minuut <b>minstens 30 seconden</b> een vaste toonhoogte hoort;</li>
+      <li>de microfoon een vaste toonhoogte hoort (minstens 150 ms dezelfde toon; spraak wiebelt);</li>
       <li>die toon <b>in het bereik van het instrument</b> ligt (altsax: klinkend Des3 tot As5);</li>
       <li>en de klank op een blaasinstrument lijkt: een duidelijke grondtoon met boventonen, geen ruis of spraak. Dat doet dezelfde toonhoogtedetectie als de spelmodus "microfoon".</li>
     </ul>
     <h3>Fraude moeilijker maken</h3>
     <ul>
       <li><b>Geen handmatige tijd:</b> de leerling kan geen minuten intypen of de timer vooruitzetten.</li>
-      <li><b>Bewijs per minuut:</b> per minuut slaan we op of er gespeeld is, hoe lang en welke noten. Een ouder ziet dus geen "40 min", maar "9 van 40 min, steeds dezelfde noot".</li>
+      <li><b>Start en einde door de server:</b> de server zet de tijden met zijn eigen klok en weigert meer gespeelde tijd dan er verstreken is. Elke 30 seconden gaat de tussenstand naar de server.</li>
+      <li><b>Bewijs per minuut:</b> per minuut slaan we op hoeveel seconden er gespeeld is en welke noten. Een ouder ziet dus geen "40 min", maar "9 van 40 min (23%), steeds dezelfde noot".</li>
       <li><b>Twijfelachtig:</b> een sessie met heel weinig verschillende noten, een volkomen gelijk volume of een heel lange aaneengesloten toon krijgt het label <i>twijfelachtig</i>. Hij telt wel, maar de ouder ziet het.</li>
-      <li><b>Grenzen:</b> hooguit 3 uur per dag. De timer stopt na 10 minuten zonder een getelde minuut.</li>
+      <li><b>Grenzen:</b> hooguit 3 uur per sessie en per dag.</li>
       <li><b>Eerlijk over de grens:</b> een opname van een sax via een speaker kan de timer misleiden. Helemaal fraudevrij is het dus niet. De samenvatting per minuut en het label maken het wel zichtbaar.</li>
     </ul>
     <h3>Privacy</h3>
@@ -233,7 +235,7 @@ button{font-family:inherit}
     </ul>
     <h3>Techniek (voor later)</h3>
     <ul>
-      <li>Een nieuwe tabel <code>practice_sessions</code> (leerling, start, einde, minuten als JSON, label). Die wordt opgeslagen via een Edge Function die de minuten opnieuw controleert, net als bij <code>rounds</code>.</li>
+      <li>Tabel <code>practice_sessions</code> (leerling, start, einde, minuten als JSON, label), alleen te schrijven via de databasefuncties <code>practice_start</code> en <code>practice_update</code>.</li>
       <li>Het scherm blijft aan met de Wake Lock API. Gaat de app naar de achtergrond, dan stopt de timer.</li>
       <li>Het dashboard telt de oefentijd als spelletjes plus vrij oefenen.</li>
     </ul>

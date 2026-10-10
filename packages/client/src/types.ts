@@ -49,6 +49,21 @@ export interface Round extends RoundResult {
   answers: RoundSubmission["answers"];
 }
 
+/** vrij oefenen met de oefentimer (AC-112); start en einde zijn de tijd van de server */
+export interface PracticeMinute { s: number; notes: NoteId[] }
+export interface PracticeSession {
+  id: string;
+  studentId: string;
+  startedAt: string;
+  endedAt: string;
+  done: boolean;
+  playedSeconds: number;
+  minutes: PracticeMinute[];
+  notes: NoteId[];
+  /** twijfel: minuten lang steeds dezelfde noot */
+  label: "sax" | "twijfel";
+}
+
 export interface SongNote { id?: NoteId; rest?: boolean; duration: "1" | "2" | "4" | "8" | "16" }
 export interface Song {
   id: string;
@@ -102,6 +117,13 @@ export interface RoundsApi {
   progress(studentId: string): Promise<Progress>;
 }
 
+export interface PracticeApi {
+  start(studentId: string): Promise<PracticeSession>;
+  /** tijdens het oefenen elke halve minuut, en met done: true bij Klaar */
+  update(id: string, input: { minutes: PracticeMinute[]; notes: NoteId[]; done?: boolean }): Promise<PracticeSession>;
+  recent(studentId: string, limit?: number): Promise<PracticeSession[]>;
+}
+
 export interface SongsApi {
   list(studentId: string): Promise<Song[]>;
   create(studentId: string, song: Omit<Song, "id" | "createdAt">): Promise<Song>;
@@ -113,5 +135,6 @@ export interface NotenkrakerClient {
   students: StudentsApi;
   notes: NotesApi;
   rounds: RoundsApi;
+  practice: PracticeApi;
   songs: SongsApi;
 }

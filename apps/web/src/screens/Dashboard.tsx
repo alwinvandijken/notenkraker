@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { instrumentNotes, type StatusMap } from "@notenkraker/core";
 import { getInstrument } from "@notenkraker/instruments";
-import { childSummary, whenLabel, type ChildSummary, type Round, type Student } from "@notenkraker/client";
+import { childSummary, whenLabel, type ChildSummary, type PracticeSession, type Round, type Student } from "@notenkraker/client";
 import { client, hasBackend } from "@/lib/client";
 import { useApp } from "@/lib/store";
 import { noteLabel } from "@/lib/noten";
@@ -11,10 +11,11 @@ import { Chip } from "@/components/ui";
 
 /**
  * Startscherm voor een ouder of leraar (mock-up: docs/mockups/iPadA-Ouder.html): per kind of
- * leerling de oefentijd van deze week, de notenstatus en wat lastig is. Een leraar ziet de
+ * leerling de oefentijd van deze week (spelletjes en vrij oefenen, zie Oefentimer.html), de
+ * notenstatus en wat lastig is. Een leraar ziet de
  * leerlingen die het langst niet geoefend hebben bovenaan.
  */
-interface Row { student: Student; rounds: Round[]; summary: ChildSummary; range: [string, string] }
+interface Row { student: Student; rounds: Round[]; sessions: PracticeSession[]; summary: ChildSummary; range: [string, string] }
 
 export function Dashboard({ onPractice, onManage }: { onPractice(studentId: string): void; onManage(): void }) {
   const { profile, students } = useApp();
@@ -26,9 +27,11 @@ export function Dashboard({ onPractice, onManage }: { onPractice(studentId: stri
     let stale = false;
     void Promise.all(students.map(async (student): Promise<Row> => {
       const instrument = getInstrument(student.instrumentId);
-      const [rounds, notes] = await Promise.all([client.rounds.recent(student.id, 200), client.notes.list(student.id)]);
+      const [rounds, notes, sessions] = await Promise.all([
+        client.rounds.recent(student.id, 200), client.notes.list(student.id), client.practice.recent(student.id, 50),
+      ]);
       const statuses: StatusMap = Object.fromEntries(notes.map((n) => [n.noteId, n.status]));
-      return { student, rounds, range: instrument.range, summary: childSummary({ rounds, statuses, noteIds: instrumentNotes(instrument) }) };
+      return { student, rounds, sessions, range: instrument.range, summary: childSummary({ rounds, sessions, statuses, noteIds: instrumentNotes(instrument) }) };
     })).then((list) => {
       if (stale) return;
       const never = (r: Row) => r.summary.daysSinceLast ?? Infinity;
@@ -48,11 +51,19 @@ export function Dashboard({ onPractice, onManage }: { onPractice(studentId: stri
     );
   }
 
-  const practiced = rows.filter((r) => r.summary.week.rounds > 0).length;
+  const practiced = rows.filter((r) => r.summary.week.minutes > 0).length;
   const weekRounds = rows.reduce((n, r) => n + r.summary.week.rounds, 0);
   const weekMinutes = rows.reduce((n, r) => n + r.summary.week.minutes, 0);
-  const activity = rows.flatMap((r) => r.rounds.slice(0, 6).map((round) => ({ round, name: r.student.name })))
-    .sort((a, b) => b.round.playedAt.localeCompare(a.round.playedAt)).slice(0, 6);
+  const activity = rows.flatMap((r) => [
+    ...r.rounds.slice(0, 6).map((round) => ({
+      id: round.id, at: round.playedAt, name: r.student.name,
+      text: <>speelde het notenspel: <b>{round.answers.filter((a) => a.correct).length} van {round.answers.length} goed</b></>,
+    })),
+    ...r.summary.sessions.map((p) => ({
+      id: p.id, at: p.startedAt, name: r.student.name,
+      text: <>oefende vrij: <b>{p.playedMinutes} van {p.totalMinutes} min gespeeld</b> ({p.percent}%)</>,
+    })),
+  ]).sort((a, b) => b.at.localeCompare(a.at)).slice(0, 6);
 
   async function letLogin(s: Student) {
     setInvite({ name: s.name, code: await client.students.inviteCode(s.id, "kind") });
@@ -77,11 +88,11 @@ export function Dashboard({ onPractice, onManage }: { onPractice(studentId: stri
           <section className="rounded-3xl bg-surface p-4 flex flex-col">
             <Label>Laatste activiteit</Label>
             {activity.length === 0 && <p className="text-sm text-muted m-0 mt-2">Nog niets gespeeld.</p>}
-            {activity.map(({ round, name }) => (
-              <div key={round.id} className="flex gap-3 py-2.5 border-t border-line first-of-type:border-t-0 text-sm">
+            {activity.map(({ id, at, name, text }) => (
+              <div key={id} className="flex gap-3 py-2.5 border-t border-line first-of-type:border-t-0 text-sm">
                 <Avatar name={name} small />
-                <span>{name} speelde het notenspel: <b>{round.answers.filter((a) => a.correct).length} van {round.answers.length} goed</b>
-                  <span className="block text-xs text-muted">{whenLabel(round.playedAt)}</span></span>
+                <span>{name} {text}
+                  <span className="block text-xs text-muted">{whenLabel(at)}</span></span>
               </div>
             ))}
           </section>
@@ -124,12 +135,33 @@ function ChildCard({ row, isOuder, onPractice, onLetLogin }: { row: Row; isOuder
           <span className="text-xs text-muted">{today ? `vandaag ${today} min` : s.daysSinceLast === null ? "" : `laatst ${s.daysSinceLast === 1 ? "gisteren" : `${s.daysSinceLast} dagen geleden`}`}</span></div>
         <div className="grid grid-cols-7 gap-1.5 items-end h-20 mt-2" aria-label="Oefenminuten per dag">
           {s.days.map((d, i) => (
-            <div key={i} className="flex flex-col items-center justify-end gap-1 h-full text-[11px] text-muted" title={`${d.minutes} min`}>
-              <div className={clsx("w-full rounded-lg", d.minutes ? "bg-kent" : "bg-line")} style={{ height: d.minutes ? `${Math.max(12, (52 * d.minutes) / max)}px` : "6px" }} />
+            <div key={i} className="flex flex-col items-center justify-end gap-1 h-full text-[11px] text-muted" title={`${d.free} min vrij oefenen, ${d.game} min spelletjes`}>
+              {d.minutes ? (
+                <div className="w-full rounded-lg overflow-hidden flex flex-col" style={{ height: `${Math.max(12, (52 * d.minutes) / max)}px` }}>
+                  <div className="bg-accent" style={{ flex: d.free }} /><div className="bg-kent" style={{ flex: d.game }} />
+                </div>
+              ) : <div className="w-full rounded-lg bg-line h-1.5" />}
               {d.label}
             </div>
           ))}
         </div>
+        <div className="flex flex-wrap gap-x-4 text-xs text-muted mt-1.5">
+          <span><i className="inline-block w-2.5 h-2.5 rounded-sm bg-accent mr-1.5" />vrij oefenen</span>
+          <span><i className="inline-block w-2.5 h-2.5 rounded-sm bg-kent mr-1.5" />spelletjes</span>
+        </div>
+        {s.sessions.length > 0 && (
+          <div className="mt-2">
+            {s.sessions.map((p) => (
+              <div key={p.id} className="flex items-center gap-2 py-2 border-t border-line text-sm">
+                <span className="flex-1 min-w-0">Vrij oefenen · <b>{p.playedMinutes} van {p.totalMinutes} min</b> ({p.percent}%)
+                  <span className="block text-xs text-muted truncate">{whenLabel(p.startedAt)}{p.notes.length ? ` · ${p.notes.map((n) => noteLabel(n, range)).join(" ")}` : ""}</span></span>
+                {p.label === "twijfel"
+                  ? <span className="rounded-xl px-2.5 py-1 text-xs font-semibold bg-les/25 whitespace-nowrap" title="Minuten lang steeds dezelfde noot">twijfelachtig</span>
+                  : <span className="rounded-xl px-2.5 py-1 text-xs font-semibold bg-ok/15 text-ok whitespace-nowrap">sax gehoord</span>}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div>
@@ -157,7 +189,7 @@ function ChildCard({ row, isOuder, onPractice, onLetLogin }: { row: Row; isOuder
           <div className="flex flex-wrap gap-1.5 mt-2">
             {s.weak.map((w) => <span key={w.noteId} className="rounded-xl px-2.5 py-1 font-bold border-2 border-wrong text-wrong">{noteLabel(w.noteId, range)} <small className="font-medium">{w.wrong}× fout</small></span>)}
           </div>
-        ) : <p className="text-sm text-muted m-0 mt-1">{s.week.rounds ? "Niets: deze week alles goed 👏" : "Deze week nog niet gespeeld."}</p>}
+        ) : <p className="text-sm text-muted m-0 mt-1">{s.week.rounds ? "Niets: deze week alles goed 👏" : "Deze week nog geen notenspel gespeeld."}</p>}
       </div>
 
       <div className="flex flex-wrap gap-2 mt-auto">

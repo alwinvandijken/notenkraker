@@ -1,7 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { promotionCandidates, scoreRound } from "@notenkraker/core";
 import type {
-  AuthApi, InvitePurpose, NotenkrakerClient, NotesApi, Profile, Progress, Role, Round, RoundsApi, RoundSubmission,
+  AuthApi, InvitePurpose, NotenkrakerClient, NotesApi, PracticeApi, PracticeSession, Profile, Progress, Role, Round, RoundsApi, RoundSubmission,
   SelfRole, Song, SongsApi, Student, StudentNote, StudentsApi,
 } from "./types.js";
 
@@ -164,6 +164,31 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
     },
   };
 
+  const rowToSession = (r: Record<string, unknown>): PracticeSession => ({
+    id: r.id as string, studentId: r.student_id as string, startedAt: r.started_at as string, endedAt: r.ended_at as string,
+    done: r.done as boolean, playedSeconds: r.played_seconds as number, minutes: (r.minutes as PracticeSession["minutes"]) ?? [],
+    notes: (r.notes as string[]) ?? [], label: r.label as PracticeSession["label"],
+  });
+
+  // start en update zijn databasefuncties: de server zet de tijd en controleert de minuten
+  const practice: PracticeApi = {
+    async start(studentId) {
+      const { data, error } = await sb.rpc("practice_start", { p_student: studentId });
+      if (error) throw error;
+      return rowToSession(data);
+    },
+    async update(id, { minutes, notes, done = false }) {
+      const { data, error } = await sb.rpc("practice_update", { p_id: id, p_minutes: minutes, p_notes: notes, p_done: done });
+      if (error) throw error;
+      return rowToSession(data);
+    },
+    async recent(studentId, limit = 20) {
+      const { data, error } = await sb.from("practice_sessions").select("*").eq("student_id", studentId).order("started_at", { ascending: false }).limit(limit);
+      if (error) throw error;
+      return (data ?? []).map(rowToSession);
+    },
+  };
+
   const rowToSong = (r: Record<string, unknown>): Song => ({
     id: r.id as string, title: r.title as string, instrumentId: r.instrument_id as string,
     source: r.source as Song["source"], notes: r.notes as Song["notes"], createdAt: r.created_at as string,
@@ -183,7 +208,7 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
     async remove(id) { const { error } = await sb.from("songs").delete().eq("id", id); if (error) throw error; },
   };
 
-  return { auth, students, notes, rounds, songs };
+  return { auth, students, notes, rounds, practice, songs };
 }
 
 /** Lokale scorefunctie, voor optimistische UI en voor de Edge Function (zelfde core). */

@@ -9,7 +9,7 @@ interface AppState {
   students: Student[];
   studentId: string | null;
   statuses: StatusMap;
-  mode: "learn" | "game";
+  mode: "learn" | "game" | "vrij";
   /** uitkomst van koppelen via link of code, voor een melding bovenaan */
   koppelMelding: { ok: boolean; text: string } | null;
   init(): Promise<void>;

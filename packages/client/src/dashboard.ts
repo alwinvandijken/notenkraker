@@ -1,13 +1,16 @@
 import type { NoteId, StatusMap } from "@notenkraker/core";
-import type { Round } from "./types.js";
+import type { PracticeSession, Round } from "./types.js";
 
 /**
- * Cijfers voor het ouder- en leraardashboard, berekend uit de gespeelde rondes en de
- * notenstatus. "Deze week" betekent de laatste 7 dagen, vandaag meegeteld, in lokale tijd.
+ * Cijfers voor het ouder- en leraardashboard, berekend uit de gespeelde rondes, de
+ * sessies vrij oefenen en de notenstatus. "Deze week" betekent de laatste 7 dagen, vandaag meegeteld, in lokale tijd.
  */
 export interface ChildSummary {
-  /** de laatste 7 dagen, oudste eerst; minuten afgerond, een korte ronde telt als 1 minuut */
-  days: Array<{ label: string; minutes: number }>;
+  /**
+   * de laatste 7 dagen, oudste eerst; minuten afgerond, een korte ronde telt als 1 minuut.
+   * game = spelletjes, free = gespeelde tijd bij vrij oefenen, minutes = samen
+   */
+  days: Array<{ label: string; minutes: number; game: number; free: number }>;
   /** dagen op rij geoefend, tot vandaag (of tot gisteren als er vandaag nog niet geoefend is) */
   streak: number;
   /** null = nog nooit geoefend */
@@ -17,6 +20,19 @@ export interface ChildSummary {
   /** vaakst fout deze week, hooguit 3 */
   weak: Array<{ noteId: NoteId; wrong: number }>;
   week: { rounds: number; minutes: number };
+  /** sessies vrij oefenen, nieuwste eerst, hooguit 3 */
+  sessions: SessionSummary[];
+}
+
+export interface SessionSummary {
+  id: string;
+  startedAt: string;
+  playedMinutes: number;
+  totalMinutes: number;
+  /** gespeeld als deel van de sessie, 0..100 */
+  percent: number;
+  notes: string[];
+  label: PracticeSession["label"];
 }
 
 const WEEKDAY_SHORT = ["zo", "ma", "di", "wo", "do", "vr", "za"];
@@ -28,22 +44,29 @@ const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDat
 const daysBetween = (from: Date, to: Date) => Math.round((startOfDay(to).getTime() - startOfDay(from).getTime()) / 86_400_000);
 const toMinutes = (ms: number) => (ms > 0 ? Math.max(1, Math.round(ms / 60_000)) : 0);
 
-export function childSummary({ rounds, statuses, noteIds, now = new Date() }:
-  { rounds: Round[]; statuses: StatusMap; noteIds: NoteId[]; now?: Date }): ChildSummary {
-  const ago = (r: Round) => daysBetween(new Date(r.playedAt), now);
-  const thisWeek = rounds.filter((r) => ago(r) >= 0 && ago(r) < 7);
+export function childSummary({ rounds, sessions = [], statuses, noteIds, now = new Date() }:
+  { rounds: Round[]; sessions?: PracticeSession[]; statuses: StatusMap; noteIds: NoteId[]; now?: Date }): ChildSummary {
+  const daysAgo = (iso: string) => daysBetween(new Date(iso), now);
+  const ago = (r: Round) => daysAgo(r.playedAt);
+  const inWeek = (n: number) => n >= 0 && n < 7;
+  const thisWeek = rounds.filter((r) => inWeek(ago(r)));
+  const played = sessions.filter((p) => p.playedSeconds > 0);
 
   const msPerDay = new Array<number>(7).fill(0);
   for (const r of thisWeek) msPerDay[6 - ago(r)]! += r.ms;
+  const freeSecPerDay = new Array<number>(7).fill(0);
+  for (const p of played) { const n = daysAgo(p.startedAt); if (inWeek(n)) freeSecPerDay[6 - n]! += p.playedSeconds; }
   const days = msPerDay.map((ms, i) => {
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (6 - i));
-    return { label: WEEKDAY_SHORT[d.getDay()]!, minutes: toMinutes(ms) };
+    const game = toMinutes(ms), free = toMinutes(freeSecPerDay[i]! * 1000);
+    return { label: WEEKDAY_SHORT[d.getDay()]!, minutes: game + free, game, free };
   });
 
-  const practiced = new Set(rounds.map(ago));
+  const activeDays = [...rounds.map(ago), ...played.map((p) => daysAgo(p.startedAt))];
+  const practiced = new Set(activeDays);
   let streak = 0;
   for (let d = practiced.has(0) ? 0 : 1; practiced.has(d); d++) streak++;
-  const daysSinceLast = rounds.length ? Math.min(...rounds.map(ago)) : null;
+  const daysSinceLast = activeDays.length ? Math.min(...activeDays) : null;
 
   const kent = noteIds.filter((n) => statuses[n] === "kent").length;
   const lesNotes = noteIds.filter((n) => statuses[n] === "les");
@@ -58,6 +81,14 @@ export function childSummary({ rounds, statuses, noteIds, now = new Date() }:
     notes: { kent, les: lesNotes.length, nog: noteIds.length - kent - lesNotes.length, total: noteIds.length },
     lesNotes, weak,
     week: { rounds: thisWeek.length, minutes: days.reduce((sum, d) => sum + d.minutes, 0) },
+    sessions: [...sessions].sort((a, b) => b.startedAt.localeCompare(a.startedAt)).slice(0, 3).map((p) => {
+      const totalSec = Math.max(0, (Date.parse(p.endedAt) - Date.parse(p.startedAt)) / 1000);
+      return {
+        id: p.id, startedAt: p.startedAt, notes: p.notes, label: p.label,
+        playedMinutes: Math.round(p.playedSeconds / 60), totalMinutes: Math.round(totalSec / 60),
+        percent: totalSec ? Math.min(100, Math.round((100 * p.playedSeconds) / totalSec)) : 0,
+      };
+    }),
   };
 }
 

@@ -64,7 +64,7 @@ Regels:
 | `/kinderen` | "Mijn kinderen" (ouder) of "Mijn leerlingen" (leraar): aanmaken, kind laten inloggen (link, QR, code), code voor leraar | ouder, leraar |
 | `/profiel` | Naam, e-mail, rol; als leerling alsnog koppelen met een code van de ouder | iedereen |
 
-Nu nog zonder router: `AppMetLogin.tsx` op `/app` wisselt tussen Overzicht, Oefenen, Mijn kinderen en Mijn profiel via het hamburgermenu rechtsboven (`components/Menu.tsx`). De cijfers van het overzicht komen uit `childSummary()` in `@notenkraker/client` (rondes en notenstatus, laatste 7 dagen); oefentijd is nu de speeltijd van de rondes. Grepen is de grepentabel van het proefconcept (`screens/Grepentabel.tsx`) met de status van de gekozen leerling.
+Nu nog zonder router: `AppMetLogin.tsx` op `/app` wisselt tussen Overzicht, Oefenen, Mijn kinderen en Mijn profiel via het hamburgermenu rechtsboven (`components/Menu.tsx`). De cijfers van het overzicht komen uit `childSummary()` in `@notenkraker/client` (rondes en notenstatus, laatste 7 dagen); oefentijd is de speeltijd van de rondes plus de gespeelde tijd bij vrij oefenen, per dag apart getoond. Vrij oefenen (`screens/VrijOefenen.tsx`, derde onderdeel naast Grepen en Spel) is de oefentimer, zie hieronder. Grepen is de grepentabel van het proefconcept (`screens/Grepentabel.tsx`) met de status van de gekozen leerling.
 
 Spel en tutorial zijn schermvullend, zonder navigatiebalk.
 
@@ -104,6 +104,7 @@ teacher_students teacher_id, student_id
 invite_codes     code, student_id, purpose ('leraar'|'kind'), expires_at
 student_notes    student_id, note_id, status ('kent'|'les'|'moet'), introduced_at*
 rounds           id (client), student_id, mode (+'keys'), level_id*, played_at, ms, answers, completed, mistakes, stars, xp, wrong_notes
+practice_sessions id, student_id, started_at, ended_at, done, played_seconds, minutes, notes, label ('sax'|'twijfel')
 songs            id, student_id, title, instrument_id, source, notes
 attempts         id, student_id, song_id, played_at, ms, correct_idx, wrong_idx
 lessons*         id, student_id, teacher_id, held_on, remark, daily_goal      + lesson_notes*
@@ -136,6 +137,16 @@ Vastgelegd in `supabase/migrations/0002_rollen.sql`, getest in `supabase/tests/r
 - Klinkende toon = geschreven + `instrument.transposition` (altsax −9, klarinet −2, dwarsfluit 0).
 - Notennamen per leerling: `nl` (fis, bes) of `en` (F♯, B♭).
 - Toonherkenning: samples → `detectPitch` → `{hz, midi, cents}` → `NoteMatcher` (goed na 250 ms stabiel, fout na 1200 ms).
+
+### Oefentimer (vrij oefenen, AC-112)
+
+Mock-up: `docs/mockups/Oefentimer.html`. Start en einde van een sessie legt de server vast met zijn eigen klok (`practice_start`, `practice_update`); de app kan geen tijd invoeren. Daartussen luistert de app met de toonherkenning en telt `PracticeTracker` (`core/practice`) alleen de tijd waarin een duidelijke toon in het bereik van het instrument klinkt en minstens 150 ms op dezelfde hoogte blijft (spraak wiebelt). Stilte, praten en ruis tellen niet. Het resultaat is gespeeld van totaal, bijvoorbeeld 16 van 20 min (80%).
+
+- Elke 30 s en bij het wegzetten van de app gaat per minuut de gespeelde tijd en de noten naar de server. Valt de app weg, dan eindigt de sessie bij de laatste update; de volgende start sluit hem af.
+- De server weigert meer minuten dan er verstreken zijn en meer dan 60 s per minuut, en kapt af op 3 uur per sessie en per dag.
+- Label `twijfel`: minstens 2 min gespeeld met maar één noot. De sessie telt wel mee; de ouder ziet het label.
+- Er wordt geen geluid opgeslagen of verstuurd. Een opname via een speaker kan de timer misleiden; de minuten en het label maken dat zichtbaar, niet onmogelijk.
+- Een iPad zet de microfoon uit als de app naar de achtergrond gaat; die tijd telt niet. Het scherm blijft aan met de Wake Lock API.
 
 ## Instrumentmodel
 
