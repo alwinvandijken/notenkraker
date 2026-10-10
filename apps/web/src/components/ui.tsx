@@ -17,17 +17,17 @@ export function Ghost({ className, ...props }: ButtonHTMLAttributes<HTMLButtonEl
 
 export function Segmented<T extends string>({ value, options, onChange, label }: { value: T; options: Array<[T, string]>; onChange: (v: T) => void; label: string }) {
   return (
-    <span className="inline-flex rounded-full border-2 border-line overflow-hidden" role="group" aria-label={label}>
+    <span className="inline-flex flex-wrap rounded-3xl bg-surface p-1 gap-1" role="group" aria-label={label}>
       {options.map(([v, text]) => (
         <button key={v} type="button" aria-pressed={v === value} onClick={() => onChange(v)}
-          className={clsx("px-3 py-1 text-sm font-bold cursor-pointer", v === value ? "bg-fg text-bg" : "bg-surface text-muted")}>{text}</button>
+          className={clsx("min-h-11 px-4 rounded-full text-[15px] cursor-pointer", v === value ? "bg-fg text-bg font-semibold" : "bg-transparent text-muted font-medium")}>{text}</button>
       ))}
     </span>
   );
 }
 
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={clsx("rounded-2xl border-2 border-line bg-surface p-4", className)}>{children}</div>;
+  return <div className={clsx("rounded-3xl bg-surface p-5 lg:p-6", className)}>{children}</div>;
 }
 
 export function Label({ children }: { children: ReactNode }) {

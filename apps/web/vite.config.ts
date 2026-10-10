@@ -15,8 +15,8 @@ export default defineConfig({
         short_name: "Notenkraker",
         description: "Noten leren lezen en spelen: grepen, spel en meeluisteren",
         lang: "nl",
-        theme_color: "#e0862e",
-        background_color: "#f4f1ea",
+        theme_color: "#172440",
+        background_color: "#edf2f7",
         display: "standalone",
         orientation: "any",
         icons: [
