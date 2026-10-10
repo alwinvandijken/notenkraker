@@ -1,36 +1,44 @@
 @import "tailwindcss";
 
-/* Ontwerptokens: warm, speels, één accent. Donker/licht volgt het systeem. */
+/*
+ * Basislook A "Notenbalk": rustig blauwgrijs, marine inkt, blauw voor "kent al",
+ * oranje voor "in de les". Donker/licht volgt het systeem. Later worden deze
+ * waarden uit packages/themes geladen (AC-111).
+ */
 @theme {
-  --font-display: "Baloo 2", "Comic Sans MS", system-ui, sans-serif;
-  --font-sans: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
-  --color-bg: #f4f1ea;
+  --font-display: "Lexend", system-ui, sans-serif;
+  --font-sans: "Lexend", system-ui, sans-serif;
+  --color-bg: #edf2f7;
   --color-surface: #ffffff;
-  --color-fg: #22263a;
-  --color-muted: #6f7384;
-  --color-line: #d4d1c7;
-  --color-accent: #e0862e;
-  --color-accent-soft: #fbe6d2;
-  --color-kent: #3d9a63;
-  --color-kent-soft: #d8efe0;
-  --color-moet: #8a7fd6;
-  --color-moet-soft: #e6e2f8;
-  --color-wrong: #d8323c;
-  --color-pressed: #22263a;
+  --color-fg: #172440;
+  --color-muted: #4a5873;
+  --color-line: #d5dee9;
+  --color-accent: #c2531a;
+  --color-accent-soft: #fdebdd;
+  --color-kent: #2459c9;
+  --color-kent-soft: #dce6fa;
+  --color-les: #f4a261;
+  --color-moet: #8592aa;
+  --color-moet-soft: #f3f6fa;
+  --color-ok: #1f7a4d;
+  --color-wrong: #c4362b;
+  --color-pressed: #2459c9;
   --color-open: #ffffff;
-  --color-key: #3b9ad9;
-  --color-key-shadow: #2a78ab;
+  --color-key: #2459c9;
+  --color-key-shadow: #173f94;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-bg: #1a1c26; --color-surface: #252836; --color-fg: #f0ecdf; --color-muted: #a2a6b5; --color-line: #3d4154;
-    --color-accent: #f2a04f; --color-accent-soft: #4a3520; --color-kent: #5cc088; --color-kent-soft: #1f3f2c;
-    --color-moet: #a89cf0; --color-moet-soft: #332e52; --color-pressed: #f0ecdf; --color-open: #252836;
+    --color-bg: #0f1729; --color-surface: #18233b; --color-fg: #e8eef8; --color-muted: #a9b6cf; --color-line: #2b3a5c;
+    --color-accent: #f4a261; --color-accent-soft: #3a2616; --color-kent: #4f7fe0; --color-kent-soft: #1d2f57;
+    --color-les: #f4a261; --color-moet: #7d8aa6; --color-moet-soft: #1c2840; --color-ok: #3fae74; --color-wrong: #e0574b;
+    --color-pressed: #7ea6f5; --color-open: #18233b; --color-key: #4f7fe0; --color-key-shadow: #2b4f9c;
     color-scheme: dark;
   }
 }
 
-html, body, #root { height: 100%; }
+html, body, #root { min-height: 100%; }
 body { background: var(--color-bg); color: var(--color-fg); font-family: var(--font-sans); margin: 0; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
 button { font: inherit; }
+button:focus-visible, textarea:focus-visible { outline: 3px solid var(--color-les); outline-offset: 2px; }
