@@ -60,10 +60,11 @@ Regels:
 | `/kies-leerling` | Wie speelt er? (gedeelde gezins-iPad) | ouderaccount op een gedeeld toestel |
 | `/instellingen` | Skin kiezen, account | iedereen |
 | `/welkom` | Als kind een code van de ouder invoeren, of leerling of ouder kiezen (na eerste Google-login) | gebruiker zonder rol |
+| `/overzicht` | Dashboard: per kind of leerling oefentijd deze week, reeks, notenstatus, lastige noten, laatste activiteit (mock-up `docs/mockups/iPadA-Ouder.html`). Startscherm voor ouder en leraar; een leraar ziet wie het langst niet oefende bovenaan | ouder, leraar |
 | `/kinderen` | "Mijn kinderen" (ouder) of "Mijn leerlingen" (leraar): aanmaken, kind laten inloggen (link, QR, code), code voor leraar | ouder, leraar |
 | `/profiel` | Naam, e-mail, rol; als leerling alsnog koppelen met een code van de ouder | iedereen |
 
-Nu nog zonder router: `AppMetLogin.tsx` op `/app` wisselt tussen Oefenen, Mijn kinderen en Mijn profiel via het hamburgermenu rechtsboven (`components/Menu.tsx`). Grepen is de grepentabel van het proefconcept (`screens/Grepentabel.tsx`) met de status van de gekozen leerling.
+Nu nog zonder router: `AppMetLogin.tsx` op `/app` wisselt tussen Overzicht, Oefenen, Mijn kinderen en Mijn profiel via het hamburgermenu rechtsboven (`components/Menu.tsx`). De cijfers van het overzicht komen uit `childSummary()` in `@notenkraker/client` (rondes en notenstatus, laatste 7 dagen); oefentijd is nu de speeltijd van de rondes. Grepen is de grepentabel van het proefconcept (`screens/Grepentabel.tsx`) met de status van de gekozen leerling.
 
 Spel en tutorial zijn schermvullend, zonder navigatiebalk.
 

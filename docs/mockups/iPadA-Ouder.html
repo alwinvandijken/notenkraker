@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ouderdashboard – iPad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EDF2F7;--card:#FFFFFF;--ink:#172440;--muted:#4A5873;--line:#E2E9F2;--blue:#2459C9;--blue-soft:#DCE6FA;--orange:#F4A261;--accent:#C2531A;--moet:#8592AA;--ok:#1F7A4D;--ok-soft:#DDF2E5;--warn:#9A5B12;--warn-soft:#FCEBD6}
+*{box-sizing:border-box}
+body{margin:0;background:#DDE5EF}
+a{color:var(--blue)}
+button{font-family:inherit;cursor:pointer}
+.ipad{width:1180px;height:820px;background:var(--bg);color:var(--ink);font-family:Lexend,sans-serif;display:flex;flex-direction:column;padding:22px 28px;gap:16px;overflow:hidden;position:relative}
+header{display:flex;align-items:center;gap:14px}
+.logo{display:flex;align-items:center;gap:10px}
+h1{margin:0;font-size:28px;font-weight:700}
+.sub{margin:2px 0 0;color:var(--muted);font-size:15px}
+.menu{margin-left:auto;display:flex;align-items:center;gap:10px;height:46px;padding:0 14px 0 18px;border-radius:23px;border:2px solid var(--line);background:#fff;font-weight:600;font-size:15px}
+.week{display:flex;gap:12px}
+.stat{flex:1;background:#fff;border-radius:18px;padding:12px 16px;display:flex;flex-direction:column;gap:2px}
+.stat b{font-size:24px}
+.stat span{font-size:13px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:1fr 1fr 320px;gap:16px;flex:1;min-height:0}
+.kid{background:#fff;border-radius:24px;padding:18px;display:flex;flex-direction:column;gap:14px;min-height:0}
+.kid-head{display:flex;align-items:center;gap:12px}
+.av{width:48px;height:48px;border-radius:24px;background:var(--blue);color:#fff;font-weight:700;font-size:20px;display:flex;align-items:center;justify-content:center;flex:none}
+.name{font-size:22px;font-weight:700;line-height:1.1}
+.meta{font-size:13px;color:var(--muted)}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:12px;padding:4px 10px;font-size:13px;font-weight:600}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;align-items:end;height:74px}
+.day{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--muted)}
+.bar{width:100%;border-radius:8px;background:var(--blue)}
+.bar.none{background:var(--line);height:6px}
+.notes{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--line)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.note{min-width:40px;height:34px;padding:0 10px;border-radius:10px;font-weight:700;font-size:15px;display:inline-flex;align-items:center;justify-content:center;border:2px solid transparent}
+.note.kent{background:var(--blue);color:#fff}
+.note.les{background:var(--orange);color:var(--ink)}
+.note.fout{background:#fff;border-color:#E0574B;color:#B3362B}
+.note small{font-weight:500;font-size:11px;margin-left:4px}
+.actions{margin-top:auto;display:flex;gap:8px}
+.btn{height:46px;border-radius:23px;border:2px solid var(--line);background:#fff;color:var(--ink);font-weight:600;font-size:15px;padding:0 18px;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.btn.primary{background:var(--ink);border-color:var(--ink);color:#fff;flex:1}
+.btn.orange{background:var(--orange);border-color:var(--orange);color:var(--ink)}
+.side{display:flex;flex-direction:column;gap:16px;min-height:0}
+.panel{background:#fff;border-radius:24px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.feed{display:flex;flex-direction:column}
+.item{display:flex;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:14px;line-height:1.35}
+.item:first-child{border-top:0}
+.dot{width:28px;height:28px;border-radius:14px;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff}
+.when{display:block;font-size:12px;color:var(--muted)}
+/* uitleg naast het scherm */
+.page{padding:28px 16px 48px;display:flex;flex-direction:column;align-items:center;gap:18px}
+.intro{max-width:1180px;width:100%;font-family:Lexend,sans-serif;color:var(--ink)}
+.intro h2{margin:0 0 6px;font-size:24px}
+.intro p{margin:0 0 6px;color:var(--muted);line-height:1.5;font-size:15px}
+.notes-list{max-width:1180px;width:100%;font-family:Lexend,sans-serif;color:var(--ink);font-size:14px;line-height:1.5}
+.notes-list li{margin-bottom:4px}
+.n{display:inline-flex;width:20px;height:20px;border-radius:10px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;align-items:center;justify-content:center;margin-right:6px;vertical-align:1px}
+.tag{position:absolute;width:22px;height:22px;border-radius:11px;background:var(--accent);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:Lexend,sans-serif;box-shadow:0 0 0 3px #fff}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="intro">
+    <h2>Ouderdashboard · iPad liggend</h2>
+    <p>Het startscherm voor een ouder, in plaats van de notenbalk. In één oogopslag zie je per kind of het geoefend heeft, hoe het gaat en wat lastig is. Van daaruit ga je oefenen met een kind of bekijk je de details. Een leraar krijgt later hetzelfde scherm met <i>Mijn leerlingen</i>, plus het klaarzetten van de les.</p>
+    <p><a href="index.html">← alle mock-ups</a> · details per kind: <a href="iPadA-Leraar.html">Leraar/ouder</a></p>
+  </div>
+
+  <div class="ipad">
+    <header>
+      <div class="logo">
+        <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#172440"/><ellipse cx="17" cy="27" rx="7" ry="5" fill="#F4A261" transform="rotate(-20 17 27)"/><path d="M23 26V9l8 4" stroke="#F4A261" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div><h1>Goedemiddag, Alwin</h1><p class="sub">Zo ging het oefenen deze week</p></div>
+      </div>
+      <button class="menu" aria-label="Menu">Alwin van Dijken <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="#172440" stroke-width="2" stroke-linecap="round"/></svg></button>
+    </header>
+
+    <div class="week" style="position:relative">
+      <span class="tag" style="left:-10px;top:-8px">1</span>
+      <div class="stat"><b>2 van 2</b><span>kinderen geoefend deze week</span></div>
+      <div class="stat"><b>11</b><span>rondes gespeeld</span></div>
+      <div class="stat"><b>48 min</b><span>samen geoefend</span></div>
+      <div class="stat"><b>+3</b><span>noten erbij gekend</span></div>
+    </div>
+
+    <div class="grid">
+      <!-- Annabel -->
+      <section class="kid" style="position:relative">
+        <span class="tag" style="left:-8px;top:-8px">2</span>
+        <div class="kid-head">
+          <div class="av">A</div>
+          <div style="flex:1"><div class="name">Annabel</div><div class="meta">Altsaxofoon · logt zelf in ✓</div></div>
+          <span class="pill ok">🔥 4 dagen op rij</span>
+        </div>
+
+        <div>
+          <div class="label" style="display:flex;justify-content:space-between"><span>Oefentijd</span><span style="text-transform:none;letter-spacing:0">vandaag 15 min</span></div>
+          <div class="days" style="margin-top:8px">
+            <div class="day"><div class="bar none"></div>ma</div>
+            <div class="day"><div class="bar" style="height:28px"></div>di</div>
+            <div class="day"><div class="bar none"></div>wo</div>
+            <div class="day"><div class="bar" style="height:40px"></div>do</div>
+            <div class="day"><div class="bar" style="height:22px"></div>vr</div>
+            <div class="day"><div class="bar" style="height:34px"></div>za</div>
+            <div class="day"><div class="bar" style="height:46px"></div>zo</div>
+          </div>
+        </div>
+
+        <div style="position:relative">
+          <span class="tag" style="left:-26px;top:-4px">3</span>
+          <div class="label">Noten</div>
+          <div class="notes" style="margin-top:8px"><div style="width:22%;background:var(--blue)"></div><div style="width:9%;background:var(--orange)"></div></div>
+          <div class="legend"><span><i style="background:var(--blue)"></i>5 kent al</span><span><i style="background:var(--orange)"></i>2 in de les</span><span><i style="background:var(--line)"></i>16 komen nog</span></div>
+        </div>
+
+        <div style="position:relative">
+          <span class="tag" style="left:-26px;top:-4px">4</span>
+          <div class="label" style="margin-bottom:8px">Nog lastig</div>
+          <div class="chips"><span class="note fout">D<small>4× fout</small></span><span class="note fout">E<small>2× fout</small></span></div>
+          <div class="label" style="margin:12px 0 8px">Nieuw gekend deze week</div>
+          <div class="chips"><span class="note kent">C hoog</span><span class="note kent">F</span></div>
+        </div>
+
+        <div class="actions" style="position:relative">
+          <span class="tag" style="left:-8px;top:-8px">5</span>
+          <a class="btn primary" href="iPadA-Grepen.html">Oefenen met Annabel</a>
+          <a class="btn" href="iPadA-Leraar.html">Details</a>
+        </div>
+      </section>
+
+      <!-- Sam -->
+      <section class="kid">
+        <div class="kid-head">
+          <div class="av" style="background:#8592AA">S</div>
+          <div style="flex:1"><div class="name">Sam</div><div class="meta">Klarinet · nog geen eigen login</div></div>
+          <span class="pill warn">3 dagen niet geoefend</span>
+        </div>
+
+        <div>
+          <div class="label" style="display:flex;justify-content:space-between"><span>Oefentijd</span><span style="text-transform:none;letter-spacing:0">laatst donderdag</span></div>
+          <div class="days" style="margin-top:8px">
+            <div class="day"><div class="bar" style="height:18px"></div>ma</div>
+            <div class="day"><div class="bar none"></div>di</div>
+            <div class="day"><div class="bar" style="height:26px"></div>wo</div>
+            <div class="day"><div class="bar" style="height:20px"></div>do</div>
+            <div class="day"><div class="bar none"></div>vr</div>
+            <div class="day"><div class="bar none"></div>za</div>
+            <div class="day"><div class="bar none"></div>zo</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="label">Noten</div>
+          <div class="notes" style="margin-top:8px"><div style="width:12%;background:var(--blue)"></div><div style="width:12%;background:var(--orange)"></div></div>
+          <div class="legend"><span><i style="background:var(--blue)"></i>3 kent al</span><span><i style="background:var(--orange)"></i>3 in de les</span><span><i style="background:var(--line)"></i>19 komen nog</span></div>
+        </div>
+
+        <div>
+          <div class="label" style="margin-bottom:8px">In de les</div>
+          <div class="chips"><span class="note les">A</span><span class="note les">B</span><span class="note les">C hoog</span></div>
+          <div class="label" style="margin:12px 0 8px">Nog lastig</div>
+          <div class="meta">Nog niets: Sam doet het foutloos 👏</div>
+        </div>
+
+        <div class="actions" style="position:relative">
+          <span class="tag" style="left:-8px;top:-8px">6</span>
+          <a class="btn primary" href="iPadA-Grepen.html">Oefenen met Sam</a>
+          <a class="btn orange" href="Koppelen-Kind.html">Laten inloggen</a>
+        </div>
+      </section>
+
+      <!-- zijkolom -->
+      <aside class="side">
+        <section class="panel" style="flex:1;min-height:0;position:relative">
+          <span class="tag" style="left:-8px;top:-8px">7</span>
+          <div class="label">Laatste activiteit</div>
+          <div class="feed">
+            <div class="item"><span class="dot" style="background:var(--blue)">A</span><span>Annabel speelde het notenspel: <b>7 van 8 goed</b><span class="when">vandaag 15:20</span></span></div>
+            <div class="item"><span class="dot" style="background:var(--blue)">A</span><span>Annabel kent nu <b>C hoog</b><span class="when">vandaag 15:05</span></span></div>
+            <div class="item"><span class="dot" style="background:#C2531A">L</span><span>Leraar Marieke zette <b>E</b> op <i>in de les</i> bij Annabel<span class="when">gisteren</span></span></div>
+            <div class="item"><span class="dot" style="background:#8592AA">S</span><span>Sam speelde het notenspel: <b>8 van 8 goed</b><span class="when">donderdag</span></span></div>
+          </div>
+        </section>
+        <section class="panel" style="position:relative">
+          <span class="tag" style="left:-8px;top:-8px">8</span>
+          <div class="label">Kinderen</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <a class="btn" href="#">+ kind</a>
+            <a class="btn" href="#">Code voor leraar</a>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  <ol class="notes-list" style="list-style:none;padding:0">
+    <li><span class="n">1</span><b>Deze week</b>: vier getallen voor het hele gezin. Ze komen uit de gespeelde rondes (<code>rounds</code>) en de notenstatus (<code>student_notes</code>).</li>
+    <li><span class="n">2</span><b>Eén kaart per kind</b>: een balk per dag met de oefentijd, en de reeks dagen op rij. Heeft een kind 3 dagen of langer niet geoefend, dan staat er een zachte, oranje melding.</li>
+    <li><span class="n">3</span><b>Noten</b>: hoeveel noten het kind kent, hoeveel er in de les zijn en hoeveel er nog komen, voor het eigen instrument.</li>
+    <li><span class="n">4</span><b>Nog lastig</b>: de noten die deze week het vaakst fout gingen in het spel. Daaronder de noten die deze week naar <i>kent al</i> gingen.</li>
+    <li><span class="n">5</span><b>Oefenen met Annabel</b> opent de grepentabel en het spel voor dat kind; <b>Details</b> opent het scherm met de status per noot.</li>
+    <li><span class="n">6</span>Een kind zonder eigen login krijgt hier ook de knop <b>Laten inloggen</b> (link en QR, zoals in <a href="Koppelen-Kind.html">Kind koppelen</a>).</li>
+    <li><span class="n">7</span><b>Laatste activiteit</b>: gespeelde rondes, nieuw gekende noten en wat de leraar heeft veranderd.</li>
+    <li><span class="n">8</span>Kinderen toevoegen en codes voor een leraar staan klein onderaan. Hetzelfde staat in het menu onder <i>Mijn kinderen</i>.</li>
+  </ol>
+</div>
+</body>
+</html>

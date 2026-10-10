@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { instrumentNotes, midiToPitch, noteName, parseId, soundingMidi, toId, type Instrument, type NoteId, type NoteStatus, type StatusMap } from "@notenkraker/core";
 import { playMidi } from "@/audio/synth";
 import { useStatuses, usePref } from "@/lib/poc";
+import { display, octaveLabel, withOctave } from "@/lib/noten";
 import { StaffNote, StaffRow } from "@/components/Staff";
 import { Fingering } from "@/components/Fingering";
 import { Segmented } from "@/components/ui";
@@ -23,16 +24,6 @@ type View = "buttons" | "staff";
 
 const FILTERS: Array<[Filter, string]> = [["mine", "Mijn noten"], ["les", "In de les"], ["all", "Alle noten"]];
 const STATUS: Array<[NoteStatus | "", string]> = [["kent", "Kent al"], ["les", "In de les"], ["moet", "Komt nog"], ["", "Geen"]];
-
-const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-const display = (id: NoteId) => cap(noteName(parseId(id), "nl"));
-const withOctave = (id: NoteId) => `${display(id)}${parseId(id).octave}`;
-
-function octaveLabel(id: NoteId, range: [string, string]): string {
-  const o = parseId(id).octave, lo = parseId(range[0]).octave, hi = parseId(range[1]).octave;
-  if (hi - lo <= 1) return "";
-  return o <= lo ? "laag" : o >= hi ? "hoog" : "";
-}
 
 /** Klasse per status: vorm én kleur verschillen, zodat het ook zonder kleurzicht leesbaar is. */
 function statusClass(st: NoteStatus | undefined): string {

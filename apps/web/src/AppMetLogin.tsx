@@ -9,16 +9,23 @@ import { Welkom } from "@/screens/Welkom";
 import { Grepentabel } from "@/screens/Grepentabel";
 import { Game } from "@/screens/Game";
 import { Kinderen } from "@/screens/Kinderen";
+import { Dashboard } from "@/screens/Dashboard";
 import { Profiel } from "@/screens/Profiel";
 import { Menu, type MenuItem } from "@/components/Menu";
 import { KoppelMelding } from "@/components/KoppelMelding";
 import { Chip, Segmented } from "@/components/ui";
 
-type Screen = "oefenen" | "kinderen" | "profiel";
+type Screen = "overzicht" | "oefenen" | "kinderen" | "profiel";
+
+function greeting(name: string, now = new Date()) {
+  const h = now.getHours();
+  return `${h < 12 ? "Goedemorgen" : h < 18 ? "Goedemiddag" : "Goedenavond"}, ${name.split(" ")[0]}`;
+}
 
 export function AppMetLogin() {
   const { profile, students, studentId, statuses, mode, init, selectStudent, setMode, setStatus } = useApp();
-  const [screen, setScreen] = useState<Screen>("oefenen");
+  // ouder en leraar starten op het overzicht, een leerling meteen bij het oefenen
+  const [screen, setScreen] = useState<Screen | null>(null);
 
   useEffect(() => { void init(); }, [init]);
 
@@ -27,11 +34,14 @@ export function AppMetLogin() {
   const rights = rightsFor(profile.role);
   if (rights.mustChooseRole) return <Welkom />;
 
+  const hasDashboard = rights.studentsTitle !== null;
+  const current: Screen = screen ?? (hasDashboard ? "overzicht" : "oefenen");
   const student = students.find((s) => s.id === studentId);
   const items: MenuItem[] = [
-    { key: "oefenen", label: "Oefenen", onSelect: () => setScreen("oefenen"), active: screen === "oefenen" },
-    ...(rights.studentsTitle ? [{ key: "kinderen", label: rights.studentsTitle, onSelect: () => setScreen("kinderen"), active: screen === "kinderen" }] : []),
-    { key: "profiel", label: "Mijn profiel", onSelect: () => setScreen("profiel"), active: screen === "profiel" },
+    ...(hasDashboard ? [{ key: "overzicht", label: "Overzicht", onSelect: () => setScreen("overzicht"), active: current === "overzicht" }] : []),
+    { key: "oefenen", label: "Oefenen", onSelect: () => setScreen("oefenen"), active: current === "oefenen" },
+    ...(rights.studentsTitle ? [{ key: "kinderen", label: rights.studentsTitle, onSelect: () => setScreen("kinderen"), active: current === "kinderen" }] : []),
+    { key: "profiel", label: "Mijn profiel", onSelect: () => setScreen("profiel"), active: current === "profiel" },
     { key: "uit", label: "Uitloggen", onSelect: () => void client.auth.signOut() },
   ];
   const practice = (id: string) => { selectStudent(id); setScreen("oefenen"); };
@@ -45,7 +55,7 @@ export function AppMetLogin() {
   );
 
   // Grepen: de grepentabel van het proefconcept (AC-107) over het hele scherm, met de status van de leerling
-  if (screen === "oefenen" && mode === "learn" && student) {
+  if (current === "oefenen" && mode === "learn" && student) {
     return (
       <Grepentabel instrument={getInstrument(student.instrumentId)} title={student.name}
         student={{ statuses, setStatus: (n, st) => void setStatus(n, st) }}
@@ -55,19 +65,21 @@ export function AppMetLogin() {
   }
 
   return (
-    <div className="max-w-[900px] mx-auto px-4 pt-6 pb-12">
-      <header className="flex items-start justify-between gap-3 mb-3">
+    <div className={`${current === "overzicht" ? "max-w-[1240px]" : "max-w-[900px]"} mx-auto px-4 pt-6 pb-12`}>
+      <header className="flex items-start justify-between gap-3 mb-4">
         <div>
-          <h1 className="font-display font-extrabold text-4xl leading-none">Notenkraker</h1>
-          {screen === "oefenen" && <p className="text-muted mt-1">Tik op een noot en zie wat je indrukt.</p>}
+          <h1 className="font-display font-extrabold text-4xl leading-none">{current === "overzicht" ? greeting(profile.displayName) : "Notenkraker"}</h1>
+          {current === "overzicht" && <p className="text-muted mt-1">Zo ging het oefenen deze week</p>}
+          {current === "oefenen" && <p className="text-muted mt-1">Tik op een noot en zie wat je indrukt.</p>}
         </div>
         {menu}
       </header>
       <KoppelMelding />
 
-      {screen === "kinderen" && <Kinderen onPractice={practice} />}
-      {screen === "profiel" && <Profiel onLinked={() => setScreen("oefenen")} />}
-      {screen === "oefenen" && (
+      {current === "overzicht" && <Dashboard onPractice={practice} onManage={() => setScreen("kinderen")} />}
+      {current === "kinderen" && <Kinderen onPractice={practice} />}
+      {current === "profiel" && <Profiel onLinked={() => setScreen("oefenen")} />}
+      {current === "oefenen" && (
         <>
           <div className="font-display font-semibold text-lg mt-5 mb-2 flex flex-wrap items-center gap-x-3 gap-y-2">
             {studentPicker || (student && <span>{student.name}</span>)}
