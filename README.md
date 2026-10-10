@@ -1,6 +1,6 @@
-# Altsax Grepentabel
+# Notenkraker
 
-Interactieve grepentabel en notenspel voor de altsaxofoon, gemaakt voor beginnende leerlingen (vanaf ±8 jaar).
+Interactieve grepentabel en notenspel voor beginnende muziekleerlingen (vanaf ±8 jaar). Begonnen als altsax-grepentabel voor één leerling; wordt instrument-onafhankelijk (zie Linear AC-104).
 
 - **Grepen**: tik op een noot, zie de noot op de notenbalk, de Nederlandse naam (fis, gis, bes…) en welke kleppen je indrukt — getekend zoals ze op de sax zitten (duim/octaafklep, 1‑2‑3, 4‑5‑6, pinkkleppen links en rechts, bis‑knopje).
 - **Leerlingen**: per leerling een status per noot — *kent al*, *in de les*, *moet nog leren* — zodat elk kind alleen zijn eigen noten ziet. Pinkkleppen verschijnen pas als een noot ze nodig heeft.
