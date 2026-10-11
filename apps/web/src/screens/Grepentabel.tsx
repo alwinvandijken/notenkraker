@@ -25,7 +25,8 @@ const Sax3D = lazy(() => import("@/components/sax3d/Sax3D"));
  */
 
 type Filter = "mine" | "les" | "all";
-type View = "buttons" | "staff";
+/** Notenkiezer: letters (knoppen), alleen de notenbalk (de leerling leest de noot), of de balk met letters eronder */
+type View = "buttons" | "staff" | "both";
 type Render = "3d" | "2d";
 
 const FILTERS: Array<[Filter, string]> = [["mine", "Mijn noten"], ["les", "In de les"], ["all", "Alle noten"]];
@@ -107,7 +108,7 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu 
         <div className="flex flex-wrap items-center gap-3 flex-1">
           <Segmented value={filter} onChange={setFilter} label="Welke noten"
             options={FILTERS.map(([v, t]) => [v, `${t} (${counts[v]})`] as [Filter, string])} />
-          <span className="ml-auto"><Segmented value={view} onChange={setView} label="Weergave notenkiezer" options={[["buttons", "Knoppen"], ["staff", "Notenbalk"]]} /></span>
+          <span className="ml-auto"><Segmented value={view} onChange={setView} label="Weergave notenkiezer" options={[["buttons", "Letters"], ["staff", "Notenbalk"], ["both", "Beide"]]} /></span>
           {actions}
           {menu && <span className="hidden lg:block">{menu}</span>}
         </div>
@@ -205,8 +206,8 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu 
             <NoteButtons notes={visible} current={current} statuses={statuses} range={instrument.range} onSelect={select} />
           ) : (
             <div className="[&>div]:border-0 [&>div]:py-0">
-              <StaffRow clef={instrument.clef} naming="nl" height={180} showNames={false} onSelect={(id) => select(id)}
-                notes={visible.map((n) => ({ id: n, selected: n === current, sub: octaveLabel(n, instrument.range) }))} />
+              <StaffRow clef={instrument.clef} naming="nl" height={view === "both" ? 222 : 180} showNames={view === "both"} onSelect={(id) => select(id)}
+                notes={visible.map((n) => ({ id: n, selected: n === current, label: display(n), sub: octaveLabel(n, instrument.range) }))} />
             </div>
           )}
         </div>
