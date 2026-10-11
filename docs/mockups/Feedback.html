@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Feedback geven</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EDF2F7;--card:#FFFFFF;--ink:#172440;--muted:#4A5873;--line:#DCE3EC;--blue:#2459C9;--blue-soft:#DCE6FA;--orange:#F4A261;--orange-soft:#FDEBDD;--accent:#C2531A;--ok:#1F7A4D;--ok-soft:#DDF2E5;--grey:#8592AA;--wrong:#C4362B;--wrong-soft:#F8E0DD;--warn-soft:#FCEBD6;--warn:#9A5B12}
+*{box-sizing:border-box}
+body{margin:0;background:#DDE5EF;color:var(--ink);font-family:Lexend,sans-serif}
+a{color:var(--blue)}
+.page{max-width:1500px;margin:0 auto;padding:32px 16px 64px}
+.intro{max-width:820px}
+.intro h1{margin:0 0 8px;font-size:32px}
+.intro p{margin:0 0 6px;color:var(--muted);line-height:1.5}
+.who{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:40px 0 0}
+.row{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start;margin-top:20px}
+.step{display:flex;flex-direction:column;gap:10px;max-width:100%}
+.label{display:flex;gap:10px;align-items:baseline;max-width:340px}
+.num{flex:none;width:28px;height:28px;border-radius:14px;background:var(--ink);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+.label b{font-size:16px}
+.label span{display:block;font-size:13px;color:var(--muted);line-height:1.4;margin-top:2px}
+.phone{width:340px;height:720px;background:var(--bg);border-radius:40px;border:10px solid #172440;padding:34px 14px 14px;overflow:hidden;display:flex;flex-direction:column;gap:12px}
+.ipad{width:1000px;max-width:100%;background:var(--bg);border-radius:28px;border:12px solid #172440;padding:24px;display:flex;flex-direction:column;gap:16px}
+.card{background:var(--card);border-radius:18px;padding:14px}
+.back{font-size:13px;font-weight:600;color:var(--muted)}
+h2.t{margin:0;font-size:26px;line-height:1.05}
+.sub{font-size:13px;color:var(--muted)}
+.muted{color:var(--muted)}
+.small{font-size:13px;line-height:1.4}
+.xs{font-size:11px}
+.cap{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:#fff;border-radius:14px;padding:10px 12px}
+.stat b{display:block;font-size:20px}
+.stat span{font-size:11px;color:var(--muted);line-height:1.3;display:block}
+.lrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.lrow:first-of-type{border-top:0}
+.av{width:36px;height:36px;border-radius:18px;background:var(--blue);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
+.av.sm{width:26px;height:26px;font-size:13px}
+.av.ouder{background:var(--accent)}
+.who-hw{display:flex;align-items:center;gap:8px}
+.grow{flex:1;min-width:0}
+.name{font-weight:700;font-size:15px}
+.bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:5px}
+.bar i{display:block;height:100%;background:var(--ok);border-radius:4px}
+.bar i.low{background:var(--orange)}
+.badge{font-size:11px;font-weight:600;border-radius:10px;padding:3px 8px;white-space:nowrap;background:var(--ok-soft);color:var(--ok)}
+.badge.warn{background:var(--warn-soft);color:var(--warn)}
+.badge.bad{background:var(--wrong-soft);color:#8E2A22}
+.chev{color:var(--muted);font-size:20px}
+.tabs{display:flex;gap:4px;background:#fff;border-radius:22px;padding:4px}
+.tabs span{flex:1;text-align:center;font-size:13px;padding:8px 0;border-radius:18px;color:var(--muted)}
+.tabs span.on{background:var(--ink);color:#fff;font-weight:600}
+.note{min-width:34px;height:30px;padding:0 9px;border-radius:10px;font-weight:700;font-size:14px;display:inline-flex;align-items:center;justify-content:center;background:var(--blue-soft)}
+.note.les{background:var(--orange);color:var(--ink)}
+.note.add{background:#fff;border:2px dashed var(--line);color:var(--muted);font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;align-items:end;height:70px}
+.day{display:flex;flex-direction:column;align-items:center;justify-content:end;gap:3px;font-size:10px;color:var(--muted);height:100%}
+.day .st{width:100%;display:flex;flex-direction:column;border-radius:6px;overflow:hidden}
+.day.goal .st{outline:2px solid var(--ok);outline-offset:1px}
+.weeks{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;align-items:end;height:80px}
+.wk{display:flex;flex-direction:column;align-items:center;justify-content:end;gap:3px;font-size:11px;color:var(--muted);height:100%}
+.wk i{display:block;width:100%;border-radius:8px;background:var(--blue)}
+.goal-line{position:relative}
+.check{display:flex;gap:8px;align-items:center;font-size:14px;padding:6px 0}
+.box{width:20px;height:20px;border-radius:6px;border:2px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff}
+.box.on{background:var(--ok);border-color:var(--ok)}
+.field{border:2px solid var(--line);border-radius:12px;padding:9px 11px;font-size:14px;background:#fff}
+.stepper{display:flex;align-items:center;gap:10px}
+.stepper b{font-size:22px;min-width:64px;text-align:center}
+.pm{width:36px;height:36px;border-radius:18px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-weight:700}
+.btn{display:flex;align-items:center;justify-content:center;height:48px;border-radius:24px;font-size:16px;font-weight:700;background:var(--accent);color:#fff;margin-top:auto}
+.btn.line{background:#fff;color:var(--ink);border:2px solid var(--line)}
+.dots{display:flex;gap:4px}
+.dots i{width:18px;height:18px;border-radius:5px;background:var(--line)}
+.dots i.ok{background:var(--ok)}
+.dots i.half{background:#9ccdb3}
+.dots i.today{outline:2px solid var(--ink);outline-offset:1px}
+.mark{outline:3px solid var(--accent);outline-offset:3px;border-radius:14px}
+.grid2{display:grid;grid-template-columns:1.25fr 1fr;gap:16px}
+.rules{max-width:1000px;margin-top:44px;background:#fff;border-radius:24px;padding:22px 26px}
+.rules h2{margin:0 0 10px;font-size:22px}
+.rules h3{margin:18px 0 6px;font-size:16px}
+.rules p,.rules li{color:var(--muted);line-height:1.5;font-size:15px;margin:0 0 6px}
+.rules ul{margin:0;padding-left:20px}
+.rules code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
+
+.desk{width:1280px;max-width:100%;background:var(--bg);border-radius:14px;border:1px solid #b9c4d3;box-shadow:0 10px 30px rgba(23,36,64,.15);overflow:hidden}
+.desk .bar-top{height:34px;background:#cfd8e4;display:flex;align-items:center;gap:6px;padding:0 12px}
+.desk .bar-top i{width:11px;height:11px;border-radius:6px;background:#fff;opacity:.7}
+.desk .bar-top span{margin-left:14px;background:#fff;border-radius:8px;padding:3px 12px;font-size:12px;color:var(--muted)}
+.desk .in{display:grid;grid-template-columns:220px 1fr;min-height:640px}
+.side{background:var(--ink);color:#fff;padding:20px 14px;display:flex;flex-direction:column;gap:4px}
+.side .logo{font-weight:700;font-size:18px;margin-bottom:16px}
+.side a{color:#c8d3e6;text-decoration:none;font-size:14px;padding:9px 12px;border-radius:10px}
+.side a.on{background:rgba(255,255,255,.12);color:#fff;font-weight:600}
+.main{padding:24px 28px;display:flex;flex-direction:column;gap:16px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;padding:8px 10px;border-bottom:2px solid var(--line);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr.sel td{background:var(--blue-soft)}
+.pill{display:inline-flex;align-items:center;gap:6px;border:2px solid var(--line);border-radius:18px;padding:5px 12px;font-size:13px;background:#fff}
+.pill.on{border-color:var(--ink);background:var(--ink);color:#fff}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn.sm{height:38px;font-size:14px;padding:0 16px;margin:0;display:inline-flex}
+.selbar{display:flex;align-items:center;gap:12px;background:var(--ink);color:#fff;border-radius:14px;padding:10px 14px;font-size:14px}
+.cols{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;align-items:start}
+.tmpl{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.tmpl:first-of-type{border-top:0}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="intro">
+    <h1>Feedback geven</h1>
+    <p>Mock-up voor een feedbackformulier. <b>Alwin zet per persoon aan wie feedback mag geven</b> (stap 5). Wie dat mag, ziet op elke pagina een mini-icoontje rechtsonder; een tik opent het formulier en de pagina waar je was gaat mee. Feedback komt in de database en Alwin leest het op een eigen beheerpagina. Wat de moeite waard is, zet hij zelf door naar Linear.</p>
+    <p><a href="index.html">← alle mock-ups</a></p>
+  </div>
+
+  <p class="who">Wie feedback mag geven · iPhone staand</p>
+  <div class="row">
+    <div class="step">
+      <div class="label"><div class="num">1</div><div><b>Mini-icoontje op elke pagina</b><span>Rechtsonder, klein en half doorzichtig, zodat het niet in de weg zit. Alleen voor wie feedback mag geven.</span></div></div>
+      <div class="phone" style="position:relative">
+        <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="t">Notenspel</h2><span class="badge" style="background:#fff;color:var(--ink);border:2px solid var(--line);padding:6px 10px">☰</span></div>
+        <div class="card" style="height:220px;display:flex;align-items:center;justify-content:center"><span class="small muted">(het notenspel)</span></div>
+        <div class="card" style="height:120px"></div>
+        <div class="mark" style="position:absolute;right:22px;bottom:26px;width:40px;height:40px;border-radius:20px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;opacity:.85">💬</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="label"><div class="num">2</div><div><b>Het formulier</b><span>Een eigen pagina. Kies wat het is, schrijf het op, en voeg eventueel een schermafbeelding toe. De app stuurt zelf mee waar je was en op welk apparaat.</span></div></div>
+      <div class="phone">
+        <div class="back">← Notenspel</div>
+        <h2 class="t">Feedback geven</h2>
+        <div class="card" style="display:flex;flex-direction:column;gap:10px">
+          <span class="cap">Wat wil je kwijt?</span>
+          <div class="tabs" style="background:var(--bg)"><span class="on">💡 Idee</span><span>🐞 Werkt niet</span><span>❓ Vraag</span></div>
+          <div class="field" style="min-height:110px">Het zou leuk zijn als je bij het spel ook kunt kiezen voor alleen de nieuwe noten.</div>
+          <div class="field muted" style="text-align:center;border-style:dashed">📷 Schermafbeelding toevoegen</div>
+        </div>
+        <div class="card" style="display:flex;flex-direction:column;gap:4px">
+          <span class="cap">Wordt meegestuurd</span>
+          <span class="xs muted">Scherm: Notenspel · iPhone, Safari · versie 72cbc9a · rol: leerling</span>
+        </div>
+        <div class="btn">Versturen</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="label"><div class="num">3</div><div><b>Bedankt</b><span>Kort bedankt, en terug naar waar je was. Geen belofte over wanneer het opgelost is.</span></div></div>
+      <div class="phone">
+        <div class="back">← Notenspel</div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center">
+          <div style="font-size:56px">🙏</div>
+          <h2 class="t">Bedankt!</h2>
+          <p class="small muted" style="max-width:240px;margin:0">Je feedback is binnen. Zo wordt Notenkraker steeds beter.</p>
+        </div>
+        <div class="btn">Terug naar Notenspel</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="who">Alwin (beheer) · desktop</p>
+  <div class="row">
+    <div class="step" style="width:100%">
+      <div class="label" style="max-width:760px"><div class="num">4</div><div><b>Beheerpagina</b><span>Alleen voor beheerders (nu alleen Alwin), via “Beheer” in het menu. Links de lijst met filters, rechts de details. Met “Naar Linear” open je een nieuw Linear-issue met de tekst al ingevuld; daarna staat de feedback op “In Linear”.</span></div></div>
+      <div class="desk">
+        <div class="bar-top"><i></i><i></i><i></i><span>notenkraker.netlify.app/app/beheer</span></div>
+        <div class="in">
+          <div class="side">
+            <div class="logo">♪ Notenkraker</div>
+            <a class="on">💬 Feedback <span style="float:right" class="badge warn">3</span></a>
+            <a>👥 Wie mag feedback geven</a>
+            <a>Terug naar de app</a>
+          </div>
+          <div class="main">
+            <h2 class="t">Feedback</h2>
+            <div class="toolbar">
+              <span class="pill on">Nieuw · 3</span><span class="pill">Bekeken · 5</span><span class="pill">In Linear · 8</span><span class="pill">Afgehandeld · 21</span>
+              <span style="flex:1"></span>
+              <span class="pill">Alle soorten ▾</span><span class="pill">Alle rollen ▾</span>
+            </div>
+            <div class="cols">
+              <div class="card" style="padding:6px 10px">
+                <table>
+                  <tr><th>Soort</th><th>Feedback</th><th>Van</th><th>Scherm</th><th>Wanneer</th></tr>
+                  <tr class="sel"><td>💡 Idee</td><td>Het zou leuk zijn als je bij het spel ook kunt kiezen…</td><td>Lotte · leerling</td><td>Notenspel</td><td>vandaag 09:12</td></tr>
+                  <tr><td>🐞 Werkt niet</td><td>De oefentimer stopt als het scherm uit gaat</td><td>Mark · ouder</td><td>Vrij oefenen</td><td>gisteren</td></tr>
+                  <tr><td>❓ Vraag</td><td>Kan ik ook een blokfluit kiezen?</td><td>Marieke · leraar</td><td>Mijn profiel</td><td>do 8 okt</td></tr>
+                </table>
+              </div>
+              <div class="card" style="display:flex;flex-direction:column;gap:10px">
+                <div style="display:flex;justify-content:space-between;align-items:center"><span class="cap">💡 Idee · nieuw</span><span class="xs muted">vandaag 09:12</span></div>
+                <div class="small">Het zou leuk zijn als je bij het spel ook kunt kiezen voor alleen de nieuwe noten.</div>
+                <div style="height:120px;border-radius:12px;background:var(--bg);display:flex;align-items:center;justify-content:center" class="xs muted">schermafbeelding</div>
+                <div class="xs muted">Lotte (leerling, 9–12) · Notenspel · iPhone, Safari · versie 72cbc9a</div>
+                <div class="toolbar">
+                  <span class="btn sm">Naar Linear ↗</span>
+                  <span class="btn sm line">Afgehandeld</span>
+                  <span class="btn sm line">Bekeken</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="step" style="width:100%">
+      <div class="label" style="max-width:760px"><div class="num">5</div><div><b>Wie mag feedback geven</b><span>Alle accounts met een schakelaar. Aan = die persoon ziet het icoontje. Zoeken op naam of e-mail.</span></div></div>
+      <div class="desk">
+        <div class="bar-top"><i></i><i></i><i></i><span>notenkraker.netlify.app/app</span></div>
+        <div class="in">
+          <div class="side">
+            <div class="logo">♪ Notenkraker</div>
+            <a>💬 Feedback</a>
+            <a class="on">👥 Wie mag feedback geven</a>
+            <a>Terug naar de app</a>
+          </div>
+          <div class="main">
+            <div style="display:flex;justify-content:space-between;align-items:end"><h2 class="t">Wie mag feedback geven</h2><span class="field muted" style="width:240px">🔍 Zoek op naam of e-mail</span></div>
+            <div class="card" style="padding:6px 10px">
+              <table>
+                <tr><th>Naam</th><th>E-mail</th><th>Rol</th><th>Mag feedback geven</th></tr>
+                <tr><td><b>Marieke</b></td><td>marieke@…</td><td>leraar</td><td><span class="box on">✓</span></td></tr>
+                <tr><td><b>Olaf</b></td><td>olaf@…</td><td>ouder</td><td><span class="box on">✓</span></td></tr>
+                <tr><td><b>Lotte</b></td><td>lotte@…</td><td>leerling</td><td><span class="box"></span></td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rules">
+    <h2>Keuzes in dit ontwerp</h2>
+    <h3>Wie</h3>
+    <ul>
+      <li>Alwin zet per persoon aan wie feedback mag geven (stap 5). Standaard staat het uit. Zonder account nooit.</li>
+      <li>Alleen een beheerder ziet de feedback. Nu is dat alleen Alwin.</li>
+    </ul>
+    <h3>Wat</h3>
+    <ul>
+      <li>Soort: idee, werkt niet of vraag. Een tekst (verplicht) en een schermafbeelding (mag).</li>
+      <li>Automatisch mee: de pagina waar je op het icoontje tikte, apparaat en browser, versie (commit) en rol. Geen andere persoonsgegevens.</li>
+      <li>Status op de beheerpagina: nieuw → bekeken → in Linear → afgehandeld.</li>
+      <li>Geen antwoord terug naar de gebruiker (kan later).</li>
+    </ul>
+    <h3>Techniek (voor later)</h3>
+    <ul>
+      <li>Tabel <code>feedback</code>: id, profiel, soort, tekst, scherm, apparaat, versie, rol, status, linear-link, aangemaakt. RLS: iedereen mag zijn eigen feedback toevoegen; lezen en bijwerken alleen voor beheerders.</li>
+      <li><code>profiles.can_give_feedback</code> (standaard uit); alleen een beheerder zet het, via een databasefunctie. Beheerder = rol <code>admin</code> (bestaat al).</li>
+      <li>Schermafbeelding in een privé Storage-bucket <code>feedback</code>.</li>
+      <li>“Naar Linear” opent <code>linear.new</code> met titel en tekst ingevuld; geen API-sleutel nodig.</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>

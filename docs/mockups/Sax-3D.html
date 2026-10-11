@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Altsax in 3D</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;700&display=swap">
+<style>
+:root {
+  --bg: #edf2f7; --surface: #ffffff; --fg: #172440; --muted: #4a5873; --line: #d5dee9;
+  --pressed: #2459c9; --pressed-soft: #dce6fa; --kent: #2459c9; --les: #f4a261; --moet: #8592aa; --accent: #c2531a; --stage-a: #f7f9fc; --stage-b: #d5dee9;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1729; --surface: #18233b; --fg: #e8eef8; --muted: #a9b6cf; --line: #2b3a5c;
+    --pressed: #7ea6f5; --pressed-soft: #1d2f57; --kent: #4f7fe0; --les: #f4a261; --moet: #7d8aa6; --accent: #f4a261; --stage-a: #1c2840; --stage-b: #0b1220;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1729; --surface: #18233b; --fg: #e8eef8; --muted: #a9b6cf; --line: #2b3a5c;
+  --pressed: #7ea6f5; --pressed-soft: #1d2f57; --kent: #4f7fe0; --les: #f4a261; --moet: #7d8aa6; --accent: #f4a261; --stage-a: #1c2840; --stage-b: #0b1220;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font-family: Lexend, system-ui, sans-serif;
+  display: grid; grid-template-columns: minmax(0, 1fr) 340px; height: 100dvh; overflow: hidden;
+}
+#stage { position: relative; min-height: 0; min-width: 0; background: radial-gradient(ellipse at 50% 40%, var(--stage-a), var(--stage-b)); }
+#stage canvas { display: block; touch-action: none; }
+#labels { position: absolute; inset: 0; pointer-events: none; }
+.label {
+  font: 700 12px Lexend, system-ui, sans-serif; color: #fff; background: var(--pressed); padding: 3px 8px;
+  border-radius: 999px; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.25);
+}
+.label.part { background: var(--fg); color: var(--surface); font-size: 13px; padding: 5px 12px; }
+.label.idle { background: rgba(23,36,64,.72); font-weight: 600; }
+.toolbar { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; flex-wrap: wrap; gap: 6px; pointer-events: none; }
+.toolbar button, .zoom button {
+  pointer-events: auto; font: 600 14px Lexend, system-ui, sans-serif; color: var(--fg); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; min-height: 40px; cursor: pointer;
+  box-shadow: 0 1px 3px rgba(23,36,64,.1);
+}
+.toolbar button[aria-pressed="true"] { background: var(--pressed); color: #fff; border-color: var(--pressed); }
+.zoom { position: absolute; right: 12px; bottom: 48px; display: flex; flex-direction: column; gap: 6px; }
+.zoom button { width: 44px; height: 44px; padding: 0; font-size: 22px; }
+
+.hint .short { display: none; }
+@media (max-width: 600px) { .hint .long { display: none; } .hint .short { display: inline; } }
+.hint { position: absolute; left: 12px; right: 70px; bottom: 12px; font-size: 13px; color: var(--muted); }
+aside { overflow-y: auto; background: var(--surface); border-left: 1px solid var(--line); padding: 22px 20px 32px; display: flex; flex-direction: column; gap: 20px; }
+h1 { margin: 0; font-size: 22px; }
+h2 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.45; }
+.notes { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 6px; }
+.notes button {
+  font: 600 15px Lexend, system-ui, sans-serif; color: var(--fg); background: var(--bg); border: 1px solid var(--line);
+  border-radius: 10px; min-height: 44px; cursor: pointer; padding: 4px;
+}
+.notes button sub { font-size: 10px; color: var(--muted); font-weight: 400; }
+.notes button.kent, .chip.kent { background: var(--kent); border-color: var(--kent); color: #fff; }
+.notes button.kent sub { color: #fff; }
+.notes button.les, .chip.les { background: var(--les); border-color: var(--les); color: #172440; }
+.notes button.les sub { color: #172440; }
+.notes button.moet, .chip.moet { background: var(--surface); border: 2px dashed var(--moet); color: var(--muted); }
+.notes button[aria-pressed="true"] { outline: 3px solid var(--fg); outline-offset: 2px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.chip { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 8px; border: 2px solid transparent; }
+.seg { display: flex; background: var(--bg); border-radius: 999px; padding: 4px; gap: 2px; }
+.seg button { flex: 1; font: 600 13px Lexend, system-ui, sans-serif; color: var(--fg); background: none; border: 0; border-radius: 999px; min-height: 40px; padding: 4px 8px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--surface); box-shadow: 0 1px 3px rgba(23,36,64,.18); }
+.seg.small { margin-bottom: 8px; }
+.seg.small button { min-height: 34px; }
+.notes.staff { display: block; overflow-x: auto; border: 2px solid var(--line); border-radius: 16px; padding: 4px; }
+.notes.staff svg { display: block; color: var(--fg); }
+.notes.staff g[role="button"] { cursor: pointer; }
+.notes.staff g[role="button"]:focus-visible rect { stroke: var(--les); stroke-width: 3; }
+.now-row { display: flex; align-items: center; gap: 12px; width: 100%; }
+.big-staff { flex: 1; min-width: 0; color: var(--fg); }
+.big-staff svg { display: block; width: 100%; max-width: 200px; }
+.now { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
+.now span { font-size: 13px; color: var(--muted); }
+.learner { display: flex; flex-direction: column; gap: 6px; }
+.muted-label { font-size: 12px; color: var(--muted); }
+.setting { display: flex; flex-direction: column; gap: 4px; }
+.setting p { font-size: 12px; }
+.switch { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; cursor: pointer; min-height: 32px; }
+.switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.switch span { width: 44px; height: 26px; border-radius: 999px; background: var(--line); position: relative; transition: background .2s; flex: none; }
+.switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.3); transition: transform .2s; }
+.switch input:checked + span { background: var(--kent); }
+.switch input:checked + span::after { transform: translateX(18px); }
+.switch input:focus-visible + span { outline: 3px solid var(--les); outline-offset: 2px; }
+.greep { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.druk { color: var(--fg); font-size: 15px; }
+button.dashed { font: 500 14px Lexend, system-ui, sans-serif; color: var(--muted); background: none; border: 2px dashed var(--line); border-radius: 999px; min-height: 44px; padding: 0 16px; cursor: pointer; }
+button.dashed[aria-pressed="true"] { color: var(--fg); border-color: var(--muted); }
+.empty-notes { font-size: 14px; color: var(--muted); grid-column: 1 / -1; }
+.now strong { font-size: 56px; line-height: 1; }
+.alts { display: flex; gap: 6px; }
+.alts:empty { display: none; }
+.alts button { font: 600 13px Lexend, system-ui, sans-serif; border: 1px solid var(--line); background: var(--bg); color: var(--fg); border-radius: 999px; padding: 6px 12px; min-height: 36px; cursor: pointer; }
+.alts button[aria-pressed="true"] { background: var(--fg); color: var(--surface); }
+ul.keys { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+ul.keys li { display: flex; gap: 10px; align-items: center; font-size: 14px; }
+ul.keys li b { min-width: 34px; text-align: center; background: var(--pressed); color: #fff; border-radius: 999px; padding: 2px 8px; font-size: 12px; }
+.empty { font-size: 14px; color: var(--muted); margin-top: 10px; }
+.info { background: var(--pressed-soft); border-radius: 12px; padding: 12px 14px; font-size: 14px; }
+.info[hidden] { display: none; }
+.info strong { display: block; margin-bottom: 4px; }
+label.check { display: flex; gap: 10px; align-items: center; font-size: 14px; cursor: pointer; }
+label.check input { width: 20px; height: 20px; accent-color: var(--pressed); }
+@media (max-width: 820px), (orientation: portrait) and (max-width: 1100px) {
+  body { grid-template-columns: 1fr; grid-template-rows: minmax(0, 58fr) minmax(0, 42fr); }
+  aside { border-left: 0; border-top: 1px solid var(--line); padding: 16px; gap: 16px; }
+  .toolbar button { padding: 6px 11px; font-size: 13px; min-height: 36px; }
+}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="labels"></div>
+  <div class="toolbar" role="toolbar" aria-label="Kijkrichting">
+    <button data-view="front">Voorkant</button>
+    <button data-view="back">Achterkant</button>
+    <button data-view="left">Links</button>
+    <button data-view="right">Rechts</button>
+    <button data-view="top">Boven</button>
+    <button id="spin" aria-pressed="false">Draaien</button>
+    <button id="explode" aria-pressed="false">Uit elkaar</button>
+  </div>
+  <div class="zoom">
+    <button id="zin" aria-label="Inzoomen">+</button>
+    <button id="zout" aria-label="Uitzoomen">−</button>
+  </div>
+  <div class="hint"><span class="long">Sleep om te draaien · knijp of scroll om te zoomen · twee vingers of rechtermuis om te schuiven · dubbeltik op een klep om erheen te zoomen</span><span class="short">Sleep = draaien · knijp = zoomen · dubbeltik klep = inzoomen</span></div>
+</div>
+
+<aside>
+  <div>
+    <h1>Altsax in 3D</h1>
+    <p>Je ziet alleen je eigen noten en de kleppen die je daarvoor nodig hebt.</p>
+  </div>
+  <div class="learner">
+    <span class="muted-label">Voorbeeld: ingelogd als</span>
+    <div class="seg" role="group" aria-label="Leerling" id="learner"></div>
+  </div>
+  <div class="seg" role="group" aria-label="Welke noten" id="filter"></div>
+  <div class="setting">
+    <label class="switch"><input type="checkbox" id="octave" role="switch"><span></span> Octaafcijfers tonen</label>
+    <p id="octaveHint"></p>
+  </div>
+  <section>
+    <div class="seg small" role="group" aria-label="Weergave notenkiezer" id="viewSeg">
+      <button type="button" data-v="buttons">Knoppen</button><button type="button" data-v="staff">Notenbalk</button>
+    </div>
+    <div class="notes" id="notes"></div>
+    <div class="legend"><span class="chip kent">Kent al</span><span class="chip les">In de les</span><span class="chip moet">Komt nog</span></div>
+  </section>
+  <section class="greep">
+    <div class="now-row"><div id="bigStaff" class="big-staff"></div><div class="now"><strong id="noteName">G</strong><span id="noteSub"></span></div></div>
+    <div class="alts" id="alts"></div>
+    <p class="druk" id="druk"></p>
+    <button type="button" class="dashed" id="showAll" aria-pressed="false">Toon alle kleppen</button>
+  </section>
+  <div class="info" id="info" hidden></div>
+</aside>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { CSS2DRenderer, CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
+
+// Grepen en klepnamen uit packages/instruments/src/altsax.json.
+const FINGERINGS = {"bes3":[["L1","L2","L3","R4","R5","R6","lc","lbb"]],"b3":[["L1","L2","L3","R4","R5","R6","lc","lb"]],"c4":[["L1","L2","L3","R4","R5","R6","lc"]],"cis4":[["L1","L2","L3","R4","R5","R6","lc","cs"]],"d4":[["L1","L2","L3","R4","R5","R6"]],"es4":[["L1","L2","L3","R4","R5","R6","eb"]],"e4":[["L1","L2","L3","R4","R5"]],"f4":[["L1","L2","L3","R4"]],"fis4":[["L1","L2","L3","R5"]],"g4":[["L1","L2","L3"]],"gis4":[["L1","L2","L3","gs"]],"a4":[["L1","L2"]],"bes4":[["L1","bis"],["L1","R4"]],"b4":[["L1"]],"c5":[["L2"],["L1","sC"]],"cis5":[[]],"d5":[["oct","L1","L2","L3","R4","R5","R6"]],"es5":[["oct","L1","L2","L3","R4","R5","R6","eb"]],"e5":[["oct","L1","L2","L3","R4","R5"]],"f5":[["oct","L1","L2","L3","R4"]],"fis5":[["oct","L1","L2","L3","R5"]],"g5":[["oct","L1","L2","L3"]],"gis5":[["oct","L1","L2","L3","gs"]],"a5":[["oct","L1","L2"]],"bes5":[["oct","L1","bis"]],"b5":[["oct","L1"]],"c6":[["oct","L2"]],"cis6":[["oct"]],"d6":[["oct","pD"]],"es6":[["oct","pD","pEb"]],"e6":[["oct","pD","pEb","sE"],["oct","fF","L2","L3"]],"f6":[["oct","pD","pEb","pF","sE"],["oct","fF","L2"]]};
+const KEY_NAMES = {"oct":"octaafklep (duim links)","fF":"voorste F-klep","L1":"1","L2":"2","L3":"3","R4":"4","R5":"5","R6":"6","bis":"bis-knopje","gs":"G♯-klep (pink links)","cs":"C♯-klep (pink links)","lb":"lage B-klep (pink links)","lbb":"lage B♭-klep (pink links)","low":"lage klep (pink links)","eb":"E♭-klep (pink rechts)","lc":"lage C-klep (pink rechts)","pD":"handpalmklep D","pEb":"handpalmklep E♭","pF":"handpalmklep F","sE":"zijklep E (rechts)","sC":"zijklep C (rechts)","sBb":"zijklep B♭ (rechts)"};
+// Zelfde regels als de 2D-greeptekening: basiskleppen altijd, "auto" alleen als een eigen noot ze nodig heeft,
+// "optional" alleen als de huidige greep ze gebruikt. "Toon alle kleppen" laat alles zien.
+const AUTO = new Set(["bis", "gs", "cs", "lb", "lbb", "eb", "lc"]);
+const OPTIONAL = new Set(["fF", "pD", "pEb", "pF", "sE", "sC", "sBb"]);
+// Voorbeeldleerlingen; in de app komen notenstatus en leeftijdsgroep uit het profiel van de ingelogde leerling.
+const LEARNERS = {
+  sanne: { name: "Sanne", age: "6-8", statuses: { g4: "kent", a4: "kent", b4: "kent", c5: "les", d5: "les", f4: "moet", e4: "moet" } },
+  daan: { name: "Daan", age: "13-17", statuses: { c4: "kent", d4: "kent", e4: "kent", f4: "kent", g4: "kent", a4: "kent", b4: "kent", c5: "kent",
+    d5: "kent", e5: "kent", f5: "les", fis4: "les", g5: "moet", bes4: "moet" } },
+};
+// Octaafcijfers (G₄, C₅) zijn voor jonge kinderen te veel: standaard uit bij 6–8 jaar.
+// Per leerling aan of uit te zetten; in de app een veld op de leerling, net als de notennamen (nl/en).
+const octaveDefault = (age) => age !== "6-8";
+const octaveOverride = {};
+let learner = "sanne", STATUSES = LEARNERS[learner].statuses;
+const SHORT = { oct: "Oct", fF: "F", L1: "1", L2: "2", L3: "3", R4: "4", R5: "5", R6: "6", bis: "Bis",
+  gs: "G♯", cs: "C♯", lb: "B", lbb: "B♭", eb: "E♭", lc: "C", pD: "D", pEb: "E♭", pF: "F", sE: "E", sC: "C", sBb: "B♭" };
+const NOTE_NL = { c: "C", cis: "Cis", d: "D", es: "Es", e: "E", f: "F", fis: "Fis", g: "G", gis: "Gis", a: "A", bes: "Bes", b: "B" };
+const parse = (id) => { const m = id.match(/^([a-z]+)(\d)$/); return { name: NOTE_NL[m[1]], octave: +m[2] }; };
+const octaveWord = (o) => (o <= 3 ? "laag" : o >= 6 ? "hoog" : "");
+
+// ---------- Scène ----------
+const stage = document.getElementById("stage");
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.35;
+stage.prepend(renderer.domElement);
+const labelRenderer = new CSS2DRenderer({ element: document.getElementById("labels") });
+
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8899aa, 0.6));
+const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+sun.position.set(-4, 6, -5);
+scene.add(sun);
+const fill = new THREE.DirectionalLight(0xfff2dd, 1.1);
+fill.position.set(5, 2, 5);
+scene.add(fill);
+
+const camera = new THREE.PerspectiveCamera(35, 1, 0.05, 100);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 1;
+controls.maxDistance = 20;
+controls.zoomToCursor = true;
+controls.autoRotateSpeed = 1.6;
+
+// ---------- Materialen ----------
+const brass = new THREE.MeshStandardMaterial({ color: 0xe6bd5c, metalness: 0.9, roughness: 0.3, side: THREE.DoubleSide });
+const brassKey = new THREE.MeshStandardMaterial({ color: 0xeec96e, metalness: 0.9, roughness: 0.25 });
+const pearlMat = new THREE.MeshStandardMaterial({ color: 0xf4eee2, metalness: 0.05, roughness: 0.18 });
+const blackMat = new THREE.MeshStandardMaterial({ color: 0x18181d, metalness: 0.2, roughness: 0.35 });
+const silverMat = new THREE.MeshStandardMaterial({ color: 0xd9dde3, metalness: 1, roughness: 0.2 });
+const corkMat = new THREE.MeshStandardMaterial({ color: 0xb98a5a, roughness: 0.9 });
+const reedMat = new THREE.MeshStandardMaterial({ color: 0xe6cf8f, roughness: 0.7 });
+const feltMat = new THREE.MeshStandardMaterial({ color: 0x3a2a22, roughness: 0.9 });
+const pressedMat = new THREE.MeshStandardMaterial({ color: 0x2459c9, emissive: 0x1b46a8, emissiveIntensity: 0.45, metalness: 0.25, roughness: 0.3 });
+
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const sax = new THREE.Group();
+scene.add(sax);
+// Losse onderdelen voor de uit-elkaar-animatie. Corpus met beker is `sax` zelf en blijft staan.
+const neckPart = new THREE.Group(), mpPart = new THREE.Group();
+sax.add(neckPart, mpPart);
+const parts = [];
+
+/** Buis met wisselende straal langs een reeks punten (parallel transport, dus geen knik in de naad). */
+function taperedTube(pts, radii, radial = 48) {
+  const n = pts.length, T = [], N = [], B = [];
+  for (let i = 0; i < n; i++) T[i] = pts[Math.min(i + 1, n - 1)].clone().sub(pts[Math.max(i - 1, 0)]).normalize();
+  const up = Math.abs(T[0].y) < 0.9 ? V(0, 1, 0) : V(0, 0, 1);
+  N[0] = up.clone().sub(T[0].clone().multiplyScalar(T[0].dot(up))).normalize();
+  for (let i = 1; i < n; i++) {
+    N[i] = N[i - 1].clone();
+    const axis = new THREE.Vector3().crossVectors(T[i - 1], T[i]);
+    const len = axis.length();
+    if (len > 1e-6) N[i].applyAxisAngle(axis.normalize(), Math.asin(Math.min(1, len)));
+  }
+  for (let i = 0; i < n; i++) B[i] = new THREE.Vector3().crossVectors(T[i], N[i]);
+  const pos = [], nor = [], idx = [];
+  for (let i = 0; i < n; i++) for (let j = 0; j <= radial; j++) {
+    const a = (j / radial) * Math.PI * 2, c = Math.cos(a), s = Math.sin(a);
+    const d = N[i].clone().multiplyScalar(c).add(B[i].clone().multiplyScalar(s));
+    pos.push(...pts[i].clone().addScaledVector(d, radii[i]).toArray());
+    nor.push(...d.toArray());
+  }
+  for (let i = 0; i < n - 1; i++) for (let j = 0; j < radial; j++) {
+    const a = i * (radial + 1) + j, b = a + radial + 1;
+    idx.push(a, b, a + 1, b, b + 1, a + 1);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3));
+  g.setIndex(idx);
+  return g;
+}
+function rod(a, b, r = 0.012, mat = brassKey, parent = sax) {
+  const len = a.distanceTo(b);
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 10), mat);
+  m.position.copy(a).add(b).multiplyScalar(0.5);
+  m.quaternion.setFromUnitVectors(V(0, 1, 0), b.clone().sub(a).normalize());
+  parent.add(m);
+  return m;
+}
+const ring = (x, y, r, t = 0.022) => {
+  const m = new THREE.Mesh(new THREE.TorusGeometry(r, t, 12, 48), brassKey);
+  m.position.set(x, y, 0); m.rotation.x = Math.PI / 2; sax.add(m);
+};
+
+// ---------- Corpus, bocht en beker ----------
+// Speler staat aan +z (achterkant), publiek aan -z (voorkant met de parelkleppen). Beker zit rechts van de speler (+x).
+const Y_TOP = 2.6, Y_BOW = -2.2, BOW_R = 0.6, BELL_X = 1.2, Y_BELL = -0.6;
+const rBody = (y) => 0.13 + ((Y_TOP - y) / (Y_TOP - Y_BOW)) * 0.19;
+{
+  const pts = [], rs = [];
+  for (let i = 0; i <= 60; i++) { const y = Y_TOP + (Y_BOW - Y_TOP) * (i / 60); pts.push(V(0, y, 0)); rs.push(rBody(y)); }
+  for (let i = 1; i <= 40; i++) { const f = Math.PI + Math.PI * (i / 40); pts.push(V(BOW_R + BOW_R * Math.cos(f), Y_BOW + BOW_R * Math.sin(f), 0)); rs.push(0.32 + 0.1 * (i / 40)); }
+  for (let i = 1; i <= 30; i++) { const y = Y_BOW + (Y_BELL - Y_BOW) * (i / 30); pts.push(V(BELL_X, y, 0)); rs.push(0.42 + 0.08 * (i / 30)); }
+  sax.add(new THREE.Mesh(taperedTube(pts, rs), brass));
+
+  const prof = [];
+  for (let i = 0; i <= 40; i++) { const h = i / 40; prof.push(new THREE.Vector2(0.5 + 0.28 * Math.pow(h, 2.4), h * 0.95)); }
+  const bell = new THREE.Mesh(new THREE.LatheGeometry(prof, 64), brass);
+  bell.position.set(BELL_X, Y_BELL, 0);
+  sax.add(bell);
+  const lip = new THREE.Mesh(new THREE.TorusGeometry(0.78, 0.035, 14, 80), brassKey);
+  lip.position.set(BELL_X, Y_BELL + 0.95, 0); lip.rotation.x = Math.PI / 2; sax.add(lip);
+
+  ring(0, Y_BOW + 0.02, 0.325, 0.03);
+  ring(BELL_X, Y_BOW + 0.02, 0.425, 0.03);
+  ring(BELL_X, Y_BELL - 0.25, 0.495);
+  // Beschermkap onder de bocht
+  const guard = new THREE.Mesh(new THREE.SphereGeometry(0.2, 24, 12, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), brassKey);
+  guard.position.set(BOW_R, Y_BOW - BOW_R - 0.33, 0); guard.scale.set(1.2, 0.35, 1.2); sax.add(guard);
+  // Steun tussen corpus en beker
+  rod(V(0.22, 0.15, 0), V(BELL_X - 0.75, 0.3, 0), 0.02);
+  rod(V(0.3, -1.6, 0), V(BELL_X - 0.48, -1.6, 0), 0.02);
+}
+
+// ---------- Hals en mondstuk ----------
+{
+  // De hals buigt weg van de beker (zoals op elke saxfoto), een klein beetje naar de speler toe.
+  const swing = (15 * Math.PI) / 180, N = (y, d) => V(-d * Math.cos(swing), y, d * Math.sin(swing));
+  const curve = new THREE.CatmullRomCurve3([N(Y_TOP - 0.1, 0), N(2.95, 0.02), N(3.3, 0.2), N(3.42, 0.48), N(3.36, 0.76), N(3.2, 0.98)]);
+  const pts = curve.getSpacedPoints(50), rs = pts.map((_, i) => 0.135 - 0.06 * (i / 50));
+  neckPart.add(new THREE.Mesh(taperedTube(pts, rs, 32), brass));
+  const rec = new THREE.Mesh(new THREE.CylinderGeometry(0.155, 0.155, 0.16, 32), brassKey);
+  rec.position.set(0, Y_TOP - 0.02, 0); sax.add(rec);
+  const screw = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.12, 12), brassKey);
+  screw.position.set(0, Y_TOP, 0.2); screw.rotation.x = Math.PI / 2; sax.add(screw);
+  // Octaafmechaniek op de hals
+  const octRing = new THREE.Mesh(new THREE.TorusGeometry(0.125, 0.012, 8, 32), brassKey);
+  octRing.position.copy(curve.getPoint(0.42)); octRing.quaternion.setFromUnitVectors(V(0, 0, 1), curve.getTangent(0.42)); neckPart.add(octRing);
+  const pip = new THREE.Mesh(new THREE.SphereGeometry(0.04, 16, 12), brassKey);
+  pip.position.copy(curve.getPoint(0.55)).add(V(0, 0.12, 0)); pip.scale.set(1.3, 0.6, 1.3); neckPart.add(pip);
+  rod(curve.getPoint(0.42).add(V(0, 0.13, 0)), V(0, 2.75, -0.17), 0.012, brassKey, neckPart);
+
+  const end = pts[pts.length - 1], dir = curve.getTangent(1);
+  const mp = new THREE.Group();
+  mp.position.copy(end); mp.quaternion.setFromUnitVectors(V(0, 0, 1), dir); mpPart.add(mp);
+  const cyl = (r1, r2, len, z, mat) => {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r2, r1, len, 32), mat);
+    m.rotation.x = Math.PI / 2; m.position.z = z; mp.add(m); return m;
+  };
+  const cork = new THREE.Mesh(new THREE.CylinderGeometry(0.082, 0.082, 0.2, 32), corkMat);
+  cork.position.copy(end); cork.quaternion.setFromUnitVectors(V(0, 1, 0), dir); neckPart.add(cork);
+  cyl(0.1, 0.095, 0.36, 0.25, blackMat);
+  const beak = cyl(0.095, 0.05, 0.22, 0.54, blackMat); beak.scale.set(1, 1, 0.75);
+  cyl(0.103, 0.103, 0.09, 0.34, silverMat);
+  cyl(0.103, 0.103, 0.06, 0.46, silverMat);
+  const reed = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.012, 0.5), reedMat);
+  reed.position.set(0, -0.085, 0.4); mp.add(reed);
+
+  // Hals schuift omhoog uit het corpus, het mondstuk daarna van de kurk af.
+  const neckOff = V(-0.2, 1.1, 0);
+  parts.push({ obj: neckPart, off: neckOff, from: 0, to: 0.65, name: "Hals", at: curve.getPoint(0.55).add(V(0, 0.35, 0)) });
+  parts.push({ obj: mpPart, off: neckOff.clone().addScaledVector(dir, 1.1), from: 0.35, to: 1, name: "Mondstuk", at: end.clone().addScaledVector(dir, 0.35).add(V(0, 0.3, 0)) });
+  parts.push({ obj: null, off: V(), from: 0, to: 1, name: "Corpus met beker", at: V(BELL_X + 0.95, -0.2, 0) });
+}
+
+// ---------- Kleppen ----------
+/** Punt op de buitenkant van het corpus. th = hoek rond de buis: 0 = voorkant, + = bekerkant (rechts), 180 = achterkant. */
+const normal = (th) => { const a = (th * Math.PI) / 180; return V(Math.sin(a), 0, -Math.cos(a)); };
+const surface = (y, th, cx = 0, r = rBody(y)) => V(cx, y, 0).addScaledVector(normal(th), r);
+
+const keys = {};
+const pickables = [];
+function addKey(id, { y, th, shape, w = 0.06, h = 0.16, cup = 0, out = 0.05, cx = 0, r, tilt = 0 }) {
+  const n = normal(th);
+  const base = surface(y, th, cx, r).addScaledVector(n, out);
+  const g = new THREE.Group();
+  g.position.copy(base);
+  g.quaternion.setFromUnitVectors(V(0, 0, 1), n);
+  g.rotateZ(tilt);
+  sax.add(g);
+  const hl = [];
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, out, 8), brassKey);
+  post.rotation.x = Math.PI / 2; post.position.z = -out / 2; g.add(post);
+  if (cup) {
+    const c = new THREE.Mesh(new THREE.CylinderGeometry(cup, cup, 0.045, 36), brassKey);
+    c.rotation.x = Math.PI / 2; g.add(c); hl.push(c);
+    const pad = new THREE.Mesh(new THREE.CylinderGeometry(cup * 0.92, cup * 0.92, 0.02, 32), feltMat);
+    pad.rotation.x = Math.PI / 2; pad.position.z = -0.03; g.add(pad);
+  }
+  let touch;
+  if (shape === "pearl") {
+    touch = new THREE.Mesh(new THREE.SphereGeometry(w, 24, 16), pearlMat);
+    touch.scale.z = 0.55; touch.position.z = cup ? 0.03 : 0;
+  } else if (shape === "paddle") {
+    touch = new THREE.Mesh(new THREE.CapsuleGeometry(w, h, 8, 20), pearlMat);
+    touch.scale.z = 0.4;
+  } else {
+    // Pinkklep: platte, ovale spatel
+    touch = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), brassKey);
+    touch.scale.set(w, h, 0.03);
+  }
+  g.add(touch); hl.push(touch);
+  for (const m of hl) { m.userData.base = m.material; m.userData.keyId = id; pickables.push(m); }
+
+  const el = document.createElement("div");
+  el.className = "label"; el.textContent = SHORT[id] ?? id;
+  const label = new CSS2DObject(el);
+  label.position.set(0, 0, 0.28);
+  g.add(label);
+  keys[id] = { g, base, n, hl, label, el, press: 0, target: 0 };
+}
+
+/** Toongat met dekselklep die niet apart te bedienen is (voor het echte uiterlijk). */
+function deco(y, th, cup, { cx = 0, r } = {}) {
+  const n = normal(th);
+  const p = surface(y, th, cx, r);
+  const ch = new THREE.Mesh(new THREE.CylinderGeometry(cup * 0.85, cup * 0.85, 0.05, 28), brass);
+  ch.position.copy(p).addScaledVector(n, 0.01); ch.quaternion.setFromUnitVectors(V(0, 1, 0), n); sax.add(ch);
+  const c = new THREE.Mesh(new THREE.CylinderGeometry(cup, cup * 0.96, 0.04, 32), brassKey);
+  c.position.copy(p).addScaledVector(n, 0.06); c.quaternion.setFromUnitVectors(V(0, 1, 0), n); sax.add(c);
+  return c.position.clone();
+}
+
+// Linkerhand-stapel (voor), met bis tussen 1 en 2
+addKey("L1", { y: 1.55, th: 0, shape: "pearl", cup: 0.115, w: 0.058 });
+addKey("bis", { y: 1.36, th: 0, shape: "pearl", w: 0.035, out: 0.04 });
+addKey("L2", { y: 1.15, th: 0, shape: "pearl", cup: 0.125, w: 0.058 });
+addKey("L3", { y: 0.75, th: 0, shape: "pearl", cup: 0.135, w: 0.058 });
+// Rechterhand-stapel
+addKey("R4", { y: -0.35, th: 0, shape: "pearl", cup: 0.16, w: 0.06 });
+addKey("R5", { y: -0.78, th: 0, shape: "pearl", cup: 0.17, w: 0.06 });
+addKey("R6", { y: -1.2, th: 0, shape: "pearl", cup: 0.18, w: 0.06 });
+// Voorste F, handpalmkleppen (links), zijkleppen (rechts)
+addKey("fF", { y: 1.88, th: 18, shape: "paddle", w: 0.04, h: 0.08, out: 0.06, tilt: 0.3 });
+addKey("pD", { y: 2.3, th: -78, shape: "paddle", w: 0.045, h: 0.16 });
+addKey("pEb", { y: 2.06, th: -62, shape: "paddle", w: 0.045, h: 0.16 });
+addKey("pF", { y: 1.84, th: -82, shape: "paddle", w: 0.045, h: 0.16 });
+addKey("sE", { y: 0.05, th: 78, shape: "paddle", w: 0.04, h: 0.13 });
+addKey("sC", { y: -0.17, th: 78, shape: "paddle", w: 0.04, h: 0.13 });
+addKey("sBb", { y: -0.39, th: 78, shape: "paddle", w: 0.04, h: 0.13 });
+// Pinktafel links: G♯ en de lage kleppen
+addKey("gs", { y: 0.46, th: -38, shape: "spatula", w: 0.1, h: 0.06, out: 0.07, tilt: 0.25 });
+addKey("cs", { y: 0.34, th: -58, shape: "spatula", w: 0.07, h: 0.055, out: 0.07 });
+addKey("lb", { y: 0.3, th: -32, shape: "spatula", w: 0.08, h: 0.055, out: 0.07, tilt: -0.2 });
+addKey("lbb", { y: 0.2, th: -52, shape: "spatula", w: 0.09, h: 0.055, out: 0.07 });
+// Pinkkleppen rechts
+addKey("eb", { y: -1.5, th: 34, shape: "spatula", w: 0.12, h: 0.07, out: 0.08, tilt: -0.35 });
+addKey("lc", { y: -1.66, th: 30, shape: "spatula", w: 0.12, h: 0.07, out: 0.08, tilt: -0.35 });
+// Octaafklep met de linkerduim (achter) + duimsteunen
+addKey("oct", { y: 1.62, th: 172, shape: "paddle", w: 0.05, h: 0.12, out: 0.06, tilt: 0.5 });
+{
+  const thumb = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.04, 28), blackMat);
+  thumb.position.copy(surface(1.38, 180)).add(V(0, 0, 0.05)); thumb.rotation.x = Math.PI / 2; sax.add(thumb);
+  const hook = new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.022, 10, 24, Math.PI), brassKey);
+  hook.position.copy(surface(-0.75, 180)).add(V(0, 0, 0.06)); hook.rotation.set(0, Math.PI / 2, Math.PI / 2); sax.add(hook);
+}
+
+// Toongaten die met de grepen meegaan, aan de zijkanten en op beker/bocht
+const decoTops = [];
+for (const [y, th, c] of [[2.15, -25, 0.07], [1.95, 35, 0.075], [1.42, 42, 0.09], [0.98, 45, 0.1], [0.58, -55, 0.11],
+  [0.25, 48, 0.12], [-0.05, -42, 0.13], [-0.55, 50, 0.14], [-1.0, 48, 0.15], [-1.45, -30, 0.17], [-1.85, 18, 0.19]]) decoTops.push(deco(y, th, c));
+deco(-1.75, -35, 0.2, { cx: BELL_X, r: 0.46 });
+deco(-1.25, -40, 0.21, { cx: BELL_X, r: 0.475 });
+deco(-0.85, -150, 0.21, { cx: BELL_X, r: 0.49 });
+deco(-2.0, 30, 0.19, { cx: BELL_X, r: 0.44 });
+// Asstangen langs de stapels
+rod(surface(1.9, 30, 0, rBody(1.9) + 0.07), surface(0.6, 30, 0, rBody(0.6) + 0.07));
+rod(surface(-0.1, 28, 0, rBody(-0.1) + 0.08), surface(-1.6, 28, 0, rBody(-1.6) + 0.08));
+rod(surface(2.2, -40, 0, rBody(2.2) + 0.07), surface(0.35, -40, 0, rBody(0.35) + 0.07));
+rod(surface(0.3, 62, 0, rBody(0.3) + 0.08), surface(-0.6, 62, 0, rBody(-0.6) + 0.08));
+
+// Schaduw op de vloer
+{
+  const c = document.createElement("canvas"); c.width = c.height = 128;
+  const x = c.getContext("2d"), gr = x.createRadialGradient(64, 64, 4, 64, 64, 62);
+  gr.addColorStop(0, "rgba(0,0,0,.35)"); gr.addColorStop(1, "rgba(0,0,0,0)");
+  x.fillStyle = gr; x.fillRect(0, 0, 128, 128);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 1.8), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false }));
+  m.rotation.x = -Math.PI / 2; m.position.set(0.6, -3.25, 0); scene.add(m);
+}
+
+// ---------- Camera ----------
+const TARGET = V(0.5, 0.15, 0);
+const DIST = 14;
+const VIEWS = {
+  front: V(0.3, 0.12, -1), back: V(-0.15, 0.12, 1), left: V(-1, 0.1, -0.12), right: V(1, 0.1, -0.12), top: V(0.05, 1, -0.35),
+};
+camera.position.copy(TARGET).addScaledVector(VIEWS.front.clone().normalize(), DIST);
+controls.target.copy(TARGET);
+
+let fly = null;
+function flyTo(pos, target, ms = 650) {
+  fly = { p0: camera.position.clone(), t0: controls.target.clone(), p1: pos, t1: target, start: performance.now(), ms };
+}
+let explode = 0, explodeTarget = 0;
+// Uit elkaar staan de delen hoger, dus dan kijkt de camera iets hoger en van verder weg.
+const framing = () => (explodeTarget ? { t: V(0.1, 0.8, 0), d: DIST * 1.2 } : { t: TARGET.clone(), d: DIST });
+document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => {
+  const { t, d } = framing();
+  flyTo(t.clone().addScaledVector(VIEWS[b.dataset.view].clone().normalize(), d), t);
+}));
+// ---------- Uit elkaar ----------
+const partLabels = parts.map((pt) => {
+  const el = document.createElement("div");
+  el.className = "label part"; el.textContent = pt.name;
+  const l = new CSS2DObject(el);
+  l.position.copy(pt.at);
+  (pt.obj ?? sax).add(l);
+  l.visible = false;
+  return l;
+});
+const explodeBtn = document.getElementById("explode");
+explodeBtn.addEventListener("click", () => {
+  explodeTarget = explodeTarget ? 0 : 1;
+  explodeBtn.setAttribute("aria-pressed", explodeTarget === 1);
+  explodeBtn.textContent = explodeTarget ? "In elkaar" : "Uit elkaar";
+  // Iets verder weg zodat de opgeschoven hals en het mondstuk in beeld blijven
+  const dirCam = camera.position.clone().sub(controls.target).normalize();
+  const { t, d } = framing();
+  flyTo(t.clone().addScaledVector(dirCam, d), t, 900);
+});
+function updateExplode(dt) {
+  const step = dt / 1.4;
+  explode = explodeTarget > explode ? Math.min(explodeTarget, explode + step) : Math.max(explodeTarget, explode - step);
+  for (const pt of parts) {
+    if (!pt.obj) continue;
+    const local = THREE.MathUtils.clamp((explode - pt.from) / (pt.to - pt.from), 0, 1);
+    pt.obj.position.copy(pt.off).multiplyScalar(ease(local));
+  }
+  const showParts = explode > 0.6;
+  partLabels.forEach((l) => (l.visible = showParts));
+  // Klepnummers even weg terwijl de delen los zijn, anders wordt het te druk
+  for (const k of Object.values(keys)) k.el.style.opacity = String(1 - Math.min(1, explode * 2));
+}
+
+const spin = document.getElementById("spin");
+spin.addEventListener("click", () => {
+  controls.autoRotate = !controls.autoRotate;
+  spin.setAttribute("aria-pressed", controls.autoRotate);
+});
+const zoomBy = (f) => {
+  const off = camera.position.clone().sub(controls.target);
+  const d = THREE.MathUtils.clamp(off.length() * f, controls.minDistance, controls.maxDistance);
+  flyTo(controls.target.clone().add(off.setLength(d)), controls.target.clone(), 300);
+};
+document.getElementById("zin").addEventListener("click", () => zoomBy(0.7));
+document.getElementById("zout").addEventListener("click", () => zoomBy(1.4));
+
+// ---------- Kiezen en aantikken ----------
+const ray = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+function pick(ev) {
+  const r = renderer.domElement.getBoundingClientRect();
+  ndc.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  return ray.intersectObjects(pickables.filter((m) => keys[m.userData.keyId].g.visible), false)[0]?.object.userData.keyId;
+}
+let down = null, lastTap = { t: 0, id: null };
+renderer.domElement.addEventListener("pointerdown", (e) => { down = { x: e.clientX, y: e.clientY }; });
+renderer.domElement.addEventListener("pointerup", (e) => {
+  if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) return;
+  const id = pick(e);
+  const now = performance.now();
+  if (id && lastTap.id === id && now - lastTap.t < 350) focusKey(id);
+  lastTap = { t: now, id };
+  showInfo(id);
+});
+renderer.domElement.addEventListener("dblclick", (e) => { const id = pick(e); if (id) focusKey(id); });
+
+function focusKey(id) {
+  const k = keys[id];
+  const p = k.g.getWorldPosition(new THREE.Vector3());
+  flyTo(p.clone().addScaledVector(k.n, 1.6).add(V(0, 0.25, 0)), p, 700);
+}
+
+const info = document.getElementById("info");
+function showInfo(id) {
+  if (!id) { info.hidden = true; return; }
+  const uses = Object.entries(FINGERINGS).filter(([, alts]) => alts.some((a) => a.includes(id)));
+  info.hidden = false;
+  info.dataset.key = id;
+  info.innerHTML = `<strong>${KEY_NAMES[id] ?? id}</strong>` +
+    (uses.length ? `Nodig voor: ${uses.map(([n]) => label(n)).join(", ")}` : "Niet nodig in de grepen van deze tabel.");
+  for (const k of Object.values(keys)) k.flash = 0;
+  keys[id].flash = 1;
+}
+
+const label = (n) => { const p = parse(n); return [p.name, octaveWord(p.octave)].filter(Boolean).join(" "); };
+
+// ---------- Noten ----------
+const notesEl = document.getElementById("notes"), altsEl = document.getElementById("alts"), filterEl = document.getElementById("filter");
+const ALL = Object.keys(FINGERINGS);
+const FILTERS = [["mine", "Mijn noten"], ["les", "In de les"], ["all", "Alle noten"]];
+const inFilter = (f, n) => (f === "all" ? true : f === "les" ? STATUSES[n] === "les" : Boolean(STATUSES[n]));
+let needed = new Set();
+let filter = "mine", current = "g4", alt = 0, showAll = false;
+
+for (const [f] of FILTERS) {
+  const b = document.createElement("button");
+  b.type = "button"; b.dataset.filter = f;
+  b.addEventListener("click", () => { filter = f; renderNotes(); });
+  filterEl.append(b);
+}
+const learnerEl = document.getElementById("learner"), octaveEl = document.getElementById("octave");
+const AGE_TEXT = { "6-8": "6 – 8 jaar", "9-12": "9 – 12 jaar", "13-17": "13 – 17 jaar", "18+": "18+" };
+for (const [id, l] of Object.entries(LEARNERS)) {
+  const b = document.createElement("button");
+  b.type = "button"; b.dataset.learner = id; b.textContent = `${l.name} · ${AGE_TEXT[l.age]}`;
+  b.addEventListener("click", () => setLearner(id));
+  learnerEl.append(b);
+}
+// ---------- Notenbalk (zelfde tekening als StaffRow / StaffNote in de app) ----------
+const LETTERS = "cdefgab";
+const staffPos = (id) => { const o = +id.at(-1); return o * 7 + LETTERS.indexOf(id[0]) - (4 * 7 + 2); }; // 0 = onderste lijn (E4)
+const accidental = (id) => (/^(cis|fis|gis)/.test(id) ? "♯" : /^(es|bes)/.test(id) ? "♭" : "");
+const ledgers = (pos) => { const r = []; for (let s = -2; s >= pos; s -= 2) r.push(s); for (let s = 10; s <= pos; s += 2) r.push(s); return r; };
+const STATUS_COLOR = { kent: "var(--kent)", les: "var(--accent)", moet: "var(--moet)" };
+function noteGlyph(id, cx, y, col, scale = 1) {
+  const pos = staffPos(id), cy = y(pos), acc = accidental(id), rx = 7 * scale, ry = 5 * scale, st = 34 * scale;
+  return ledgers(pos).map((s) => `<line x1="${cx - 13 * scale}" x2="${cx + 13 * scale}" y1="${y(s)}" y2="${y(s)}" stroke="currentColor" stroke-width="1.2"/>`).join("")
+    + (acc ? `<text x="${cx - 19 * scale}" y="${cy + 6 * scale}" font-size="${18 * scale}" fill="${col}" text-anchor="middle" font-family="serif">${acc}</text>` : "")
+    + `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${col}" transform="rotate(-20 ${cx} ${cy})"/>`
+    + (pos < 4 ? `<line x1="${cx + rx * 0.9}" x2="${cx + rx * 0.9}" y1="${cy - 1}" y2="${cy - st}" stroke="${col}" stroke-width="1.6"/>`
+               : `<line x1="${cx - rx * 0.9}" x2="${cx - rx * 0.9}" y1="${cy + 1}" y2="${cy + st}" stroke="${col}" stroke-width="1.6"/>`);
+}
+function staffRow(notes) {
+  // Hoogte past zich aan de hoogste en laagste noot aan, zodat een paar noten geen lege ruimte geven.
+  const ps = notes.map(staffPos), hi = Math.max(8, ...ps), lo = Math.min(0, ...ps);
+  const sp = 12, x0 = 62, dx = 50, base = 44 + hi * (sp / 2), h = base - lo * (sp / 2) + 78, w = x0 + Math.max(notes.length, 1) * dx + 6, y = (s) => base - s * (sp / 2);
+  let out = `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">`;
+  out += [0, 1, 2, 3, 4].map((i) => `<line x1="8" x2="${w - 8}" y1="${base - i * sp}" y2="${base - i * sp}" stroke="currentColor" stroke-width="1.2"/>`).join("");
+  out += `<text x="12" y="${base + 3}" font-size="60" fill="currentColor" font-family="serif">𝄞</text>`;
+  notes.forEach((n, i) => {
+    const cx = x0 + i * dx, col = STATUS_COLOR[STATUSES[n]] ?? "currentColor", sel = n === current, p = parse(n);
+    const top = Math.min(y(staffPos(n)), base - 4 * sp) - 46;
+    out += `<g role="button" tabindex="0" data-note="${n}" aria-pressed="${sel}" aria-label="${label(n)}">`
+      + `<rect x="${cx - 23}" y="${top}" width="46" height="${h - top - 2}" rx="10" fill="${sel ? "var(--bg)" : "transparent"}" stroke="${sel ? "currentColor" : "none"}" stroke-width="2"/>`
+      + noteGlyph(n, cx, y, col)
+      + `<text x="${cx}" y="${h - 26}" font-size="16" font-weight="800" fill="${col}" text-anchor="middle" font-family="Lexend, sans-serif">${p.name}</text>`
+      + `<text x="${cx}" y="${h - 10}" font-size="10" fill="var(--muted)" text-anchor="middle">${showOctave() ? p.octave : octaveWord(p.octave)}</text></g>`;
+  });
+  return out + "</svg>";
+}
+function bigStaff(n) {
+  const sp = 12, w = 200, h = 150, base = 105, cx = 140, y = (s) => base - s * (sp / 2);
+  return `<svg viewBox="0 0 ${w} ${h}" aria-label="${label(n)} op de notenbalk">`
+    + [0, 1, 2, 3, 4].map((i) => `<line x1="6" x2="${w - 6}" y1="${base - i * sp}" y2="${base - i * sp}" stroke="currentColor" stroke-width="1.2"/>`).join("")
+    + `<text x="10" y="${base + 3}" font-size="60" fill="currentColor" font-family="serif">𝄞</text>`
+    + noteGlyph(n, cx, y, STATUS_COLOR[STATUSES[n]] ?? "var(--kent)", 1.2) + "</svg>";
+}
+let noteView = "buttons";
+const viewSeg = document.getElementById("viewSeg");
+viewSeg.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { noteView = b.dataset.v; renderNotes(); }));
+notesEl.addEventListener("click", (e) => { const g = e.target.closest("g[data-note]"); if (g) select(g.dataset.note, 0); });
+notesEl.addEventListener("keydown", (e) => {
+  const g = e.target.closest("g[data-note]");
+  if (g && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); select(g.dataset.note, 0); notesEl.querySelector(`g[data-note="${g.dataset.note}"]`)?.focus(); }
+});
+
+const showOctave = () => octaveOverride[learner] ?? octaveDefault(LEARNERS[learner].age);
+octaveEl.addEventListener("change", () => { octaveOverride[learner] = octaveEl.checked; renderNotes(); });
+function setLearner(id) {
+  learner = id; STATUSES = LEARNERS[id].statuses;
+  needed = new Set(ALL.filter((n) => STATUSES[n]).flatMap((n) => FINGERINGS[n][0]));
+  learnerEl.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.learner === id));
+  FILTERS.forEach(([f, t]) => { filterEl.querySelector(`[data-filter="${f}"]`).textContent = `${t} (${ALL.filter((n) => inFilter(f, n)).length})`; });
+  renderNotes();
+}
+function renderNotes() {
+  const l = LEARNERS[learner], def = octaveDefault(l.age);
+  octaveEl.checked = showOctave();
+  document.getElementById("octaveHint").textContent =
+    `Standaard ${def ? "aan" : "uit"} voor ${AGE_TEXT[l.age]}${octaveOverride[learner] !== undefined && octaveOverride[learner] !== def ? `, voor ${l.name} ${octaveOverride[learner] ? "aangezet" : "uitgezet"}` : ""}. Instelling per leerling.`;
+  filterEl.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.filter === filter));
+  const visible = ALL.filter((n) => inFilter(filter, n));
+  viewSeg.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === noteView));
+  notesEl.classList.toggle("staff", noteView === "staff");
+  notesEl.innerHTML = visible.length ? "" : `<p class="empty-notes">Nog geen noten in de les.</p>`;
+  for (const n of noteView === "buttons" ? visible : []) {
+    const b = document.createElement("button"), p = parse(n);
+    b.type = "button"; b.className = STATUSES[n] ?? "";
+    b.innerHTML = showOctave() ? `${p.name}<sub>${p.octave}</sub>` : label(n);
+    b.title = label(n); b.dataset.note = n;
+    b.addEventListener("click", () => select(n, 0));
+    notesEl.append(b);
+  }
+  select(visible.includes(current) ? current : (visible[0] ?? current), visible.includes(current) ? alt : 0);
+}
+function select(n, a) {
+  current = n; alt = a;
+  const alts = FINGERINGS[n], pressed = new Set(alts[a]);
+  notesEl.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.note === n));
+  if (noteView === "staff") {
+    const visible = ALL.filter((x) => inFilter(filter, x)), scroll = notesEl.scrollLeft;
+    if (visible.length) notesEl.innerHTML = staffRow(visible);
+    notesEl.scrollLeft = scroll;
+    // Gekozen noot in beeld schuiven (alleen horizontaal, de pagina blijft staan)
+    const i = visible.indexOf(n), cx = 62 + i * 50, viewW = notesEl.clientWidth;
+    if (i >= 0 && (cx < notesEl.scrollLeft + 30 || cx > notesEl.scrollLeft + viewW - 30)) notesEl.scrollLeft = cx - viewW / 2;
+  }
+  document.getElementById("bigStaff").innerHTML = bigStaff(n);
+  const p = parse(n);
+  document.getElementById("noteName").textContent = p.name;
+  document.getElementById("noteSub").textContent = [octaveWord(p.octave), showOctave() && `octaaf ${p.octave}`].filter(Boolean).join(" · ");
+  altsEl.innerHTML = "";
+  if (alts.length > 1) alts.forEach((_, i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = i === 0 ? "Gewone greep" : `Alternatief ${i}`; b.setAttribute("aria-pressed", i === a);
+    b.addEventListener("click", () => select(n, i));
+    altsEl.append(b);
+  });
+  const names = alts[a].map((k) => KEY_NAMES[k] ?? k);
+  document.getElementById("druk").innerHTML = names.length
+    ? `Druk in: ${names.map((k) => `<b>${k}</b>`).join(", ")}`
+    : "Niets indrukken, alles <b>open</b>";
+  for (const [id, k] of Object.entries(keys)) k.target = pressed.has(id) ? 1 : 0;
+  updateKeys();
+}
+const showAllBtn = document.getElementById("showAll");
+showAllBtn.addEventListener("click", () => {
+  showAll = !showAll;
+  showAllBtn.setAttribute("aria-pressed", showAll);
+  showAllBtn.textContent = showAll ? "Alleen kleppen voor mijn noten" : "Toon alle kleppen";
+  updateKeys();
+});
+function updateKeys() {
+  for (const [id, k] of Object.entries(keys)) {
+    const on = k.target === 1;
+    k.g.visible = on || showAll || (OPTIONAL.has(id) ? false : AUTO.has(id) ? needed.has(id) : true);
+    // Basiskleppen houden hun nummer, zoals in de 2D-tekening; extra kleppen alleen als je ze indrukt.
+    k.label.visible = on || (k.g.visible && !AUTO.has(id) && !OPTIONAL.has(id));
+    k.el.classList.toggle("idle", !on);
+  }
+  if (!info.hidden && info.dataset.key && !keys[info.dataset.key].g.visible) info.hidden = true;
+}
+setLearner(learner);
+
+// ---------- Lus ----------
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h); labelRenderer.setSize(w, h);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(stage);
+resize();
+
+const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const clock = new THREE.Clock();
+renderer.setAnimationLoop(() => {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  if (fly) {
+    const t = Math.min(1, (performance.now() - fly.start) / fly.ms), e = ease(t);
+    camera.position.lerpVectors(fly.p0, fly.p1, e);
+    controls.target.lerpVectors(fly.t0, fly.t1, e);
+    if (t === 1) fly = null;
+  }
+  for (const k of Object.values(keys)) {
+    k.press += (k.target - k.press) * Math.min(1, dt * 14);
+    k.g.position.copy(k.base).addScaledVector(k.n, -0.035 * k.press);
+    if (k.flash) k.flash = Math.max(0, k.flash - dt * 0.8);
+    const blink = k.flash > 0 && Math.sin(k.flash * 18) > 0;
+    for (const m of k.hl) m.material = k.press > 0.5 || blink ? pressedMat : m.userData.base;
+  }
+  updateExplode(dt);
+  controls.update();
+  renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
+});
+</script>
+</body>
+</html>

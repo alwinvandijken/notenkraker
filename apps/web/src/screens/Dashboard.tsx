@@ -3,22 +3,28 @@ import clsx from "clsx";
 import { instrumentNotes, type StatusMap } from "@notenkraker/core";
 import { getInstrument } from "@notenkraker/instruments";
 import {
-  childSummary, dateKey, playedOfTotal, whenLabel, type ChildSummary, type PracticeSession, type Round, type SessionSummary, type Student,
+  childSummary, dateKey, dueLabel, playedOfTotal, whenLabel, worstStatus, type ChildSummary, type PracticeSession, type Round, type SessionSummary, type Student,
 } from "@notenkraker/client";
 import { client } from "@/lib/client";
 import { useApp } from "@/lib/store";
 import { Chip } from "@/components/ui";
 import { Donut } from "@/components/Donut";
 import { ICON } from "@/lib/iconen";
+import { GiverAvatar, StatusBadge, withProgress, type CurrentHomework } from "@/components/Huiswerk";
 
 /**
  * Startscherm voor een ouder of leraar (mock-up: docs/mockups/iPadA-Ouder.html). Het overzicht
  * houdt het kort: per kind een kaart met deze week en de laatste activiteit, zonder noten. Tik
  * op een kaart voor de pagina van dat kind (KindPagina.tsx), op een dag of activiteit voor de
  * dagpagina (DagPagina.tsx) met alle details. Zo blijft het
- * ook op een staande iPhone leesbaar. Een leraar ziet wie het langst niet oefende bovenaan.
+ * ook op een staande iPhone leesbaar. Een leraar ziet wie achterloopt met het huiswerk bovenaan,
+ * daarna wie het langst niet oefende.
  */
-export interface Row { student: Student; rounds: Round[]; sessions: PracticeSession[]; summary: ChildSummary; range: [string, string] }
+export interface Row { student: Student; rounds: Round[]; sessions: PracticeSession[]; summary: ChildSummary; range: [string, string]; homework: CurrentHomework[] }
+
+/** volgorde voor de leraar: loopt achter, even opletten, geen huiswerk, gaat goed */
+const HOMEWORK_ORDER = { achter: 0, opletten: 1, geen: 2, goed: 3 } as const;
+const rowStatus = (r: Row) => worstStatus(r.homework.map((x) => x.p.status));
 
 /** rondes, sessies en notenstatus per kind; null = nog aan het laden */
 export function useChildRows(): Row[] | null {
@@ -29,15 +35,20 @@ export function useChildRows(): Row[] | null {
     let stale = false;
     void Promise.all(students.map(async (student): Promise<Row> => {
       const instrument = getInstrument(student.instrumentId);
-      const [rounds, notes, sessions] = await Promise.all([
+      const [rounds, notes, sessions, homework] = await Promise.all([
         client.rounds.recent(student.id, 200), client.notes.list(student.id), client.practice.recent(student.id, 50),
+        // zonder huiswerktabel (oude database) gewoon zonder huiswerk
+        client.homework.list(student.id).catch(() => []),
       ]);
       const statuses: StatusMap = Object.fromEntries(notes.map((n) => [n.noteId, n.status]));
-      return { student, rounds, sessions, range: instrument.range, summary: childSummary({ rounds, sessions, statuses, noteIds: instrumentNotes(instrument) }) };
+      return {
+        student, rounds, sessions, range: instrument.range, homework: withProgress(homework, rounds, sessions),
+        summary: childSummary({ rounds, sessions, statuses, noteIds: instrumentNotes(instrument) }),
+      };
     })).then((list) => {
       if (stale) return;
       const never = (r: Row) => r.summary.daysSinceLast ?? Infinity;
-      setRows(isLeraar ? [...list].sort((a, b) => never(b) - never(a)) : list);
+      setRows(isLeraar ? [...list].sort((a, b) => HOMEWORK_ORDER[rowStatus(a)] - HOMEWORK_ORDER[rowStatus(b)] || never(b) - never(a)) : list);
     });
     return () => { stale = true; };
   }, [students, isLeraar]);
@@ -114,6 +125,13 @@ function ChildCard({ row, onOpen }: { row: Row; onOpen(): void }) {
           ) : <span key={i} className="rounded-sm bg-line h-1" />)}
         </div>
       </div>
+      {row.homework.length > 0 && (
+        <div className="flex items-center gap-2 text-sm w-full min-w-0 border-t border-line pt-3">
+          <span className="flex -space-x-1.5 shrink-0">{row.homework.map((x) => <GiverAvatar key={x.h.id} h={x.h} small />)}</span>
+          <span className="flex-1 min-w-0 truncate">Huiswerk tot {dueLabel(row.homework.map((x) => x.h.dueDate).sort()[0]!)}</span>
+          <StatusBadge status={rowStatus(row)} />
+        </div>
+      )}
       {last && (
         <div className="flex items-center gap-2 text-sm w-full min-w-0 border-t border-line pt-3">
           <ActivityIcon kind={last.kind} />

@@ -1,5 +1,5 @@
 import { ageProfile, scoreRound, type StatusMap } from "@notenkraker/core";
-import type { NotenkrakerClient, PracticeSession, Profile, Round, Song, Student, StudentNote } from "./types.js";
+import type { Homework, NotenkrakerClient, PracticeSession, Profile, Round, Song, Student, StudentNote } from "./types.js";
 
 /**
  * In-memory/localStorage-implementatie van hetzelfde contract. Voor
@@ -8,7 +8,7 @@ import type { NotenkrakerClient, PracticeSession, Profile, Round, Song, Student,
  * (standaard "ouder": kinderen onder één login), geen echte auth.
  */
 export function createLocalNotenkraker(storageKey = "notenkraker-local", opts: { role?: Profile["role"]; displayName?: string } = {}): NotenkrakerClient {
-  type State = { students: Student[]; notes: StudentNote[]; rounds: Round[]; practice?: PracticeSession[]; songs: Array<Song & { studentId: string }> };
+  type State = { students: Student[]; notes: StudentNote[]; rounds: Round[]; practice?: PracticeSession[]; homework?: Homework[]; songs: Array<Song & { studentId: string }> };
   const load = (): State => {
     try { const raw = globalThis.localStorage?.getItem(storageKey); if (raw) return JSON.parse(raw) as State; } catch { /* geen storage */ }
     return { students: [], notes: [], rounds: [], songs: [] };
@@ -81,6 +81,31 @@ export function createLocalNotenkraker(storageKey = "notenkraker-local", opts: {
         save(); return s;
       },
       async recent(sid, limit = 20) { return (state.practice ?? []).filter((s) => s.studentId === sid).slice(0, limit); },
+    },
+    // lokaal (zonder account) geeft niemand huiswerk; dit is er voor ontwikkelen zonder backend
+    homework: {
+      async list(sid, limit = 20) { return (state.homework ?? []).filter((h) => h.studentId === sid).slice(0, limit); },
+      async give(input) {
+        const h: Homework = { ...input, id: uid(), givenBy: profile.id, givenByRole: profile.role === "leraar" ? "leraar" : "ouder", givenByName: profile.displayName, createdAt: now() };
+        (state.homework ??= []).unshift(h);
+        for (const n of input.notes) {
+          if (!state.notes.some((x) => x.studentId === input.studentId && x.noteId === n && x.status === "kent")) {
+            state.notes = state.notes.filter((x) => !(x.studentId === input.studentId && x.noteId === n));
+            state.notes.push({ studentId: input.studentId, noteId: n, status: "les", updatedAt: now() });
+          }
+        }
+        save(); emit(input.studentId); return h;
+      },
+    },
+    // zonder account geen feedback en geen beheer
+    feedback: {
+      async send() { throw new Error("niet beschikbaar zonder backend"); },
+      async list() { return []; },
+      async setStatus() { /* niets */ },
+    },
+    admin: {
+      async users() { return []; },
+      async setFeedbackAllowed() { /* niets */ },
     },
     songs: {
       async list(sid) { return state.songs.filter((s) => s.studentId === sid); },

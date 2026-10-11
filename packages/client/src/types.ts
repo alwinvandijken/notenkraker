@@ -19,7 +19,24 @@ export interface Profile {
   role: Role | null;
   displayName: string;
   email?: string;
+  /** mag feedback geven (AC-116); zet alleen een admin */
+  canGiveFeedback?: boolean;
 }
+
+/** feedback van een gebruiker (AC-116); alleen een admin leest het */
+export type FeedbackKind = "idee" | "fout" | "vraag";
+export type FeedbackStatus = "nieuw" | "bekeken" | "linear" | "klaar";
+export interface FeedbackInput { kind: FeedbackKind; message: string; screen: string; url: string; device: string; version: string }
+export interface Feedback extends FeedbackInput {
+  id: string;
+  userId: string | null;
+  displayName: string;
+  role: Role | null;
+  status: FeedbackStatus;
+  linearUrl: string | null;
+  createdAt: string;
+}
+export interface AdminUser { id: string; displayName: string; email: string; role: Role | null; canGiveFeedback: boolean; createdAt: string }
 
 export interface Student {
   id: string;
@@ -68,6 +85,28 @@ export interface PracticeSession {
   /** twijfel: minuten lang steeds dezelfde noot */
   label: "sax" | "twijfel";
 }
+
+/**
+ * Huiswerk van een ouder of leraar (AC-113). Ieder geeft zijn eigen huiswerk; per gever telt het
+ * nieuwste. dueDate is jjjj-mm-dd; naam en rol van de gever staan erbij, want een leerling mag
+ * hun profielen niet lezen.
+ */
+export interface Homework {
+  id: string;
+  studentId: string;
+  givenBy: string;
+  givenByRole: "ouder" | "leraar";
+  givenByName: string;
+  createdAt: string;
+  dueDate: string;
+  minutesPerDay: number;
+  daysPerWeek: number;
+  notes: NoteId[];
+  piece: string;
+  pieceNote: string;
+  remark: string;
+}
+export type HomeworkInput = Pick<Homework, "studentId" | "dueDate" | "minutesPerDay" | "daysPerWeek" | "notes" | "piece" | "pieceNote" | "remark">;
 
 export interface SongNote { id?: NoteId; rest?: boolean; duration: "1" | "2" | "4" | "8" | "16" }
 export interface Song {
@@ -129,6 +168,27 @@ export interface PracticeApi {
   recent(studentId: string, limit?: number): Promise<PracticeSession[]>;
 }
 
+export interface HomeworkApi {
+  /** nieuwste eerst, ook ouder huiswerk */
+  list(studentId: string, limit?: number): Promise<Homework[]>;
+  /** alleen een ouder (eigenaar) of gekoppelde leraar; de noten komen op "in de les" */
+  give(input: HomeworkInput): Promise<Homework>;
+}
+
+export interface FeedbackApi {
+  /** alleen als het profiel canGiveFeedback heeft */
+  send(input: FeedbackInput): Promise<void>;
+  /** alleen voor een admin; nieuwste eerst */
+  list(): Promise<Feedback[]>;
+  setStatus(id: string, status: FeedbackStatus, linearUrl?: string | null): Promise<void>;
+}
+
+/** beheer, alleen voor een admin */
+export interface AdminApi {
+  users(): Promise<AdminUser[]>;
+  setFeedbackAllowed(userId: string, allowed: boolean): Promise<void>;
+}
+
 export interface SongsApi {
   list(studentId: string): Promise<Song[]>;
   create(studentId: string, song: Omit<Song, "id" | "createdAt">): Promise<Song>;
@@ -141,5 +201,8 @@ export interface NotenkrakerClient {
   notes: NotesApi;
   rounds: RoundsApi;
   practice: PracticeApi;
+  homework: HomeworkApi;
+  feedback: FeedbackApi;
+  admin: AdminApi;
   songs: SongsApi;
 }

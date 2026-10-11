@@ -15,13 +15,21 @@ import { KindPagina } from "@/screens/KindPagina";
 import { DagPagina } from "@/screens/DagPagina";
 import { Kennismaking } from "@/screens/Kennismaking";
 import { Profiel } from "@/screens/Profiel";
+import { HuiswerkGeven } from "@/screens/HuiswerkGeven";
+import { HuiswerkKaart, HuiswerkRegel, useHomework } from "@/components/Huiswerk";
 import { Menu, type MenuItem } from "@/components/Menu";
 import { KoppelMelding } from "@/components/KoppelMelding";
 import { NotenOvernemen } from "@/components/NotenOvernemen";
 import { Chip, Segmented } from "@/components/ui";
+import { FeedbackGeven, FeedbackKnop } from "@/screens/FeedbackGeven";
+import { Beheer, FeedbackDetail, type BeheerTab } from "@/screens/Beheer";
 
-type Screen = "overzicht" | "kind" | "dag" | "oefenen" | "kinderen" | "profiel";
-interface NavState { screen: Screen; childId: string | null; day: { date: string; back: "overzicht" | "kind" } | null }
+type Screen = "overzicht" | "kind" | "dag" | "huiswerk" | "oefenen" | "kinderen" | "profiel" | "feedback" | "beheer" | "feedbackdetail";
+interface NavState {
+  screen: Screen; childId: string | null; day: { date: string; back: "overzicht" | "kind" } | null;
+  /** feedback: de pagina waar het icoontje werd aangetikt; beheer: tabblad en geopende feedback */
+  from?: string; tab?: BeheerTab; feedbackId?: string;
+}
 /** na herladen blijft het scherm uit de browsergeschiedenis staan */
 const navState = () => (window.history.state?.screen ? (window.history.state as NavState) : null);
 
@@ -38,6 +46,7 @@ export function AppMetLogin() {
   const [childId, setChildId] = useState<string | null>(() => navState()?.childId ?? null);
   /** de dag die open is (scherm "dag"), en waar "terug" heen gaat */
   const [day, setDay] = useState<NavState["day"]>(() => navState()?.day ?? null);
+  const [extra, setExtra] = useState<Pick<NavState, "from" | "tab" | "feedbackId">>(() => navState() ?? {});
 
   useEffect(() => { void init(); }, [init]);
   // terug in de browser (of terugvegen op de iPhone) gaat naar het vorige scherm in de app
@@ -45,6 +54,7 @@ export function AppMetLogin() {
     const onPop = (e: PopStateEvent) => {
       const st = (e.state ?? {}) as Partial<NavState>;
       setScreen(st.screen ?? null); setChildId(st.childId ?? null); setDay(st.day ?? null);
+      setExtra({ from: st.from, tab: st.tab, feedbackId: st.feedbackId });
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
@@ -58,21 +68,31 @@ export function AppMetLogin() {
   const hasDashboard = rights.studentsTitle !== null;
   const current: Screen = screen ?? (hasDashboard ? "overzicht" : "oefenen");
   const student = students.find((s) => s.id === studentId);
+  const child = students.find((s) => s.id === childId);
+  const onChildPage = current === "kind" || current === "dag" || current === "huiswerk";
   const items: MenuItem[] = [
-    ...(hasDashboard ? [{ key: "overzicht", label: "Overzicht", onSelect: () => go("overzicht"), active: current === "overzicht" || current === "kind" || current === "dag" }] : []),
+    ...(hasDashboard ? [{ key: "overzicht", label: "Overzicht", onSelect: () => go("overzicht"), active: current === "overzicht" || onChildPage }] : []),
     { key: "oefenen", label: "Oefenen", onSelect: () => go("oefenen"), active: current === "oefenen" },
     ...(rights.studentsTitle ? [{ key: "kinderen", label: rights.studentsTitle, onSelect: () => go("kinderen"), active: current === "kinderen" }] : []),
     { key: "profiel", label: "Mijn profiel", onSelect: () => go("profiel"), active: current === "profiel" },
+    ...(profile.role === "admin" ? [{ key: "beheer", label: "Beheer", onSelect: () => go("beheer", { tab: "feedback" }), active: current === "beheer" || current === "feedbackdetail" }] : []),
     { key: "welkom", label: "Welkomstpagina", onSelect: () => window.location.assign("/?welkom") },
     { key: "uit", label: "Uitloggen", onSelect: () => void client.auth.signOut() },
   ];
   /** naar een ander scherm, bovenaan beginnen; komt in de browsergeschiedenis */
-  const go = (s: Screen, extra: Partial<Omit<NavState, "screen">> = {}) => {
-    const st: NavState = { screen: s, childId: extra.childId ?? childId, day: extra.day ?? day };
+  const go = (s: Screen, more: Partial<Omit<NavState, "screen">> = {}) => {
+    const st: NavState = { screen: s, childId: more.childId ?? childId, day: more.day ?? day, from: more.from, tab: more.tab ?? extra.tab, feedbackId: more.feedbackId };
     window.history.pushState(st, "");
-    setScreen(st.screen); setChildId(st.childId); setDay(st.day);
+    setScreen(st.screen); setChildId(st.childId); setDay(st.day); setExtra({ from: st.from, tab: st.tab, feedbackId: st.feedbackId });
     window.scrollTo(0, 0);
   };
+  /** naam van de pagina voor feedback (AC-116), zodat Alwin weet waar het over gaat */
+  const pageName = ({
+    overzicht: "Overzicht", kind: `Kindpagina (${child?.name ?? "?"})`, dag: `Dagpagina (${day?.date ?? "?"})`, huiswerk: "Huiswerk geven",
+    oefenen: mode === "learn" ? "Grepen" : mode === "game" ? "Notenspel" : "Vrij oefenen", kinderen: rights.studentsTitle ?? "Kinderen",
+    profiel: "Mijn profiel", feedback: "Feedback geven", beheer: "Beheer", feedbackdetail: "Beheer: feedback",
+  } satisfies Record<Screen, string>)[current];
+  const knop = profile.canGiveFeedback && current !== "feedback" ? <FeedbackKnop onOpen={() => go("feedback", { from: pageName })} /> : null;
   const practice = (id: string) => { selectStudent(id); go("oefenen"); };
   const menu = <Menu title={profile.displayName || "Menu"} items={items} />;
   const modeSwitch = <Segmented value={mode} options={[["learn", "Grepen"], ["game", "Spel"], ["vrij", "🎷 Vrij oefenen"]]} onChange={setMode} label="Onderdeel" />;
@@ -93,6 +113,7 @@ export function AppMetLogin() {
         </header>
         <NotenOvernemen />
         <Kennismaking key={student.id} student={student} statuses={statuses} onDone={() => void loadStudents()} />
+        {knop}
       </div>
     );
   }
@@ -100,10 +121,13 @@ export function AppMetLogin() {
   // Grepen: de grepentabel van het proefconcept (AC-107) over het hele scherm, met de status van de leerling
   if (current === "oefenen" && mode === "learn" && student) {
     return (
+      <>
+      {knop}
       <Grepentabel instrument={getInstrument(student.instrumentId)} title={student.name}
         student={{ statuses, setStatus: (n, st) => void setStatus(n, st) }}
         actions={<div className="flex flex-wrap items-center gap-3">{studentPicker}{modeSwitch}</div>} menu={menu}
-        notice={<><KoppelMelding /><NotenOvernemen /></>} />
+        notice={<><KoppelMelding /><NotenOvernemen /><HuiswerkVoorLeerling studentId={student.id} instrumentId={student.instrumentId} compact /></>} />
+      </>
     );
   }
 
@@ -111,14 +135,16 @@ export function AppMetLogin() {
     <div className={`${current === "overzicht" || current === "kind" || current === "dag" ? "max-w-[1240px]" : "max-w-[900px]"} mx-auto px-4 pt-6 pb-12`}>
       <header className="flex items-start justify-between gap-3 mb-4">
         <div className="min-w-0">
-          {(current === "kind" || current === "dag") && (
+          {(onChildPage || current === "feedback" || current === "feedbackdetail") && (
             <button type="button" onClick={() => window.history.back()}
               className="text-sm font-semibold text-muted bg-transparent cursor-pointer mb-2 -ml-1 px-1">
-              ← {current === "dag" && day?.back === "kind" ? (students.find((s) => s.id === childId)?.name ?? "Terug") : "Overzicht"}
+              ← {current === "feedback" ? (extra.from ?? "Terug") : current === "feedbackdetail" ? "Beheer"
+                : current === "huiswerk" || (current === "dag" && day?.back === "kind") ? (child?.name ?? "Terug") : "Overzicht"}
             </button>
           )}
           <h1 className="font-display font-extrabold text-3xl sm:text-4xl leading-none">
-            {current === "overzicht" ? greeting(profile.displayName) : current === "kind" || current === "dag" ? (students.find((s) => s.id === childId)?.name ?? "") : "Notenkraker"}
+            {current === "overzicht" ? greeting(profile.displayName) : current === "huiswerk" ? `Huiswerk voor ${child?.name ?? ""}` : onChildPage ? (child?.name ?? "")
+              : current === "feedback" ? "Feedback geven" : current === "beheer" ? "Beheer" : current === "feedbackdetail" ? "Feedback" : "Notenkraker"}
           </h1>
           {current === "overzicht" && <p className="text-muted mt-1">Zo ging het oefenen deze week</p>}
           {current === "oefenen" && <p className="text-muted mt-1">{mode === "vrij" ? "Speel wat je wilt. Ik tel mee hoe lang ik je hoor." : "Speel het notenspel."}</p>}
@@ -134,8 +160,16 @@ export function AppMetLogin() {
           onOpenDay={(id, date) => go("dag", { childId: id, day: { date, back: "overzicht" } })} />
       )}
       {current === "kind" && childId && (
-        <KindPagina studentId={childId} onPractice={() => practice(childId)} onOpenDay={(date) => go("dag", { day: { date, back: "kind" } })} />
+        <KindPagina studentId={childId} onPractice={() => practice(childId)} onOpenDay={(date) => go("dag", { day: { date, back: "kind" } })}
+          onGiveHomework={() => go("huiswerk")} />
       )}
+      {current === "huiswerk" && childId && <HuiswerkGeven studentId={childId} onDone={() => window.history.back()} />}
+      {current === "feedback" && <FeedbackGeven screen={extra.from ?? "onbekend"} onDone={() => window.history.back()} />}
+      {current === "beheer" && profile.role === "admin" && (
+        <Beheer tab={extra.tab ?? "feedback"} onOpen={(id) => go("feedbackdetail", { feedbackId: id })}
+          onTab={(t) => { const st = { ...window.history.state, tab: t }; window.history.replaceState(st, ""); setExtra((e) => ({ ...e, tab: t })); }} />
+      )}
+      {current === "feedbackdetail" && extra.feedbackId && profile.role === "admin" && <FeedbackDetail id={extra.feedbackId} />}
       {current === "dag" && childId && day && <DagPagina studentId={childId} date={day.date} onDate={(date) => {
         // bladeren tussen dagen vervangt de dag in de geschiedenis, zodat terug naar de vorige pagina gaat
         const next = { ...day, date }; setDay(next); window.history.replaceState({ screen: "dag", childId, day: next } satisfies NavState, "");
@@ -149,6 +183,7 @@ export function AppMetLogin() {
             <span className="ml-auto">{modeSwitch}</span>
           </div>
           {!hasBackend && <p className="text-xs text-muted border border-line rounded-lg px-3 py-2 mb-2">Zonder backend: gegevens staan alleen in deze browser. Zet VITE_SUPABASE_URL en VITE_SUPABASE_ANON_KEY in .env voor de echte database.</p>}
+          {student && <HuiswerkVoorLeerling studentId={student.id} instrumentId={student.instrumentId} />}
           {student ? (mode === "vrij" ? <VrijOefenen key={student.id} /> : <Game />) : (
             <div className="rounded-3xl bg-surface p-6 flex flex-col items-start gap-3">
               <p className="m-0">{profile.role === "ouder" ? "Voeg eerst een kind toe." : rights.canCreateStudents ? "Voeg eerst een leerling toe." : "Er is nog geen leerlingprofiel."}</p>
@@ -157,6 +192,19 @@ export function AppMetLogin() {
           )}
         </>
       )}
+      {knop}
+    </div>
+  );
+}
+
+/** het lopende huiswerk bij het oefenen, zodat de leerling ziet wat er van hem verwacht wordt */
+function HuiswerkVoorLeerling({ studentId, instrumentId, compact }: { studentId: string; instrumentId: string; compact?: boolean }) {
+  const items = useHomework(studentId);
+  if (!items?.length) return null;
+  if (compact) return <div className="grid gap-2 md:grid-cols-2">{items.map((x) => <HuiswerkRegel key={x.h.id} item={x} instrumentId={instrumentId} />)}</div>;
+  return (
+    <div className="grid gap-3 md:grid-cols-2 mb-3">
+      {items.map((x) => <HuiswerkKaart key={x.h.id} item={x} instrumentId={instrumentId} pupil />)}
     </div>
   );
 }

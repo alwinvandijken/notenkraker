@@ -1,7 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { promotionCandidates, scoreRound } from "@notenkraker/core";
 import type {
-  AuthApi, InvitePurpose, NotenkrakerClient, NotesApi, PracticeApi, PracticeSession, Profile, Progress, Role, Round, RoundsApi, RoundSubmission,
+  AdminApi, AdminUser, AuthApi, Feedback, FeedbackApi, Homework, HomeworkApi, InvitePurpose, NotenkrakerClient, NotesApi, PracticeApi, PracticeSession, Profile, Progress, Role, Round, RoundsApi, RoundSubmission,
   SelfRole, Song, SongsApi, Student, StudentNote, StudentsApi,
 } from "./types.js";
 
@@ -41,8 +41,11 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
     async currentProfile() {
       const { data: { user } } = await sb.auth.getUser();
       if (!user) return null;
-      const { data } = await sb.from("profiles").select("id, role, display_name").eq("id", user.id).maybeSingle();
-      return { id: user.id, role: (data?.role ?? null) as Role | null, displayName: data?.display_name ?? user.email ?? "", email: user.email ?? undefined };
+      const { data } = await sb.from("profiles").select("id, role, display_name, can_give_feedback").eq("id", user.id).maybeSingle();
+      return {
+        id: user.id, role: (data?.role ?? null) as Role | null, displayName: data?.display_name ?? user.email ?? "", email: user.email ?? undefined,
+        canGiveFeedback: data?.can_give_feedback === true,
+      };
     },
     onAuthChange(cb) {
       const { data } = sb.auth.onAuthStateChange(async () => cb(await auth.currentProfile()));
@@ -194,6 +197,72 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
     },
   };
 
+  const rowToHomework = (r: Record<string, unknown>): Homework => ({
+    id: r.id as string, studentId: r.student_id as string, givenBy: r.given_by as string,
+    givenByRole: r.given_by_role as Homework["givenByRole"], givenByName: r.given_by_name as string, createdAt: r.created_at as string,
+    dueDate: r.due_date as string, minutesPerDay: r.minutes_per_day as number, daysPerWeek: r.days_per_week as number,
+    notes: (r.notes as string[]) ?? [], piece: (r.piece as string) ?? "", pieceNote: (r.piece_note as string) ?? "", remark: (r.remark as string) ?? "",
+  });
+
+  // geven is een databasefunctie: die controleert wie het mag en zet de noten op "in de les"
+  const homework: HomeworkApi = {
+    async list(studentId, limit = 20) {
+      const { data, error } = await sb.from("homework").select("*").eq("student_id", studentId).order("created_at", { ascending: false }).limit(limit);
+      if (error) throw error;
+      return (data ?? []).map(rowToHomework);
+    },
+    async give(input) {
+      const { data, error } = await sb.rpc("give_homework", {
+        p_student: input.studentId, p_notes: input.notes, p_minutes: input.minutesPerDay, p_days: input.daysPerWeek,
+        p_piece: input.piece, p_piece_note: input.pieceNote, p_remark: input.remark, p_due: input.dueDate,
+      });
+      if (error) throw error;
+      return rowToHomework(data);
+    },
+  };
+
+  const rowToFeedback = (r: Record<string, unknown>): Feedback => ({
+    id: r.id as string, userId: (r.user_id as string | null) ?? null, displayName: r.display_name as string, role: (r.role as Role | null) ?? null,
+    kind: r.kind as Feedback["kind"], message: r.message as string, screen: r.screen as string, url: r.url as string,
+    device: r.device as string, version: r.version as string, status: r.status as Feedback["status"],
+    linearUrl: (r.linear_url as string | null) ?? null, createdAt: r.created_at as string,
+  });
+
+  const feedback: FeedbackApi = {
+    async send(input) {
+      const { error } = await sb.rpc("give_feedback", {
+        p_kind: input.kind, p_message: input.message, p_screen: input.screen, p_url: input.url, p_device: input.device, p_version: input.version,
+      });
+      if (error) throw error;
+    },
+    async list() {
+      const { data, error } = await sb.from("feedback").select("*").order("created_at", { ascending: false }).limit(500);
+      if (error) throw error;
+      return (data ?? []).map(rowToFeedback);
+    },
+    async setStatus(id, status, linearUrl) {
+      const patch: Record<string, unknown> = { status };
+      if (linearUrl !== undefined) patch.linear_url = linearUrl;
+      const { error } = await sb.from("feedback").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+  };
+
+  const admin: AdminApi = {
+    async users() {
+      const { data, error } = await sb.rpc("admin_users");
+      if (error) throw error;
+      return ((data ?? []) as Array<Record<string, unknown>>).map((r): AdminUser => ({
+        id: r.id as string, displayName: r.display_name as string, email: (r.email as string) ?? "", role: (r.role as Role | null) ?? null,
+        canGiveFeedback: r.can_give_feedback === true, createdAt: r.created_at as string,
+      }));
+    },
+    async setFeedbackAllowed(userId, allowed) {
+      const { error } = await sb.rpc("set_feedback_allowed", { p_user: userId, p_allowed: allowed });
+      if (error) throw error;
+    },
+  };
+
   const rowToSong = (r: Record<string, unknown>): Song => ({
     id: r.id as string, title: r.title as string, instrumentId: r.instrument_id as string,
     source: r.source as Song["source"], notes: r.notes as Song["notes"], createdAt: r.created_at as string,
@@ -213,7 +282,7 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
     async remove(id) { const { error } = await sb.from("songs").delete().eq("id", id); if (error) throw error; },
   };
 
-  return { auth, students, notes, rounds, practice, songs };
+  return { auth, students, notes, rounds, practice, homework, feedback, admin, songs };
 }
 
 /** Lokale scorefunctie, voor optimistische UI en voor de Edge Function (zelfde core). */
