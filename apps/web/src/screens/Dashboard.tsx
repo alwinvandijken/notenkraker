@@ -3,7 +3,7 @@ import clsx from "clsx";
 import { instrumentNotes, type StatusMap } from "@notenkraker/core";
 import { getInstrument } from "@notenkraker/instruments";
 import {
-  childSummary, dateKey, dueLabel, playedOfTotal, whenLabel, worstStatus, type ChildSummary, type PracticeSession, type Round, type SessionSummary, type Student,
+  childSummary, dateKey, dueLabel, playedOfTotal, whenLabel, worstStatus, type ChildSummary, type Homework, type PracticeSession, type Round, type SessionSummary, type Student,
 } from "@notenkraker/client";
 import { client } from "@/lib/client";
 import { useApp } from "@/lib/store";
@@ -11,6 +11,8 @@ import { Chip } from "@/components/ui";
 import { Donut } from "@/components/Donut";
 import { ICON } from "@/lib/iconen";
 import { GiverAvatar, StatusBadge, withProgress, type CurrentHomework } from "@/components/Huiswerk";
+import { LeerlingenTabel } from "@/components/LeerlingenTabel";
+import { useWide } from "@/lib/useWide";
 
 /**
  * Startscherm voor een ouder of leraar (mock-up: docs/mockups/iPadA-Ouder.html). Het overzicht
@@ -20,14 +22,15 @@ import { GiverAvatar, StatusBadge, withProgress, type CurrentHomework } from "@/
  * ook op een staande iPhone leesbaar. Een leraar ziet wie achterloopt met het huiswerk bovenaan,
  * daarna wie het langst niet oefende.
  */
-export interface Row { student: Student; rounds: Round[]; sessions: PracticeSession[]; summary: ChildSummary; range: [string, string]; homework: CurrentHomework[] }
+export interface Row { student: Student; rounds: Round[]; sessions: PracticeSession[]; summary: ChildSummary; range: [string, string]; homework: CurrentHomework[]; homeworkAll: Homework[] }
 
 /** volgorde voor de leraar: loopt achter, even opletten, geen huiswerk, gaat goed */
 const HOMEWORK_ORDER = { achter: 0, opletten: 1, geen: 2, goed: 3 } as const;
 const rowStatus = (r: Row) => worstStatus(r.homework.map((x) => x.p.status));
 
 /** rondes, sessies en notenstatus per kind; null = nog aan het laden */
-export function useChildRows(): Row[] | null {
+/** `version` ophogen laadt alles opnieuw (bijv. na huiswerk geven vanuit de tabel) */
+export function useChildRows(version = 0): Row[] | null {
   const { profile, students } = useApp();
   const isLeraar = profile?.role === "leraar";
   const [rows, setRows] = useState<Row[] | null>(null);
@@ -42,7 +45,7 @@ export function useChildRows(): Row[] | null {
       ]);
       const statuses: StatusMap = Object.fromEntries(notes.map((n) => [n.noteId, n.status]));
       return {
-        student, rounds, sessions, range: instrument.range, homework: withProgress(homework, rounds, sessions),
+        student, rounds, sessions, range: instrument.range, homework: withProgress(homework, rounds, sessions), homeworkAll: homework,
         summary: childSummary({ rounds, sessions, statuses, noteIds: instrumentNotes(instrument) }),
       };
     })).then((list) => {
@@ -51,14 +54,18 @@ export function useChildRows(): Row[] | null {
       setRows(isLeraar ? [...list].sort((a, b) => HOMEWORK_ORDER[rowStatus(a)] - HOMEWORK_ORDER[rowStatus(b)] || never(b) - never(a)) : list);
     });
     return () => { stale = true; };
-  }, [students, isLeraar]);
+  }, [students, isLeraar, version]);
   return rows;
 }
 
-export function Dashboard({ onOpenChild, onOpenDay, onManage }: { onOpenChild(studentId: string): void; onOpenDay(studentId: string, date: string): void; onManage(): void }) {
+export function Dashboard({ onOpenChild, onOpenDay, onManage, onGiveMany }: {
+  onOpenChild(studentId: string): void; onOpenDay(studentId: string, date: string): void; onManage(): void; onGiveMany(ids: string[]): void;
+}) {
   const { profile } = useApp();
   const isLeraar = profile?.role === "leraar";
-  const rows = useChildRows();
+  const [version, setVersion] = useState(0);
+  const rows = useChildRows(version);
+  const wide = useWide();
 
   if (!rows) return <p className="text-muted">Laden…</p>;
   const who = isLeraar ? "leerlingen" : "kinderen";
@@ -82,6 +89,9 @@ export function Dashboard({ onOpenChild, onOpenDay, onManage }: { onOpenChild(st
         <Stat value={`${weekMinutes} min`} label={isLeraar ? "geoefend deze week" : "samen geoefend deze week"} />
       </div>
 
+      {isLeraar && wide ? (
+        <LeerlingenTabel rows={rows} onOpenChild={onOpenChild} onGiveMany={onGiveMany} onChanged={() => setVersion((v) => v + 1)} />
+      ) : (
       <div className="grid gap-4 lg:grid-cols-[1fr_340px] min-w-0">
         <div className="grid gap-3 md:grid-cols-2 content-start min-w-0">
           {rows.map((r) => <ChildCard key={r.student.id} row={r} onOpen={() => onOpenChild(r.student.id)} />)}
@@ -92,6 +102,7 @@ export function Dashboard({ onOpenChild, onOpenDay, onManage }: { onOpenChild(st
           {activity.map((a) => <ActivityRow key={a.id} item={a} onOpen={() => onOpenDay(a.studentId, dateKey(new Date(a.at)))} />)}
         </section>
       </div>
+      )}
     </div>
   );
 }

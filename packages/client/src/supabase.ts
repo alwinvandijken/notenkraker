@@ -1,7 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { promotionCandidates, scoreRound } from "@notenkraker/core";
 import type {
-  AdminApi, AdminUser, AuthApi, Guardian, Feedback, FeedbackApi, Homework, HomeworkApi, InvitePurpose, NotenkrakerClient, NotesApi, PracticeApi, PracticeSession, Profile, Progress, Role, Round, RoundsApi, RoundSubmission,
+  AdminApi, AdminUser, AuthApi, Guardian, Feedback, FeedbackApi, Homework, HomeworkApi, HomeworkTemplate, InvitePurpose, NotenkrakerClient, NotesApi, PracticeApi, PracticeSession, Profile, Progress, Role, Round, RoundsApi, RoundSubmission,
   SelfRole, Song, SongsApi, Student, StudentNote, StudentsApi,
 } from "./types.js";
 
@@ -213,6 +213,11 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
     notes: (r.notes as string[]) ?? [], piece: (r.piece as string) ?? "", pieceNote: (r.piece_note as string) ?? "", remark: (r.remark as string) ?? "",
   });
 
+  const rowToTemplate = (r: Record<string, unknown>): HomeworkTemplate => ({
+    id: r.id as string, name: r.name as string, notes: (r.notes as string[]) ?? [], minutesPerDay: r.minutes_per_day as number,
+    daysPerWeek: r.days_per_week as number, piece: (r.piece as string) ?? "", pieceNote: (r.piece_note as string) ?? "", remark: (r.remark as string) ?? "",
+  });
+
   // geven is een databasefunctie: die controleert wie het mag en zet de noten op "in de les"
   const homework: HomeworkApi = {
     async list(studentId, limit = 20) {
@@ -227,6 +232,31 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
       });
       if (error) throw error;
       return rowToHomework(data);
+    },
+    async giveMany(studentIds, input) {
+      const { data, error } = await sb.rpc("give_homework_many", {
+        p_students: studentIds, p_notes: input.notes, p_minutes: input.minutesPerDay, p_days: input.daysPerWeek,
+        p_piece: input.piece, p_piece_note: input.pieceNote, p_remark: input.remark, p_due: input.dueDate,
+      });
+      if (error) throw error;
+      return data as number;
+    },
+    async templates() {
+      const { data, error } = await sb.from("homework_templates").select("*").order("name");
+      if (error) throw error;
+      return (data ?? []).map(rowToTemplate);
+    },
+    async saveTemplate(t) {
+      const { data, error } = await sb.from("homework_templates").insert({
+        name: t.name, notes: t.notes, minutes_per_day: t.minutesPerDay, days_per_week: t.daysPerWeek,
+        piece: t.piece, piece_note: t.pieceNote, remark: t.remark,
+      }).select().single();
+      if (error) throw error;
+      return rowToTemplate(data);
+    },
+    async removeTemplate(id) {
+      const { error } = await sb.from("homework_templates").delete().eq("id", id);
+      if (error) throw error;
     },
   };
 

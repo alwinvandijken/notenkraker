@@ -108,6 +108,17 @@ export interface Homework {
   pieceNote: string;
   remark: string;
 }
+/** eigen opgave om te hergebruiken (AC-117); alleen de eigenaar ziet hem */
+export interface HomeworkTemplate {
+  id: string;
+  name: string;
+  notes: NoteId[];
+  minutesPerDay: number;
+  daysPerWeek: number;
+  piece: string;
+  pieceNote: string;
+  remark: string;
+}
 export type HomeworkInput = Pick<Homework, "studentId" | "dueDate" | "minutesPerDay" | "daysPerWeek" | "notes" | "piece" | "pieceNote" | "remark">;
 
 export interface SongNote { id?: NoteId; rest?: boolean; duration: "1" | "2" | "4" | "8" | "16" }
@@ -179,6 +190,11 @@ export interface HomeworkApi {
   list(studentId: string, limit?: number): Promise<Homework[]>;
   /** alleen een ouder (eigenaar) of gekoppelde leraar; de noten komen op "in de les" */
   give(input: HomeworkInput): Promise<Homework>;
+  /** dezelfde opgave voor meerdere leerlingen, elk een eigen kopie; alles of niets */
+  giveMany(studentIds: string[], input: Omit<HomeworkInput, "studentId">): Promise<number>;
+  templates(): Promise<HomeworkTemplate[]>;
+  saveTemplate(t: Omit<HomeworkTemplate, "id">): Promise<HomeworkTemplate>;
+  removeTemplate(id: string): Promise<void>;
 }
 
 export interface FeedbackApi {
