@@ -53,6 +53,8 @@ export interface Student {
   onboardedAt?: string | null;
 }
 
+export interface Guardian { studentId: string; name: string; role: "ouder" | "leraar" }
+
 export interface StudentNote { studentId: string; noteId: NoteId; status: NoteStatus; updatedAt: string }
 
 export interface RoundSubmission {
@@ -149,6 +151,8 @@ export interface StudentsApi {
   /** kind met eigen login koppelt zich aan het leerlingprofiel dat de ouder aanmaakte */
   claimByCode(code: string): Promise<Student>;
   inviteCode(studentId: string, purpose?: InvitePurpose): Promise<string>;
+  /** voor een leerling met eigen login: wie zijn ouder en leraren zijn (alleen de naam) */
+  guardians(): Promise<Guardian[]>;
 }
 
 export interface NotesApi {

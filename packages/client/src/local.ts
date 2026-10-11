@@ -41,6 +41,7 @@ export function createLocalNotenkraker(storageKey = "notenkraker-local", opts: {
       async linkByCode() { throw new Error("niet beschikbaar zonder backend"); },
       async claimByCode() { throw new Error("niet beschikbaar zonder backend"); },
       async inviteCode() { throw new Error("niet beschikbaar zonder backend"); },
+      async guardians() { return []; },
     },
     notes: {
       async list(sid) { return state.notes.filter((n) => n.studentId === sid); },

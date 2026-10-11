@@ -1,7 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { promotionCandidates, scoreRound } from "@notenkraker/core";
 import type {
-  AdminApi, AdminUser, AuthApi, Feedback, FeedbackApi, Homework, HomeworkApi, InvitePurpose, NotenkrakerClient, NotesApi, PracticeApi, PracticeSession, Profile, Progress, Role, Round, RoundsApi, RoundSubmission,
+  AdminApi, AdminUser, AuthApi, Guardian, Feedback, FeedbackApi, Homework, HomeworkApi, InvitePurpose, NotenkrakerClient, NotesApi, PracticeApi, PracticeSession, Profile, Progress, Role, Round, RoundsApi, RoundSubmission,
   SelfRole, Song, SongsApi, Student, StudentNote, StudentsApi,
 } from "./types.js";
 
@@ -102,6 +102,11 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
       const { data, error } = await sb.functions.invoke("invite-code", { body: { studentId, purpose } });
       if (error) throw error;
       return data.code as string;
+    },
+    async guardians() {
+      const { data, error } = await sb.rpc("my_guardians");
+      if (error) throw error;
+      return ((data ?? []) as Array<Record<string, unknown>>).map((r): Guardian => ({ studentId: r.student_id as string, name: r.name as string, role: r.role as Guardian["role"] }));
     },
   };
 

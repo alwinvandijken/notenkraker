@@ -1,18 +1,26 @@
-import { useState } from "react";
-import { rightsFor } from "@notenkraker/client";
+import { useEffect, useState } from "react";
+import { rightsFor, type Guardian } from "@notenkraker/client";
 import { client, hasBackend } from "@/lib/client";
 import { useApp } from "@/lib/store";
 import { Card, Chip } from "@/components/ui";
 
 const ROLE_LABEL = { leerling: "Leerling", ouder: "Ouder", leraar: "Leraar", admin: "Beheerder" } as const;
 
-/** "Mijn profiel": wie je bent, en voor een leerling alsnog koppelen met een code van de ouder. */
+/**
+ * "Mijn profiel": wie je bent, voor een leerling wie er meekijken (ouder en leraren), en zolang er
+ * nog geen ouder is: koppelen met een code van de ouder.
+ */
 export function Profiel({ onLinked, onRedoIntake }: { onLinked(): void; onRedoIntake(): void }) {
   const profile = useApp((s) => s.profile);
   const claimByCode = useApp((s) => s.claimByCode);
   const { students, loadStudents } = useApp();
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
+  const [guardians, setGuardians] = useState<Guardian[] | null>(null);
+  useEffect(() => {
+    if (profile?.role !== "leerling" || !hasBackend) { setGuardians([]); return; }
+    void client.students.guardians().then(setGuardians).catch(() => setGuardians([]));
+  }, [profile?.role, students]);
   if (!profile) return null;
   const rights = rightsFor(profile.role);
   const own = students.find((s) => s.userId === profile.id);
@@ -44,7 +52,20 @@ export function Profiel({ onLinked, onRedoIntake }: { onLinked(): void; onRedoIn
         </dl>
         {own && <button type="button" onClick={() => void redo()} className="mt-3 text-sm font-semibold text-kent bg-transparent cursor-pointer px-0">Leeftijd en noten opnieuw doen →</button>}
       </Card>
-      {rights.canClaimByCode && hasBackend && (
+      {guardians && guardians.length > 0 && (
+        <Card className="!p-4 flex flex-col gap-2">
+          <b className="font-display">Kijken met je mee</b>
+          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 m-0">
+            {guardians.map((g) => (
+              <div key={`${g.role}-${g.name}`} className="contents">
+                <dt className="text-muted">{g.role === "ouder" ? "Ouder" : "Leraar"}</dt><dd className="m-0 font-semibold">{g.name}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="text-xs text-muted m-0">Zij zien je oefentijd en je noten, en kunnen je huiswerk geven.</p>
+        </Card>
+      )}
+      {rights.canClaimByCode && hasBackend && guardians !== null && !guardians.some((g) => g.role === "ouder") && (
         <Card className="!p-4 flex flex-col gap-2">
           <b className="font-display">Koppelen met code van ouder</b>
           <form className="flex gap-2" onSubmit={koppel}>
