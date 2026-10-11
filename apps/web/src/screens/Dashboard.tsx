@@ -36,7 +36,9 @@ export function useChildRows(): Row[] | null {
     void Promise.all(students.map(async (student): Promise<Row> => {
       const instrument = getInstrument(student.instrumentId);
       const [rounds, notes, sessions, homework] = await Promise.all([
-        client.rounds.recent(student.id, 200), client.notes.list(student.id), client.practice.recent(student.id, 50), client.homework.list(student.id),
+        client.rounds.recent(student.id, 200), client.notes.list(student.id), client.practice.recent(student.id, 50),
+        // zonder huiswerktabel (oude database) gewoon zonder huiswerk
+        client.homework.list(student.id).catch(() => []),
       ]);
       const statuses: StatusMap = Object.fromEntries(notes.map((n) => [n.noteId, n.status]));
       return {
