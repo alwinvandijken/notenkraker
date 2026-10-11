@@ -69,13 +69,34 @@ p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.45; }
 .seg { display: flex; background: var(--bg); border-radius: 999px; padding: 4px; gap: 2px; }
 .seg button { flex: 1; font: 600 13px Lexend, system-ui, sans-serif; color: var(--fg); background: none; border: 0; border-radius: 999px; min-height: 40px; padding: 4px 8px; cursor: pointer; }
 .seg button[aria-pressed="true"] { background: var(--surface); box-shadow: 0 1px 3px rgba(23,36,64,.18); }
+.seg.small { margin-bottom: 8px; }
+.seg.small button { min-height: 34px; }
+.notes.staff { display: block; overflow-x: auto; border: 2px solid var(--line); border-radius: 16px; padding: 4px; }
+.notes.staff svg { display: block; color: var(--fg); }
+.notes.staff g[role="button"] { cursor: pointer; }
+.notes.staff g[role="button"]:focus-visible rect { stroke: var(--les); stroke-width: 3; }
+.now-row { display: flex; align-items: center; gap: 12px; width: 100%; }
+.big-staff { flex: 1; min-width: 0; color: var(--fg); }
+.big-staff svg { display: block; width: 100%; max-width: 200px; }
+.now { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
+.now span { font-size: 13px; color: var(--muted); }
+.learner { display: flex; flex-direction: column; gap: 6px; }
+.muted-label { font-size: 12px; color: var(--muted); }
+.setting { display: flex; flex-direction: column; gap: 4px; }
+.setting p { font-size: 12px; }
+.switch { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; cursor: pointer; min-height: 32px; }
+.switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.switch span { width: 44px; height: 26px; border-radius: 999px; background: var(--line); position: relative; transition: background .2s; flex: none; }
+.switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.3); transition: transform .2s; }
+.switch input:checked + span { background: var(--kent); }
+.switch input:checked + span::after { transform: translateX(18px); }
+.switch input:focus-visible + span { outline: 3px solid var(--les); outline-offset: 2px; }
 .greep { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
 .druk { color: var(--fg); font-size: 15px; }
 button.dashed { font: 500 14px Lexend, system-ui, sans-serif; color: var(--muted); background: none; border: 2px dashed var(--line); border-radius: 999px; min-height: 44px; padding: 0 16px; cursor: pointer; }
 button.dashed[aria-pressed="true"] { color: var(--fg); border-color: var(--muted); }
 .empty-notes { font-size: 14px; color: var(--muted); grid-column: 1 / -1; }
-.now { display: flex; align-items: baseline; gap: 10px; }
-.now strong { font-size: 40px; line-height: 1; }
+.now strong { font-size: 56px; line-height: 1; }
 .alts { display: flex; gap: 6px; }
 .alts:empty { display: none; }
 .alts button { font: 600 13px Lexend, system-ui, sans-serif; border: 1px solid var(--line); background: var(--bg); color: var(--fg); border-radius: 999px; padding: 6px 12px; min-height: 36px; cursor: pointer; }
@@ -118,15 +139,26 @@ label.check input { width: 20px; height: 20px; accent-color: var(--pressed); }
 <aside>
   <div>
     <h1>Altsax in 3D</h1>
-    <p>Ingelogd als <b>Sanne</b> (voorbeeldleerling). Je ziet alleen je eigen noten en de kleppen die je daarvoor nodig hebt.</p>
+    <p>Je ziet alleen je eigen noten en de kleppen die je daarvoor nodig hebt.</p>
+  </div>
+  <div class="learner">
+    <span class="muted-label">Voorbeeld: ingelogd als</span>
+    <div class="seg" role="group" aria-label="Leerling" id="learner"></div>
   </div>
   <div class="seg" role="group" aria-label="Welke noten" id="filter"></div>
+  <div class="setting">
+    <label class="switch"><input type="checkbox" id="octave" role="switch"><span></span> Octaafcijfers tonen</label>
+    <p id="octaveHint"></p>
+  </div>
   <section>
+    <div class="seg small" role="group" aria-label="Weergave notenkiezer" id="viewSeg">
+      <button type="button" data-v="buttons">Knoppen</button><button type="button" data-v="staff">Notenbalk</button>
+    </div>
     <div class="notes" id="notes"></div>
     <div class="legend"><span class="chip kent">Kent al</span><span class="chip les">In de les</span><span class="chip moet">Komt nog</span></div>
   </section>
   <section class="greep">
-    <div class="now"><strong id="noteName">G</strong><span id="noteSub"></span></div>
+    <div class="now-row"><div id="bigStaff" class="big-staff"></div><div class="now"><strong id="noteName">G</strong><span id="noteSub"></span></div></div>
     <div class="alts" id="alts"></div>
     <p class="druk" id="druk"></p>
     <button type="button" class="dashed" id="showAll" aria-pressed="false">Toon alle kleppen</button>
@@ -153,8 +185,17 @@ const KEY_NAMES = {"oct":"octaafklep (duim links)","fF":"voorste F-klep","L1":"1
 // "optional" alleen als de huidige greep ze gebruikt. "Toon alle kleppen" laat alles zien.
 const AUTO = new Set(["bis", "gs", "cs", "lb", "lbb", "eb", "lc"]);
 const OPTIONAL = new Set(["fF", "pD", "pEb", "pF", "sE", "sC", "sBb"]);
-// Voorbeeldleerling; in de app komt dit uit de notenstatus van de ingelogde leerling.
-const STATUSES = { g4: "kent", a4: "kent", b4: "kent", c5: "les", d5: "les", f4: "moet", e4: "moet" };
+// Voorbeeldleerlingen; in de app komen notenstatus en leeftijdsgroep uit het profiel van de ingelogde leerling.
+const LEARNERS = {
+  sanne: { name: "Sanne", age: "6-8", statuses: { g4: "kent", a4: "kent", b4: "kent", c5: "les", d5: "les", f4: "moet", e4: "moet" } },
+  daan: { name: "Daan", age: "13-17", statuses: { c4: "kent", d4: "kent", e4: "kent", f4: "kent", g4: "kent", a4: "kent", b4: "kent", c5: "kent",
+    d5: "kent", e5: "kent", f5: "les", fis4: "les", g5: "moet", bes4: "moet" } },
+};
+// Octaafcijfers (G₄, C₅) zijn voor jonge kinderen te veel: standaard uit bij 6–8 jaar.
+// Per leerling aan of uit te zetten; in de app een veld op de leerling, net als de notennamen (nl/en).
+const octaveDefault = (age) => age !== "6-8";
+const octaveOverride = {};
+let learner = "sanne", STATUSES = LEARNERS[learner].statuses;
 const SHORT = { oct: "Oct", fF: "F", L1: "1", L2: "2", L3: "3", R4: "4", R5: "5", R6: "6", bis: "Bis",
   gs: "G♯", cs: "C♯", lb: "B", lbb: "B♭", eb: "E♭", lc: "C", pD: "D", pEb: "E♭", pF: "F", sE: "E", sC: "C", sBb: "B♭" };
 const NOTE_NL = { c: "C", cis: "Cis", d: "D", es: "Es", e: "E", f: "F", fis: "Fis", g: "G", gis: "Gis", a: "A", bes: "Bes", b: "B" };
@@ -552,24 +593,94 @@ const notesEl = document.getElementById("notes"), altsEl = document.getElementBy
 const ALL = Object.keys(FINGERINGS);
 const FILTERS = [["mine", "Mijn noten"], ["les", "In de les"], ["all", "Alle noten"]];
 const inFilter = (f, n) => (f === "all" ? true : f === "les" ? STATUSES[n] === "les" : Boolean(STATUSES[n]));
-const needed = new Set(ALL.filter((n) => STATUSES[n]).flatMap((n) => FINGERINGS[n][0]));
+let needed = new Set();
 let filter = "mine", current = "g4", alt = 0, showAll = false;
 
-for (const [f, t] of FILTERS) {
+for (const [f] of FILTERS) {
   const b = document.createElement("button");
   b.type = "button"; b.dataset.filter = f;
-  b.textContent = `${t} (${ALL.filter((n) => inFilter(f, n)).length})`;
   b.addEventListener("click", () => { filter = f; renderNotes(); });
   filterEl.append(b);
 }
+const learnerEl = document.getElementById("learner"), octaveEl = document.getElementById("octave");
+const AGE_TEXT = { "6-8": "6 – 8 jaar", "9-12": "9 – 12 jaar", "13-17": "13 – 17 jaar", "18+": "18+" };
+for (const [id, l] of Object.entries(LEARNERS)) {
+  const b = document.createElement("button");
+  b.type = "button"; b.dataset.learner = id; b.textContent = `${l.name} · ${AGE_TEXT[l.age]}`;
+  b.addEventListener("click", () => setLearner(id));
+  learnerEl.append(b);
+}
+// ---------- Notenbalk (zelfde tekening als StaffRow / StaffNote in de app) ----------
+const LETTERS = "cdefgab";
+const staffPos = (id) => { const o = +id.at(-1); return o * 7 + LETTERS.indexOf(id[0]) - (4 * 7 + 2); }; // 0 = onderste lijn (E4)
+const accidental = (id) => (/^(cis|fis|gis)/.test(id) ? "♯" : /^(es|bes)/.test(id) ? "♭" : "");
+const ledgers = (pos) => { const r = []; for (let s = -2; s >= pos; s -= 2) r.push(s); for (let s = 10; s <= pos; s += 2) r.push(s); return r; };
+const STATUS_COLOR = { kent: "var(--kent)", les: "var(--accent)", moet: "var(--moet)" };
+function noteGlyph(id, cx, y, col, scale = 1) {
+  const pos = staffPos(id), cy = y(pos), acc = accidental(id), rx = 7 * scale, ry = 5 * scale, st = 34 * scale;
+  return ledgers(pos).map((s) => `<line x1="${cx - 13 * scale}" x2="${cx + 13 * scale}" y1="${y(s)}" y2="${y(s)}" stroke="currentColor" stroke-width="1.2"/>`).join("")
+    + (acc ? `<text x="${cx - 19 * scale}" y="${cy + 6 * scale}" font-size="${18 * scale}" fill="${col}" text-anchor="middle" font-family="serif">${acc}</text>` : "")
+    + `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${col}" transform="rotate(-20 ${cx} ${cy})"/>`
+    + (pos < 4 ? `<line x1="${cx + rx * 0.9}" x2="${cx + rx * 0.9}" y1="${cy - 1}" y2="${cy - st}" stroke="${col}" stroke-width="1.6"/>`
+               : `<line x1="${cx - rx * 0.9}" x2="${cx - rx * 0.9}" y1="${cy + 1}" y2="${cy + st}" stroke="${col}" stroke-width="1.6"/>`);
+}
+function staffRow(notes) {
+  // Hoogte past zich aan de hoogste en laagste noot aan, zodat een paar noten geen lege ruimte geven.
+  const ps = notes.map(staffPos), hi = Math.max(8, ...ps), lo = Math.min(0, ...ps);
+  const sp = 12, x0 = 62, dx = 50, base = 44 + hi * (sp / 2), h = base - lo * (sp / 2) + 78, w = x0 + Math.max(notes.length, 1) * dx + 6, y = (s) => base - s * (sp / 2);
+  let out = `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">`;
+  out += [0, 1, 2, 3, 4].map((i) => `<line x1="8" x2="${w - 8}" y1="${base - i * sp}" y2="${base - i * sp}" stroke="currentColor" stroke-width="1.2"/>`).join("");
+  out += `<text x="12" y="${base + 3}" font-size="60" fill="currentColor" font-family="serif">𝄞</text>`;
+  notes.forEach((n, i) => {
+    const cx = x0 + i * dx, col = STATUS_COLOR[STATUSES[n]] ?? "currentColor", sel = n === current, p = parse(n);
+    const top = Math.min(y(staffPos(n)), base - 4 * sp) - 46;
+    out += `<g role="button" tabindex="0" data-note="${n}" aria-pressed="${sel}" aria-label="${label(n)}">`
+      + `<rect x="${cx - 23}" y="${top}" width="46" height="${h - top - 2}" rx="10" fill="${sel ? "var(--bg)" : "transparent"}" stroke="${sel ? "currentColor" : "none"}" stroke-width="2"/>`
+      + noteGlyph(n, cx, y, col)
+      + `<text x="${cx}" y="${h - 26}" font-size="16" font-weight="800" fill="${col}" text-anchor="middle" font-family="Lexend, sans-serif">${p.name}</text>`
+      + `<text x="${cx}" y="${h - 10}" font-size="10" fill="var(--muted)" text-anchor="middle">${showOctave() ? p.octave : octaveWord(p.octave)}</text></g>`;
+  });
+  return out + "</svg>";
+}
+function bigStaff(n) {
+  const sp = 12, w = 200, h = 150, base = 105, cx = 140, y = (s) => base - s * (sp / 2);
+  return `<svg viewBox="0 0 ${w} ${h}" aria-label="${label(n)} op de notenbalk">`
+    + [0, 1, 2, 3, 4].map((i) => `<line x1="6" x2="${w - 6}" y1="${base - i * sp}" y2="${base - i * sp}" stroke="currentColor" stroke-width="1.2"/>`).join("")
+    + `<text x="10" y="${base + 3}" font-size="60" fill="currentColor" font-family="serif">𝄞</text>`
+    + noteGlyph(n, cx, y, STATUS_COLOR[STATUSES[n]] ?? "var(--kent)", 1.2) + "</svg>";
+}
+let noteView = "buttons";
+const viewSeg = document.getElementById("viewSeg");
+viewSeg.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { noteView = b.dataset.v; renderNotes(); }));
+notesEl.addEventListener("click", (e) => { const g = e.target.closest("g[data-note]"); if (g) select(g.dataset.note, 0); });
+notesEl.addEventListener("keydown", (e) => {
+  const g = e.target.closest("g[data-note]");
+  if (g && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); select(g.dataset.note, 0); notesEl.querySelector(`g[data-note="${g.dataset.note}"]`)?.focus(); }
+});
+
+const showOctave = () => octaveOverride[learner] ?? octaveDefault(LEARNERS[learner].age);
+octaveEl.addEventListener("change", () => { octaveOverride[learner] = octaveEl.checked; renderNotes(); });
+function setLearner(id) {
+  learner = id; STATUSES = LEARNERS[id].statuses;
+  needed = new Set(ALL.filter((n) => STATUSES[n]).flatMap((n) => FINGERINGS[n][0]));
+  learnerEl.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.learner === id));
+  FILTERS.forEach(([f, t]) => { filterEl.querySelector(`[data-filter="${f}"]`).textContent = `${t} (${ALL.filter((n) => inFilter(f, n)).length})`; });
+  renderNotes();
+}
 function renderNotes() {
+  const l = LEARNERS[learner], def = octaveDefault(l.age);
+  octaveEl.checked = showOctave();
+  document.getElementById("octaveHint").textContent =
+    `Standaard ${def ? "aan" : "uit"} voor ${AGE_TEXT[l.age]}${octaveOverride[learner] !== undefined && octaveOverride[learner] !== def ? `, voor ${l.name} ${octaveOverride[learner] ? "aangezet" : "uitgezet"}` : ""}. Instelling per leerling.`;
   filterEl.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.filter === filter));
   const visible = ALL.filter((n) => inFilter(filter, n));
+  viewSeg.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === noteView));
+  notesEl.classList.toggle("staff", noteView === "staff");
   notesEl.innerHTML = visible.length ? "" : `<p class="empty-notes">Nog geen noten in de les.</p>`;
-  for (const n of visible) {
+  for (const n of noteView === "buttons" ? visible : []) {
     const b = document.createElement("button"), p = parse(n);
     b.type = "button"; b.className = STATUSES[n] ?? "";
-    b.innerHTML = `${p.name}<sub>${p.octave}</sub>`;
+    b.innerHTML = showOctave() ? `${p.name}<sub>${p.octave}</sub>` : label(n);
     b.title = label(n); b.dataset.note = n;
     b.addEventListener("click", () => select(n, 0));
     notesEl.append(b);
@@ -580,9 +691,18 @@ function select(n, a) {
   current = n; alt = a;
   const alts = FINGERINGS[n], pressed = new Set(alts[a]);
   notesEl.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.note === n));
+  if (noteView === "staff") {
+    const visible = ALL.filter((x) => inFilter(filter, x)), scroll = notesEl.scrollLeft;
+    if (visible.length) notesEl.innerHTML = staffRow(visible);
+    notesEl.scrollLeft = scroll;
+    // Gekozen noot in beeld schuiven (alleen horizontaal, de pagina blijft staan)
+    const i = visible.indexOf(n), cx = 62 + i * 50, viewW = notesEl.clientWidth;
+    if (i >= 0 && (cx < notesEl.scrollLeft + 30 || cx > notesEl.scrollLeft + viewW - 30)) notesEl.scrollLeft = cx - viewW / 2;
+  }
+  document.getElementById("bigStaff").innerHTML = bigStaff(n);
   const p = parse(n);
   document.getElementById("noteName").textContent = p.name;
-  document.getElementById("noteSub").textContent = [octaveWord(p.octave), `octaaf ${p.octave}`].filter(Boolean).join(" · ");
+  document.getElementById("noteSub").textContent = [octaveWord(p.octave), showOctave() && `octaaf ${p.octave}`].filter(Boolean).join(" · ");
   altsEl.innerHTML = "";
   if (alts.length > 1) alts.forEach((_, i) => {
     const b = document.createElement("button");
@@ -614,7 +734,7 @@ function updateKeys() {
   }
   if (!info.hidden && info.dataset.key && !keys[info.dataset.key].g.visible) info.hidden = true;
 }
-renderNotes();
+setLearner(learner);
 
 // ---------- Lus ----------
 function resize() {
