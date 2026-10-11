@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Leraar en huiswerk</title>
+<title>Huiswerk geven</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
 <style>
@@ -90,9 +90,10 @@ h2.t{margin:0;font-size:26px;line-height:1.05}
 <body>
 <div class="page">
   <div class="intro">
-    <h1>Leraar: leerlingen, oefentijd en huiswerk</h1>
+    <h1>Huiswerk: leraar en ouder</h1>
     <p>Mock-up voor wat een leraar ziet als hij inlogt. Zelfde opbouw als de ouderapp: een kort overzicht, dan een lijst, dan pagina's met details. Leesbaar op een staande iPhone, op de iPad in kolommen. Details zijn pagina's, geen vensters.</p>
     <p>Huiswerk bestaat uit vier delen: <b>noten</b> om te oefenen, een <b>oefendoel per dag</b>, een <b>stuk of oefening</b> en een <b>opmerking</b>. De leraar zet het na de les klaar; de leerling ziet het op zijn startscherm; de app meet de oefentijd met het spel en de oefentimer.</p>
+    <p><b>Ook een ouder kan huiswerk geven.</b> Er hoeft geen leraar te zijn. Een ouder heeft dan een dubbele rol: meekijken én huiswerk geven (zie stap 7 en 8). Huiswerk heeft een <b>einddatum</b> (standaard over een week), geen vaste lesdag.</p>
     <p><a href="index.html">← alle mock-ups</a> · bouwt voort op <a href="iPadA-Leraar.html">Leraar (iPad)</a> en <a href="iPadA-Ouder.html">Ouderdashboard</a></p>
   </div>
 
@@ -100,7 +101,7 @@ h2.t{margin:0;font-size:26px;line-height:1.05}
   <div class="row">
 
     <div class="step">
-      <div class="label"><div class="num">1</div><div><b>Startscherm</b><span>Drie cijfers over deze week en de leerlingenlijst. Wie achterloopt met zijn huiswerk staat bovenaan. Per leerling één regel: oefentijd tegenover het doel en wanneer de volgende les is.</span></div></div>
+      <div class="label"><div class="num">1</div><div><b>Startscherm</b><span>Drie cijfers over deze week en de leerlingenlijst. Wie achterloopt met zijn huiswerk staat bovenaan. Per leerling één regel: oefentijd tegenover het doel en tot wanneer het huiswerk loopt.</span></div></div>
       <div class="phone">
         <div style="display:flex;justify-content:space-between;align-items:start">
           <div><h2 class="t">Goedemiddag, Marieke</h2><div class="sub">Deze week, ma 5 – zo 11 okt</div></div>
@@ -108,29 +109,30 @@ h2.t{margin:0;font-size:26px;line-height:1.05}
         </div>
         <div class="stats">
           <div class="stat"><b>9 van 12</b><span>leerlingen geoefend</span></div>
-          <div class="stat"><b>6 van 12</b><span>huiswerk op schema</span></div>
+          <div class="stat"><b>6 van 12</b><span>huiswerk gaat goed</span></div>
           <div class="stat"><b>14 u</b><span>samen geoefend</span></div>
         </div>
         <div class="card" style="padding:6px 14px">
           <div class="cap" style="padding-top:8px">Loopt achter</div>
           <div class="lrow"><span class="av">S</span><div class="grow"><div class="name">Sem</div><div class="xs muted">15 van 100 min · laatst 5 dagen geleden</div><div class="bar"><i class="low" style="width:15%"></i></div></div><span class="chev">›</span></div>
-          <div class="lrow"><span class="av">N</span><div class="grow"><div class="name">Noor</div><div class="xs muted">40 van 100 min · les morgen</div><div class="bar"><i class="low" style="width:40%"></i></div></div><span class="chev">›</span></div>
           <div class="lrow"><span class="av">D</span><div class="grow"><div class="name">Daan</div><div class="xs muted">geen huiswerk · nog niet geoefend</div></div><span class="badge warn">huiswerk geven</span></div>
-          <div class="cap" style="padding-top:12px">Op schema</div>
-          <div class="lrow"><span class="av">A</span><div class="grow"><div class="name">Annabel</div><div class="xs muted">118 van 100 min · les do</div><div class="bar"><i style="width:100%"></i></div></div><span class="chev">›</span></div>
-          <div class="lrow"><span class="av">L</span><div class="grow"><div class="name">Lotte</div><div class="xs muted">80 van 100 min · les vr</div><div class="bar"><i style="width:80%"></i></div></div><span class="chev">›</span></div>
+          <div class="cap" style="padding-top:12px">Even opletten</div>
+          <div class="lrow"><span class="av">N</span><div class="grow"><div class="name">Noor</div><div class="xs muted">40 van 100 min · tot morgen</div><div class="bar"><i class="low" style="width:40%"></i></div></div><span class="chev">›</span></div>
+          <div class="cap" style="padding-top:12px">Gaat goed</div>
+          <div class="lrow"><span class="av">A</span><div class="grow"><div class="name">Annabel</div><div class="xs muted">118 van 100 min · tot do</div><div class="bar"><i style="width:100%"></i></div></div><span class="chev">›</span></div>
+          <div class="lrow"><span class="av">L</span><div class="grow"><div class="name">Lotte</div><div class="xs muted">80 van 100 min · tot vr</div><div class="bar"><i style="width:80%"></i></div></div><span class="chev">›</span></div>
           <div class="small muted" style="padding:8px 0 10px">+ 7 andere leerlingen</div>
         </div>
       </div>
     </div>
 
     <div class="step">
-      <div class="label"><div class="num">2</div><div><b>Leerlingpagina</b><span>Bovenaan het huidige huiswerk met de voortgang per dag. Daaronder oefentijd per dag of per week. Noten en eerdere lessen op eigen pagina's. Tik op een dag voor de dagpagina die al bestaat.</span></div></div>
+      <div class="label"><div class="num">2</div><div><b>Leerlingpagina</b><span>Bovenaan het huidige huiswerk met de voortgang per dag. Daaronder oefentijd per dag of per week. Noten en eerder huiswerk op eigen pagina's. Tik op een dag voor de dagpagina die al bestaat.</span></div></div>
       <div class="phone">
         <div class="back">← Leerlingen</div>
-        <div style="display:flex;justify-content:space-between;align-items:end"><h2 class="t">Lotte</h2><span class="sub">Altsax · les vr 16:00</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:end"><h2 class="t">Lotte</h2><span class="sub">Altsax</span></div>
         <div class="card" style="display:flex;flex-direction:column;gap:10px">
-          <div style="display:flex;justify-content:space-between;align-items:center"><span class="cap">Huiswerk tot vr 16 okt</span><span class="badge">op schema</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center"><span class="cap">Huiswerk tot vr 16 okt</span><span class="badge">gaat goed</span></div>
           <div class="chips"><span class="note les">D</span><span class="note les">E</span><span class="note les">Fis</span></div>
           <div class="small">🎵 <b>Toonladder G groot</b>, langzaam, 2× per dag</div>
           <div class="small" style="background:var(--bg);border-radius:10px;padding:8px 10px">💬 “Let op je ademhaling bij de lange noten.”</div>
@@ -156,7 +158,7 @@ h2.t{margin:0;font-size:26px;line-height:1.05}
         </div>
         <div class="card" style="padding:4px 14px">
           <div class="lrow"><div class="grow"><b>Noten</b><div class="xs muted">5 kent al · 3 in de les · 24 komen nog</div></div><span class="chev">›</span></div>
-          <div class="lrow"><div class="grow"><b>Lessen</b><div class="xs muted">laatste les vr 9 okt · 6 lessen</div></div><span class="chev">›</span></div>
+          <div class="lrow"><div class="grow"><b>Eerder huiswerk</b><div class="xs muted">laatst gegeven vr 9 okt · 6 keer</div></div><span class="chev">›</span></div>
         </div>
         <div class="btn">Huiswerk geven</div>
       </div>
@@ -164,7 +166,7 @@ h2.t{margin:0;font-size:26px;line-height:1.05}
 
     <div class="step">
       <div class="label"><div class="num">3</div><div><b>Huiswerk geven</b><span>Na de les, op een eigen pagina. De vorige opgave staat al ingevuld: alleen aanpassen wat verandert. Gekozen noten krijgen de status “In de les” en komen vaker in het spel.</span></div></div>
-      <div class="phone">
+      <div class="phone" style="height:auto">
         <div class="back">← Lotte</div>
         <h2 class="t">Huiswerk voor Lotte</h2>
         <div class="card" style="display:flex;flex-direction:column;gap:8px">
@@ -187,7 +189,8 @@ h2.t{margin:0;font-size:26px;line-height:1.05}
           <span class="cap">Opmerking</span>
           <div class="field" style="min-height:56px">Let op je ademhaling bij de lange noten.</div>
         </div>
-        <div class="small muted" style="text-align:center">Geldt tot de volgende les: <b style="color:var(--ink)">vr 16 okt</b> ✎</div>
+        <div class="card" style="display:flex;justify-content:space-between;align-items:center"><span class="small">Loopt tot</span><span class="field" style="padding:6px 10px"><b>vr 16 okt</b> ✎</span></div>
+        <div class="xs muted" style="text-align:center;margin-top:-6px">Standaard over een week. Verschuift de les? Pas de datum aan.</div>
         <div class="btn">Opslaan en naar Lotte sturen</div>
       </div>
     </div>
@@ -230,7 +233,7 @@ h2.t{margin:0;font-size:26px;line-height:1.05}
   <p class="who">Leraar · iPad liggend</p>
   <div class="row">
     <div class="step">
-      <div class="label" style="max-width:640px"><div class="num">6</div><div><b>Startscherm op de iPad</b><span>Links de leerlingenlijst, rechts de dag van vandaag: welke lessen er zijn en bij wie het huiswerk nog moet worden gegeven. Tik op een leerling → de leerlingpagina (2 kolommen op de iPad).</span></div></div>
+      <div class="label" style="max-width:640px"><div class="num">6</div><div><b>Startscherm op de iPad</b><span>Links de leerlingenlijst, rechts het huiswerk dat vandaag afloopt: daar moet nieuw huiswerk komen. Tik op een leerling → de leerlingpagina (2 kolommen op de iPad).</span></div></div>
       <div class="ipad">
         <div style="display:flex;justify-content:space-between;align-items:start">
           <div><h2 class="t" style="font-size:32px">Goedemiddag, Marieke</h2><div class="sub">Deze week, ma 5 – zo 11 okt</div></div>
@@ -238,23 +241,23 @@ h2.t{margin:0;font-size:26px;line-height:1.05}
         </div>
         <div class="stats" style="gap:12px">
           <div class="stat"><b>9 van 12</b><span>leerlingen geoefend deze week</span></div>
-          <div class="stat"><b>6 van 12</b><span>huiswerk op schema</span></div>
+          <div class="stat"><b>6 van 12</b><span>huiswerk gaat goed</span></div>
           <div class="stat"><b>14 uur</b><span>samen geoefend deze week</span></div>
         </div>
         <div class="grid2">
           <div class="card" style="padding:8px 16px">
             <div class="cap" style="padding:8px 0 2px">Leerlingen · achterloper eerst</div>
             <div class="lrow"><span class="av">S</span><div class="grow"><div class="name">Sem <span class="xs muted" style="font-weight:400">· altsax</span></div><div class="bar"><i class="low" style="width:15%"></i></div></div><div class="small" style="width:150px;text-align:right">15 / 100 min<div class="xs muted">5 dagen niet</div></div><span class="chev">›</span></div>
-            <div class="lrow"><span class="av">N</span><div class="grow"><div class="name">Noor</div><div class="bar"><i class="low" style="width:40%"></i></div></div><div class="small" style="width:150px;text-align:right">40 / 100 min<div class="xs muted">les morgen</div></div><span class="chev">›</span></div>
+            <div class="lrow"><span class="av">N</span><div class="grow"><div class="name">Noor</div><div class="bar"><i class="low" style="width:40%"></i></div></div><div class="small" style="width:150px;text-align:right">40 / 100 min<div class="xs muted">tot morgen</div></div><span class="chev">›</span></div>
             <div class="lrow"><span class="av">D</span><div class="grow"><div class="name">Daan</div><div class="xs muted">geen huiswerk</div></div><div style="width:150px;text-align:right"><span class="badge warn">huiswerk geven</span></div><span class="chev">›</span></div>
-            <div class="lrow"><span class="av">L</span><div class="grow"><div class="name">Lotte</div><div class="bar"><i style="width:80%"></i></div></div><div class="small" style="width:150px;text-align:right">80 / 100 min<div class="xs muted">les vr</div></div><span class="chev">›</span></div>
-            <div class="lrow"><span class="av">A</span><div class="grow"><div class="name">Annabel</div><div class="bar"><i style="width:100%"></i></div></div><div class="small" style="width:150px;text-align:right">118 / 100 min<div class="xs muted">les do</div></div><span class="chev">›</span></div>
+            <div class="lrow"><span class="av">L</span><div class="grow"><div class="name">Lotte</div><div class="bar"><i style="width:80%"></i></div></div><div class="small" style="width:150px;text-align:right">80 / 100 min<div class="xs muted">tot vr</div></div><span class="chev">›</span></div>
+            <div class="lrow"><span class="av">A</span><div class="grow"><div class="name">Annabel</div><div class="bar"><i style="width:100%"></i></div></div><div class="small" style="width:150px;text-align:right">118 / 100 min<div class="xs muted">tot do</div></div><span class="chev">›</span></div>
           </div>
           <div style="display:flex;flex-direction:column;gap:16px">
             <div class="card">
-              <div class="cap">Vandaag les</div>
-              <div class="lrow"><div class="grow"><b>15:00 Annabel</b><div class="xs muted">huiswerk 118 van 100 min ✓</div></div><span class="badge warn">nieuw huiswerk</span></div>
-              <div class="lrow"><div class="grow"><b>16:00 Sem</b><div class="xs muted">huiswerk 15 van 100 min</div></div><span class="badge warn">nieuw huiswerk</span></div>
+              <div class="cap">Huiswerk loopt vandaag af</div>
+              <div class="lrow"><div class="grow"><b>Annabel</b><div class="xs muted">huiswerk 118 van 100 min ✓</div></div><span class="badge warn">nieuw huiswerk</span></div>
+              <div class="lrow"><div class="grow"><b>Sem</b><div class="xs muted">huiswerk 15 van 100 min</div></div><span class="badge warn">nieuw huiswerk</span></div>
             </div>
             <div class="card">
               <div class="cap">Lastig bij meerdere leerlingen</div>
@@ -266,26 +269,58 @@ h2.t{margin:0;font-size:26px;line-height:1.05}
     </div>
   </div>
 
+  <p class="who">Ouder · iPhone staand (dubbele rol)</p>
+  <div class="row">
+    <div class="step">
+      <div class="label"><div class="num">7</div><div><b>Geen leraar</b><span>Dezelfde kindpagina als nu, met bovenaan het huiswerk. De ouder geeft het huiswerk zelf, met dezelfde pagina als stap 3.</span></div></div>
+      <div class="phone" style="height:auto">
+        <div class="back">← Mijn kinderen</div>
+        <div style="display:flex;justify-content:space-between;align-items:end"><h2 class="t">Lotte</h2><span class="sub">Altsax · geen leraar</span></div>
+        <div class="card" style="display:flex;flex-direction:column;gap:10px">
+          <span class="cap">Nog geen huiswerk</span>
+          <div class="small muted">Geef Lotte noten om te oefenen en een doel per dag. Zij ziet het op haar startscherm.</div>
+          <div class="btn" style="margin:0">Huiswerk geven</div>
+        </div>
+        <div class="card"><span class="cap">Oefentijd</span><div class="xs muted" style="margin-top:6px">(zoals nu: 28 dagen, donut, dagpagina)</div></div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="label"><div class="num">8</div><div><b>Wel een leraar</b><span>De ouder ziet het huiswerk van de leraar en hoe het gaat. Of de ouder het ook mag aanpassen is nog een open vraag.</span></div></div>
+      <div class="phone" style="height:auto">
+        <div class="back">← Mijn kinderen</div>
+        <div style="display:flex;justify-content:space-between;align-items:end"><h2 class="t">Lotte</h2><span class="sub">Altsax · Marieke</span></div>
+        <div class="card" style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span class="cap">Huiswerk van Marieke · tot vr</span><span class="badge warn">even opletten</span></div>
+          <div class="chips"><span class="note les">D</span><span class="note les">E</span><span class="note les">Fis</span></div>
+          <div class="small">🎵 <b>Toonladder G groot</b> · 20 min per dag, 5 dagen</div>
+          <div class="small"><b>2 van 5 dagen</b> · nog 3 dagen tot en met vr</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="rules">
     <h2>Keuzes in dit ontwerp</h2>
     <h3>Huiswerk</h3>
     <ul>
-      <li>Eén opgave per leerling tegelijk, geldig tot de volgende les. Een nieuwe opgave vervangt de oude; de oude blijft zichtbaar onder <b>Lessen</b>.</li>
+      <li>Eén opgave per leerling tegelijk, met een <b>einddatum</b> (standaard over een week, aan te passen). Een nieuwe opgave vervangt de oude; de oude blijft zichtbaar onder <b>Eerder huiswerk</b>.</li>
+      <li>Geen vaste lesdag per leerling. Kan later als gemak (dan vult de einddatum zich vanzelf in).</li>
       <li><b>Noten:</b> gekozen noten krijgen de status “In de les” (bestaat al) en komen daardoor vaker in het notenspel.</li>
       <li><b>Oefendoel:</b> minuten per dag en dagen per week. Een dag telt als gehaald als de gespeelde tijd (notenspel + vrij oefenen) het dagdoel haalt. Halve dag = lichtgroen.</li>
       <li><b>Stuk of oefening:</b> een titel en een korte uitleg. Later te koppelen aan een liedje uit <code>songs</code>.</li>
       <li><b>Opmerking:</b> vrije tekst, zichtbaar voor leerling en ouder.</li>
-      <li><b>Op schema</b> = het aantal gehaalde dagen ligt op koers om het weekdoel te halen voor de volgende les.</li>
+      <li>Hoe gaat het met het huiswerk? Drie woorden:<ul><li><b>Gaat goed</b>: het doel wordt waarschijnlijk gehaald.</li><li><b>Even opletten</b>: het moet de komende dagen wel gebeuren.</li><li><b>Loopt achter</b>: het doel is bijna niet meer te halen.</li></ul>Berekening: de gehaalde dagen plus de dagen die nog over zijn tot de einddatum, tegenover het aantal dagen van het doel.</li>
     </ul>
     <h3>Wie ziet wat</h3>
     <ul>
       <li>De leerling ziet het huiswerk op zijn startscherm, de ouder op de kindpagina.</li>
-      <li>Alleen een leraar (of de ouder als die zelf lesgeeft?) kan huiswerk geven. <b>Open vraag.</b></li>
+      <li>Een leraar én een ouder kunnen huiswerk geven. Er hoeft geen leraar te zijn. Bij de leerling staat van wie het huiswerk is (“Huiswerk van Marieke”, “Huiswerk van papa”).</li>
+      <li>Heeft een kind een leraar én geeft de ouder huiswerk? Voorstel: het nieuwste huiswerk telt, en de ander ziet dat. <b>Open vraag.</b></li>
     </ul>
     <h3>Techniek (voor later)</h3>
     <ul>
-      <li>Tabel <code>lessons</code> (staat al gepland): leerling, leraar, datum, tot-datum, minuten per dag, dagen per week, stuk, uitleg, opmerking. Plus <code>lesson_notes</code> voor de noten.</li>
-      <li>Lesdag en -tijd per leerling (<code>teacher_students.lesson_day</code>, <code>lesson_time</code>) voor “vandaag les” en “les vr”.</li>
+      <li>Tabel <code>lessons</code> (staat al gepland): leerling, gegeven door (leraar of ouder), datum, tot-datum, minuten per dag, dagen per week, stuk, uitleg, opmerking. Plus <code>lesson_notes</code> voor de noten.</li>
+      <li>Geen lesdag in de database; “tot vr” komt uit de tot-datum van het huiswerk.</li>
       <li>De voortgang wordt berekend uit <code>rounds</code> en <code>practice_sessions</code>, net als het ouderdashboard.</li>
     </ul>
   </div>
