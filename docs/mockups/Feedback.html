@@ -117,27 +117,19 @@ tr.sel td{background:var(--blue-soft)}
 <div class="page">
   <div class="intro">
     <h1>Feedback geven</h1>
-    <p>Mock-up voor een feedbackformulier voor iedereen met een account: leerling, ouder en leraar. Zonder account zie je het niet. Feedback komt in de database en Alwin leest het op een eigen beheerpagina. Wat de moeite waard is, zet hij zelf door naar Linear.</p>
+    <p>Mock-up voor een feedbackformulier. <b>Alwin zet per persoon aan wie feedback mag geven</b> (stap 5). Wie dat mag, ziet op elke pagina een mini-icoontje rechtsonder; een tik opent het formulier en de pagina waar je was gaat mee. Feedback komt in de database en Alwin leest het op een eigen beheerpagina. Wat de moeite waard is, zet hij zelf door naar Linear.</p>
     <p><a href="index.html">← alle mock-ups</a></p>
   </div>
 
-  <p class="who">Iedereen met een account · iPhone staand</p>
+  <p class="who">Wie feedback mag geven · iPhone staand</p>
   <div class="row">
     <div class="step">
-      <div class="label"><div class="num">1</div><div><b>In het menu</b><span>Onderaan het menu, bij Mijn profiel en Uitloggen. Altijd bereikbaar, op elk scherm.</span></div></div>
-      <div class="phone">
-        <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="t">Notenspel</h2><span class="badge" style="background:var(--ink);color:#fff;padding:6px 10px">✕</span></div>
-        <div class="card" style="padding:4px 14px">
-          <div class="lrow"><div class="grow"><b>Start</b></div></div>
-          <div class="lrow"><div class="grow">🎷 Grepen</div></div>
-          <div class="lrow"><div class="grow"><b>🎮 Notenspel</b></div></div>
-          <div class="lrow"><div class="grow">🎙️ Vrij oefenen</div></div>
-        </div>
-        <div class="card" style="padding:4px 14px">
-          <div class="lrow"><div class="grow">Mijn profiel</div></div>
-          <div class="lrow mark" style="padding-left:8px;padding-right:8px"><div class="grow">💬 Feedback geven</div><span class="chev">›</span></div>
-          <div class="lrow"><div class="grow">Uitloggen</div></div>
-        </div>
+      <div class="label"><div class="num">1</div><div><b>Mini-icoontje op elke pagina</b><span>Rechtsonder, klein en half doorzichtig, zodat het niet in de weg zit. Alleen voor wie feedback mag geven.</span></div></div>
+      <div class="phone" style="position:relative">
+        <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="t">Notenspel</h2><span class="badge" style="background:#fff;color:var(--ink);border:2px solid var(--line);padding:6px 10px">☰</span></div>
+        <div class="card" style="height:220px;display:flex;align-items:center;justify-content:center"><span class="small muted">(het notenspel)</span></div>
+        <div class="card" style="height:120px"></div>
+        <div class="mark" style="position:absolute;right:22px;bottom:26px;width:40px;height:40px;border-radius:20px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;opacity:.85">💬</div>
       </div>
     </div>
 
@@ -177,13 +169,14 @@ tr.sel td{background:var(--blue-soft)}
   <p class="who">Alwin (beheer) · desktop</p>
   <div class="row">
     <div class="step" style="width:100%">
-      <div class="label" style="max-width:760px"><div class="num">4</div><div><b>Beheerpagina</b><span>Alleen voor beheerders (nu alleen Alwin), op <code>/app/beheer</code>. Links de lijst met filters, rechts de details. Met “Naar Linear” open je een nieuw Linear-issue met de tekst al ingevuld; daarna staat de feedback op “In Linear”.</span></div></div>
+      <div class="label" style="max-width:760px"><div class="num">4</div><div><b>Beheerpagina</b><span>Alleen voor beheerders (nu alleen Alwin), via “Beheer” in het menu. Links de lijst met filters, rechts de details. Met “Naar Linear” open je een nieuw Linear-issue met de tekst al ingevuld; daarna staat de feedback op “In Linear”.</span></div></div>
       <div class="desk">
         <div class="bar-top"><i></i><i></i><i></i><span>notenkraker.netlify.app/app/beheer</span></div>
         <div class="in">
           <div class="side">
             <div class="logo">♪ Notenkraker</div>
             <a class="on">💬 Feedback <span style="float:right" class="badge warn">3</span></a>
+            <a>👥 Wie mag feedback geven</a>
             <a>Terug naar de app</a>
           </div>
           <div class="main">
@@ -220,24 +213,52 @@ tr.sel td{background:var(--blue-soft)}
     </div>
   </div>
 
+  <div class="row">
+    <div class="step" style="width:100%">
+      <div class="label" style="max-width:760px"><div class="num">5</div><div><b>Wie mag feedback geven</b><span>Alle accounts met een schakelaar. Aan = die persoon ziet het icoontje. Zoeken op naam of e-mail.</span></div></div>
+      <div class="desk">
+        <div class="bar-top"><i></i><i></i><i></i><span>notenkraker.netlify.app/app</span></div>
+        <div class="in">
+          <div class="side">
+            <div class="logo">♪ Notenkraker</div>
+            <a>💬 Feedback</a>
+            <a class="on">👥 Wie mag feedback geven</a>
+            <a>Terug naar de app</a>
+          </div>
+          <div class="main">
+            <div style="display:flex;justify-content:space-between;align-items:end"><h2 class="t">Wie mag feedback geven</h2><span class="field muted" style="width:240px">🔍 Zoek op naam of e-mail</span></div>
+            <div class="card" style="padding:6px 10px">
+              <table>
+                <tr><th>Naam</th><th>E-mail</th><th>Rol</th><th>Mag feedback geven</th></tr>
+                <tr><td><b>Marieke</b></td><td>marieke@…</td><td>leraar</td><td><span class="box on">✓</span></td></tr>
+                <tr><td><b>Olaf</b></td><td>olaf@…</td><td>ouder</td><td><span class="box on">✓</span></td></tr>
+                <tr><td><b>Lotte</b></td><td>lotte@…</td><td>leerling</td><td><span class="box"></span></td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="rules">
     <h2>Keuzes in dit ontwerp</h2>
     <h3>Wie</h3>
     <ul>
-      <li>Iedereen met een account kan feedback geven: leerling, ouder en leraar. Zonder account niet (geen menu-item op <code>/oefenen</code>).</li>
+      <li>Alwin zet per persoon aan wie feedback mag geven (stap 5). Standaard staat het uit. Zonder account nooit.</li>
       <li>Alleen een beheerder ziet de feedback. Nu is dat alleen Alwin.</li>
     </ul>
     <h3>Wat</h3>
     <ul>
       <li>Soort: idee, werkt niet of vraag. Een tekst (verplicht) en een schermafbeelding (mag).</li>
-      <li>Automatisch mee: scherm, apparaat en browser, versie (commit), rol en leeftijdsgroep. Geen andere persoonsgegevens.</li>
+      <li>Automatisch mee: de pagina waar je op het icoontje tikte, apparaat en browser, versie (commit) en rol. Geen andere persoonsgegevens.</li>
       <li>Status op de beheerpagina: nieuw → bekeken → in Linear → afgehandeld.</li>
       <li>Geen antwoord terug naar de gebruiker (kan later).</li>
     </ul>
     <h3>Techniek (voor later)</h3>
     <ul>
       <li>Tabel <code>feedback</code>: id, profiel, soort, tekst, scherm, apparaat, versie, rol, status, linear-link, aangemaakt. RLS: iedereen mag zijn eigen feedback toevoegen; lezen en bijwerken alleen voor beheerders.</li>
-      <li>Beheerders: <code>profiles.is_admin</code>, alleen via een migratie of het Supabase-dashboard te zetten.</li>
+      <li><code>profiles.can_give_feedback</code> (standaard uit); alleen een beheerder zet het, via een databasefunctie. Beheerder = rol <code>admin</code> (bestaat al).</li>
       <li>Schermafbeelding in een privé Storage-bucket <code>feedback</code>.</li>
       <li>“Naar Linear” opent <code>linear.new</code> met titel en tekst ingevuld; geen API-sleutel nodig.</li>
     </ul>

@@ -28,6 +28,8 @@ export default defineConfig({
       workbox: { globPatterns: ["**/*.{js,css,html,svg,png,woff2}"] },
     }),
   ],
+  // versie voor feedback (AC-116): de commit die Netlify bouwt, lokaal "dev"
+  define: { "import.meta.env.VITE_APP_VERSION": JSON.stringify((process.env.COMMIT_REF ?? "dev").slice(0, 7)) },
   resolve: { alias: { "@": "/src" } },
   server: { port: 5173 },
 });

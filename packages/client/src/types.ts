@@ -19,7 +19,24 @@ export interface Profile {
   role: Role | null;
   displayName: string;
   email?: string;
+  /** mag feedback geven (AC-116); zet alleen een admin */
+  canGiveFeedback?: boolean;
 }
+
+/** feedback van een gebruiker (AC-116); alleen een admin leest het */
+export type FeedbackKind = "idee" | "fout" | "vraag";
+export type FeedbackStatus = "nieuw" | "bekeken" | "linear" | "klaar";
+export interface FeedbackInput { kind: FeedbackKind; message: string; screen: string; url: string; device: string; version: string }
+export interface Feedback extends FeedbackInput {
+  id: string;
+  userId: string | null;
+  displayName: string;
+  role: Role | null;
+  status: FeedbackStatus;
+  linearUrl: string | null;
+  createdAt: string;
+}
+export interface AdminUser { id: string; displayName: string; email: string; role: Role | null; canGiveFeedback: boolean; createdAt: string }
 
 export interface Student {
   id: string;
@@ -158,6 +175,20 @@ export interface HomeworkApi {
   give(input: HomeworkInput): Promise<Homework>;
 }
 
+export interface FeedbackApi {
+  /** alleen als het profiel canGiveFeedback heeft */
+  send(input: FeedbackInput): Promise<void>;
+  /** alleen voor een admin; nieuwste eerst */
+  list(): Promise<Feedback[]>;
+  setStatus(id: string, status: FeedbackStatus, linearUrl?: string | null): Promise<void>;
+}
+
+/** beheer, alleen voor een admin */
+export interface AdminApi {
+  users(): Promise<AdminUser[]>;
+  setFeedbackAllowed(userId: string, allowed: boolean): Promise<void>;
+}
+
 export interface SongsApi {
   list(studentId: string): Promise<Song[]>;
   create(studentId: string, song: Omit<Song, "id" | "createdAt">): Promise<Song>;
@@ -171,5 +202,7 @@ export interface NotenkrakerClient {
   rounds: RoundsApi;
   practice: PracticeApi;
   homework: HomeworkApi;
+  feedback: FeedbackApi;
+  admin: AdminApi;
   songs: SongsApi;
 }
