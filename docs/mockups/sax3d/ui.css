@@ -1,0 +1,100 @@
+/* Gedeelde stijl voor de 3D-grepen-indelingen. Tokens zoals apps/web/src/index.css (richting A). */
+:root {
+  --bg: #edf2f7; --surface: #ffffff; --fg: #172440; --muted: #4a5873; --line: #d5dee9;
+  --kent: #2459c9; --les: #f4a261; --moet: #8592aa; --accent: #c2531a; --pressed: #2459c9;
+  --stage-a: #f7f9fc; --stage-b: #dfe6ef;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1729; --surface: #18233b; --fg: #e8eef8; --muted: #a9b6cf; --line: #2b3a5c;
+    --kent: #4f7fe0; --les: #f4a261; --moet: #7d8aa6; --accent: #f4a261; --pressed: #7ea6f5;
+    --stage-a: #1c2840; --stage-b: #0b1220;
+  }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--fg); font-family: Lexend, system-ui, sans-serif; overflow: hidden; }
+button { font-family: inherit; color: inherit; }
+
+/* Kopregel */
+.top { display: flex; align-items: center; gap: 14px; }
+.top h1 { margin: 0; font-size: 26px; font-weight: 700; }
+.back { width: 48px; height: 48px; border-radius: 50%; border: 0; background: var(--surface); display: grid; place-items: center; cursor: pointer; flex: none; }
+.round { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--fg); background: none; display: grid; place-items: center; cursor: pointer; flex: none; }
+.seg { display: inline-flex; background: var(--surface); border-radius: 999px; padding: 4px; gap: 2px; }
+.seg button { border: 0; background: none; border-radius: 999px; padding: 0 18px; min-height: 40px; font-weight: 600; font-size: 15px; color: var(--muted); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--surface); }
+
+/* Kaarten */
+.card { background: var(--surface); border-radius: 28px; position: relative; min-height: 0; min-width: 0; }
+
+/* 3D-podium */
+.stage { position: relative; overflow: hidden; border-radius: inherit; background: radial-gradient(ellipse at 50% 40%, var(--stage-a), var(--stage-b)); min-height: 0; }
+.stage canvas { display: block; touch-action: none; }
+.label { font: 700 12px Lexend, system-ui, sans-serif; color: #fff; background: var(--pressed); padding: 3px 8px; border-radius: 999px; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+.label.idle { background: rgba(23,36,64,.72); font-weight: 600; }
+.label.part { background: var(--fg); color: var(--surface); font-size: 13px; padding: 5px 12px; }
+.saxbar { position: absolute; display: flex; gap: 8px; z-index: 2; }
+.icon { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); display: grid; place-items: center; cursor: pointer; box-shadow: 0 1px 3px rgba(23,36,64,.12); padding: 0; }
+.icon svg { width: 22px; height: 22px; }
+.icon[aria-pressed="true"] { background: var(--fg); color: var(--surface); border-color: var(--fg); }
+.pill { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; min-height: 40px; padding: 0 14px; font-weight: 600; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(23,36,64,.12); }
+.pill[aria-pressed="true"] { background: var(--fg); color: var(--surface); border-color: var(--fg); }
+.toast { position: absolute; left: 50%; transform: translateX(-50%); bottom: 14px; background: var(--fg); color: var(--surface); padding: 8px 14px; border-radius: 12px; font-size: 14px; font-weight: 600; z-index: 3; white-space: nowrap; }
+.toast[hidden] { display: none; }
+
+/* Noot */
+.badge { display: inline-block; font-size: 14px; font-weight: 600; padding: 5px 12px; border-radius: 10px; border: 2px solid transparent; }
+.badge.kent { background: var(--kent); color: #fff; }
+.badge.les { background: var(--les); color: #172440; }
+.badge.moet { background: var(--surface); color: var(--muted); border: 2px dashed var(--moet); }
+.badge[hidden] { display: none; }
+.big-name { font-weight: 700; line-height: .9; letter-spacing: -0.02em; }
+.sub { color: var(--muted); font-size: 15px; }
+.staff-svg svg { display: block; width: 100%; height: 100%; color: var(--fg); }
+.druk { margin: 0; font-size: 16px; line-height: 1.35; }
+.dashed { border: 2px dashed var(--line); background: none; border-radius: 999px; min-height: 44px; padding: 0 16px; color: var(--muted); font-size: 14px; font-weight: 500; cursor: pointer; }
+.dashed[aria-pressed="true"] { color: var(--fg); border-color: var(--muted); }
+.alts { display: flex; gap: 6px; flex-wrap: wrap; }
+.alts:empty { display: none; }
+.alts button { border: 1px solid var(--line); background: var(--bg); border-radius: 999px; min-height: 36px; padding: 0 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.alts button[aria-pressed="true"] { background: var(--fg); color: var(--surface); }
+
+/* Notenkiezer met vorige/volgende aan begin en eind */
+.strip-nav { display: flex; align-items: stretch; gap: 8px; }
+.strip-nav .strip { flex: 1; min-width: 0; }
+.step { flex: none; width: 48px; border: 0; border-radius: 16px; background: var(--bg); display: grid; place-items: center; cursor: pointer; }
+.step svg { width: 22px; height: 22px; }
+.step:active { background: var(--line); }
+/* Laat horen + aan/uit voor elke noot, als één knop */
+.playgroup { display: inline-flex; align-items: center; }
+.playgroup .pill { box-shadow: none; }
+.playgroup .pill:first-child { border-radius: 999px 0 0 999px; }
+.playgroup .pill.auto { border-radius: 0 999px 999px 0; border-left: 0; color: var(--muted); }
+.playgroup .round + .round { margin-left: 6px; border-color: var(--line); color: var(--muted); }
+.playgroup [data-auto][aria-pressed="true"] { background: var(--fg); color: var(--surface); border-color: var(--fg); }
+/* Geluid: klank en "bij elke noot" */
+.sound { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sound .seg { background: var(--bg); }
+.sound .seg button { min-height: 34px; padding: 0 12px; font-size: 13px; }
+.toggle { display: inline-flex; align-items: center; gap: 8px; border: 0; background: none; font-size: 14px; font-weight: 600; cursor: pointer; padding: 0; min-height: 34px; }
+.toggle i { width: 40px; height: 24px; border-radius: 999px; background: var(--line); position: relative; flex: none; transition: background .2s; }
+.toggle i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.3); transition: transform .2s; }
+.toggle[aria-pressed="true"] i { background: var(--kent); }
+.toggle[aria-pressed="true"] i::after { transform: translateX(16px); }
+
+/* Notenkiezer: knoppen */
+.strip { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.strip::-webkit-scrollbar { display: none; }
+.note-btn { flex: 1 0 64px; min-height: 64px; border: 0; border-radius: 16px; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-size: 22px; font-weight: 700; cursor: pointer; }
+.note-btn sub { font-size: 12px; font-weight: 500; }
+.note-btn[aria-pressed="true"] { background: var(--fg); color: var(--surface); }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
+.dot.kent { background: var(--kent); } .dot.les { background: var(--les); } .dot.moet { background: var(--moet); }
+/* Notenkiezer: notenbalk */
+.strip.staff { display: block; }
+/* Vaste hoogte: met alle noten (hulplijnen boven en onder) schaalt de balk mee in plaats van de sax te verdrukken */
+.strip.staff svg { display: block; color: var(--fg); margin: 0 auto; height: var(--staff-h, 170px); width: auto; }
+/* Met letters eronder iets hoger, zodat de noten even groot blijven */
+.strip.staff.names svg { height: calc(var(--staff-h, 170px) + 34px); }
+.strip.staff g[data-note] { cursor: pointer; }

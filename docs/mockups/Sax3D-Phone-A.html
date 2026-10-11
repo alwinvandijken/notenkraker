@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>3D-grepen iPhone A</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="sax3d/ui.css">
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<style>
+
+body { padding: 16px 16px calc(12px + env(safe-area-inset-bottom)); }
+.app { height: 100%; display: flex; flex-direction: column; gap: 12px; }
+.top h1 { font-size: 22px; flex: 1; }
+.back { width: 42px; height: 42px; }
+.note-card { padding: 10px 16px; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; border-radius: 22px; }
+.note-card .staff-svg { height: 92px; }
+.big-name { font-size: 60px; text-align: center; }
+.note-right { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.badge { font-size: 12px; padding: 3px 8px; }
+.sax-card { flex: 1; overflow: hidden; display: flex; flex-direction: column; border-radius: 22px; }
+.sax-card .stage { flex: 1; border-radius: 22px; }
+.saxbar.r { top: 10px; right: 10px; flex-direction: column; }
+.icon { width: 40px; height: 40px; }
+.sax-foot { padding: 10px 14px 12px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.druk { font-size: 15px; }
+.dashed { min-height: 36px; font-size: 13px; }
+.strip { --staff-h: 132px; }
+.picker-row { display: flex; justify-content: space-between; gap: 8px; }
+.seg.mode button { padding: 0 9px; min-width: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; }
+.seg.mode .mini { font-size: 8px; font-weight: 700; line-height: 1; margin-top: 1px; }
+.seg.mode button svg { width: 24px; height: 15px; }
+.seg button { min-height: 34px; font-size: 13px; padding: 0 14px; }
+.note-card .druk, .note-card .alts { grid-column: 1 / -1; }
+.note-card .sound { grid-column: 1 / -1; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 8px; }
+.step { width: 36px; border-radius: 12px; }
+.note-btn { flex: 0 0 52px; min-height: 58px; font-size: 20px; }
+
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <button class="back" aria-label="Terug"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <h1>Grepentabel</h1>
+    <div class="playgroup" role="group" aria-label="Laat horen"><button class="round" data-play aria-label="Laat horen"><svg width="20" height="20" viewBox="0 0 22 22" aria-hidden="true"><path d="M3 8h4l5-4v14l-5-4H3z" fill="currentColor"/><path d="M15 7.5a5 5 0 010 7M17.5 5a8.5 8.5 0 010 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></button><button class="round auto" data-auto aria-pressed="false" aria-label="Speel bij elke noot" title="Speel de noot bij elke wissel"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 014-4h12"/><path d="M7 22l-3-3 3-3"/><path d="M20 13v2a4 4 0 01-4 4H4"/></svg></button></div>
+  </header>
+  <section class="card note-card" aria-label="Noot">
+    <div class="staff-svg" data-note-staff="small"></div>
+    <div class="note-right"><div class="big-name" data-note-name></div><span class="badge" data-status></span></div>
+    <p class="druk" data-druk></p>
+    <div class="alts" data-alts></div>
+    <div class="sound"><div class="seg" role="group" aria-label="Klank"><button data-sound="sax">Sax</button><button data-sound="toon">Toon</button></div></div>
+  </section>
+  <section class="card sax-card" aria-label="Greep op de sax">
+    <div class="stage" data-stage>
+      <div class="saxbar r">
+        <button class="icon" data-view-cycle aria-label="Andere kant"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-3-6.7"/><path d="M21 4v5h-5"/></svg></button>
+        <button class="icon" data-zoom="in" aria-label="Inzoomen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button class="icon" data-zoom="out" aria-label="Uitzoomen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+        <button class="icon" data-explode aria-pressed="false" aria-label="Uit elkaar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M9 6l3-3 3 3M12 21v-6M9 18l3 3 3-3"/><rect x="7" y="10.5" width="10" height="3" rx="1.5"/></svg></button>
+        <button class="icon" data-showall aria-pressed="false" aria-label="Toon alle kleppen" title="Toon alle kleppen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="5.5" r="2.3"/><circle cx="9" cy="12" r="2.3"/><circle cx="9" cy="18.5" r="2.3"/><path d="M18 9v6M15 12h6"/></svg></button>
+      </div>
+      <div class="toast" data-info hidden></div>
+    </div>
+  </section>
+  <div class="picker-row">
+    <div class="seg" role="group" aria-label="Welke noten"><button data-filter="mine">Mijn noten</button><button data-filter="all">Alle</button></div>
+    <div class="seg mode" role="group" aria-label="Notenkiezer"><button data-strip-mode="buttons" aria-label="Letters">ABC</button><button data-strip-mode="staff" aria-label="Notenbalk"><svg viewBox="0 0 28 18" width="28" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1 3h26M1 7h26M1 11h26M1 15h26"/><ellipse cx="16" cy="11" rx="3.2" ry="2.3" fill="currentColor" stroke="none" transform="rotate(-20 16 11)"/><path d="M19 10.5V1.5" stroke-width="1.6"/></svg></button><button data-strip-mode="both" aria-label="Notenbalk met letters"><svg viewBox="0 0 28 18" width="28" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1 3h26M1 7h26M1 11h26M1 15h26"/><ellipse cx="16" cy="11" rx="3.2" ry="2.3" fill="currentColor" stroke="none" transform="rotate(-20 16 11)"/><path d="M19 10.5V1.5" stroke-width="1.6"/></svg><span class="mini">ABC</span></button></div>
+  </div>
+  <nav aria-label="Kies een noot"><div class="strip-nav"><button class="step" data-step="-1" aria-label="Vorige noot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><div class="strip" data-notes></div><button class="step" data-step="1" aria-label="Volgende noot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button></div></nav>
+</div>
+<script type="module">
+import { mountGrepen } from "./sax3d/ui.js";
+mountGrepen({ sax: { dist: 15 } });
+</script>
+</body>
+</html>
