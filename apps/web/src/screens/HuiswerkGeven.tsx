@@ -39,7 +39,7 @@ export function HuiswerkGeven({ studentId, onDone }: { studentId: string; onDone
       if (!prev) return;
       setNotes(prev.notes); setMinutes(prev.minutesPerDay); setDays(prev.daysPerWeek);
       setPiece(prev.piece); setPieceNote(prev.pieceNote); setRemark(prev.remark);
-    });
+    }).catch(() => { /* niets om in te vullen */ });
   }, [studentId, profile?.id]);
 
   if (!student) return <p className="text-muted">Laden…</p>;
