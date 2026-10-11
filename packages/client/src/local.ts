@@ -1,5 +1,5 @@
 import { ageProfile, scoreRound, type StatusMap } from "@notenkraker/core";
-import type { Homework, NotenkrakerClient, PracticeSession, Profile, Round, Song, Student, StudentNote } from "./types.js";
+import type { Homework, HomeworkTemplate, NotenkrakerClient, PracticeSession, Profile, Round, Song, Student, StudentNote } from "./types.js";
 
 /**
  * In-memory/localStorage-implementatie van hetzelfde contract. Voor
@@ -8,7 +8,7 @@ import type { Homework, NotenkrakerClient, PracticeSession, Profile, Round, Song
  * (standaard "ouder": kinderen onder één login), geen echte auth.
  */
 export function createLocalNotenkraker(storageKey = "notenkraker-local", opts: { role?: Profile["role"]; displayName?: string } = {}): NotenkrakerClient {
-  type State = { students: Student[]; notes: StudentNote[]; rounds: Round[]; practice?: PracticeSession[]; homework?: Homework[]; songs: Array<Song & { studentId: string }> };
+  type State = { students: Student[]; notes: StudentNote[]; rounds: Round[]; practice?: PracticeSession[]; homework?: Homework[]; templates?: HomeworkTemplate[]; songs: Array<Song & { studentId: string }> };
   const load = (): State => {
     try { const raw = globalThis.localStorage?.getItem(storageKey); if (raw) return JSON.parse(raw) as State; } catch { /* geen storage */ }
     return { students: [], notes: [], rounds: [], songs: [] };
@@ -98,6 +98,13 @@ export function createLocalNotenkraker(storageKey = "notenkraker-local", opts: {
         }
         save(); emit(input.studentId); return h;
       },
+      async giveMany(ids, input) {
+        for (const sid of ids) await this.give({ ...input, studentId: sid });
+        return ids.length;
+      },
+      async templates() { return [...(state.templates ?? [])].sort((a, b) => a.name.localeCompare(b.name)); },
+      async saveTemplate(t) { const x = { ...t, id: uid() }; (state.templates ??= []).push(x); save(); return x; },
+      async removeTemplate(id) { state.templates = (state.templates ?? []).filter((t) => t.id !== id); save(); },
     },
     // zonder account geen feedback en geen beheer
     feedback: {
