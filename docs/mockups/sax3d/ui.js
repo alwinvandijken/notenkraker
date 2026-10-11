@@ -18,15 +18,41 @@ function distinct(notes) {
   }));
 }
 
+// ---------- Geluid ----------
+// "toon": dezelfde referentietoon als apps/web/src/audio/synth.ts. "sax": opnames van een echte altsax
+// (tonejs-instruments, samples CC BY 3.0), het dichtstbijzijnde sample op toonhoogte gezet.
+const SAMPLE_URL = "https://cdn.jsdelivr.net/gh/nbrosowsky/tonejs-instruments@master/samples/saxophone/";
+const SAMPLE_NAMES = ["Cs3", "D3", "Ds3", "E3", "F3", "Fs3", "G3", "Gs3", "As3", "B3", "C4", "Cs4", "D4", "Ds4", "E4", "F4", "Fs4", "G4", "Gs4",
+  "A4", "As4", "B4", "C5", "Cs5", "D5", "Ds5", "E5", "F5", "Fs5", "G5", "Gs5", "A5"];
+const SAMPLE_SEMI = { C: 0, Cs: 1, D: 2, Ds: 3, E: 4, F: 5, Fs: 6, G: 7, Gs: 8, A: 9, As: 10, B: 11 };
+const sampleMidi = (n) => { const m = n.match(/^([A-G]s?)(\d)$/); return 12 * (+m[2] + 1) + SAMPLE_SEMI[m[1]]; };
+const buffers = new Map();
 let audio;
-function play(id) {
-  audio ??= new AudioContext();
-  const f = 440 * Math.pow(2, (midi(id) - 9 - 69) / 12), t = audio.currentTime; // altsax klinkt een grote sext lager
-  const o = audio.createOscillator(), g = audio.createGain(), lp = audio.createBiquadFilter();
+const ac = () => { audio ??= new AudioContext(); if (audio.state === "suspended") audio.resume(); return audio; };
+
+function playTone(m) {
+  const a = ac(), f = 440 * Math.pow(2, (m - 69) / 12), t = a.currentTime;
+  const o = a.createOscillator(), g = a.createGain(), lp = a.createBiquadFilter();
   o.type = "sawtooth"; o.frequency.value = f; lp.type = "lowpass"; lp.frequency.value = f * 4;
-  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.18, t + 0.05); g.gain.exponentialRampToValueAtTime(0.001, t + 1.3);
-  o.connect(lp).connect(g).connect(audio.destination); o.start(t); o.stop(t + 1.35);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.22, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.2);
+  o.connect(lp).connect(g).connect(a.destination); o.start(t); o.stop(t + 1.25);
 }
+async function playSax(m) {
+  const name = SAMPLE_NAMES.reduce((best, n) => (Math.abs(sampleMidi(n) - m) < Math.abs(sampleMidi(best) - m) ? n : best));
+  const a = ac();
+  if (!buffers.has(name)) buffers.set(name, fetch(SAMPLE_URL + name + ".mp3").then((r) => r.arrayBuffer()).then((b) => a.decodeAudioData(b)));
+  const buf = await buffers.get(name), t = a.currentTime;
+  const src = a.createBufferSource(), g = a.createGain();
+  src.buffer = buf; src.playbackRate.value = Math.pow(2, (m - sampleMidi(name)) / 12);
+  g.gain.setValueAtTime(0.9, t); g.gain.setValueAtTime(0.9, t + 1.3); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.7);
+  src.connect(g).connect(a.destination); src.start(t); src.stop(t + 1.75);
+}
+function play(id, sound) {
+  const m = midi(id) - 9; // altsax in Es: klinkt een grote sext lager dan geschreven
+  if (sound === "sax") playSax(m).catch(() => playTone(m)); else playTone(m);
+}
+const pref = (k, d) => { try { return localStorage.getItem("nk.sax3d." + k) ?? d; } catch { return d; } };
+const setPref = (k, v) => { try { localStorage.setItem("nk.sax3d." + k, v); } catch {} };
 
 export function mountGrepen({ learner = "sanne", strip = "buttons", sax: saxOpts = {} } = {}) {
   const $ = (s) => document.querySelector(s), $$ = (s) => [...document.querySelectorAll(s)];
@@ -72,12 +98,35 @@ export function mountGrepen({ learner = "sanne", strip = "buttons", sax: saxOpts
     try { localStorage.setItem("nk.sax3d.strip", strip); } catch {}
     render();
   }));
-  $$("[data-play]").forEach((b) => b.addEventListener("click", () => play(current)));
+  let sound = pref("sound", "sax"), auto = pref("auto", "0") === "1";
+  $$("[data-play]").forEach((b) => b.addEventListener("click", () => play(current, sound)));
+  $$("[data-sound]").forEach((b) => b.addEventListener("click", () => { sound = b.dataset.sound; setPref("sound", sound); syncSound(); play(current, sound); }));
+  $$("[data-auto]").forEach((b) => b.addEventListener("click", () => { auto = !auto; setPref("auto", auto ? "1" : "0"); syncSound(); if (auto) play(current, sound); }));
+  function syncSound() {
+    $$("[data-sound]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.sound === sound));
+    $$("[data-auto]").forEach((b) => b.setAttribute("aria-pressed", auto));
+  }
+  syncSound();
+
+  // Vorige / volgende noot: knoppen aan het begin en eind van de notenkiezer, en de pijltjestoetsen
+  const step = (d) => {
+    const vis = visibleNotes(); if (!vis.length) return;
+    const i = vis.indexOf(current);
+    choose(vis[(i + d + vis.length) % vis.length]);
+  };
+  $$("[data-step]").forEach((b) => b.addEventListener("click", () => step(+b.dataset.step)));
+  document.addEventListener("keydown", (e) => {
+    if (e.target.closest?.("input, textarea")) return;
+    if (e.key === "ArrowLeft") { e.preventDefault(); step(-1); }
+    if (e.key === "ArrowRight") { e.preventDefault(); step(1); }
+  });
+  /** Een noot kiezen door de leerling (niet bij het opbouwen): speelt hem als "bij elke noot" aan staat. */
+  function choose(n) { select(n, 0); if (auto) play(n, sound); }
 
   const notesEl = $("[data-notes]");
   notesEl?.addEventListener("click", (e) => {
     const t = e.target.closest("[data-note]");
-    if (t) select(t.dataset.note, 0);
+    if (t) choose(t.dataset.note);
   });
 
   const visibleNotes = () => ALL.filter((n) => (filter === "all" ? true : Boolean(statuses[n])));

@@ -36,7 +36,9 @@ body { padding: 16px 16px calc(12px + env(safe-area-inset-bottom)); }
 .seg.mode .mini { font-size: 8px; font-weight: 700; line-height: 1; margin-top: 1px; }
 .seg.mode button svg { width: 24px; height: 15px; }
 .seg button { min-height: 34px; font-size: 13px; padding: 0 14px; }
-.note-btn { flex: 0 0 56px; min-height: 58px; font-size: 20px; }
+.note-card .sound { grid-column: 1 / -1; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 8px; }
+.step { width: 36px; border-radius: 12px; }
+.note-btn { flex: 0 0 52px; min-height: 58px; font-size: 20px; }
 
 </style>
 </head>
@@ -50,6 +52,7 @@ body { padding: 16px 16px calc(12px + env(safe-area-inset-bottom)); }
   <section class="card note-card" aria-label="Noot">
     <div class="staff-svg" data-note-staff="small"></div>
     <div class="note-right"><div class="big-name" data-note-name></div><span class="badge" data-status></span></div>
+    <div class="sound"><div class="seg" role="group" aria-label="Klank"><button data-sound="sax">Sax</button><button data-sound="toon">Toon</button></div><button class="toggle" data-auto aria-pressed="false"><i></i>Bij elke noot</button></div>
   </section>
   <section class="card sax-card" aria-label="Greep op de sax">
     <div class="stage" data-stage>
@@ -67,7 +70,7 @@ body { padding: 16px 16px calc(12px + env(safe-area-inset-bottom)); }
     <div class="seg" role="group" aria-label="Welke noten"><button data-filter="mine">Mijn noten</button><button data-filter="all">Alle</button></div>
     <div class="seg mode" role="group" aria-label="Notenkiezer"><button data-strip-mode="buttons" aria-label="Letters">ABC</button><button data-strip-mode="staff" aria-label="Notenbalk"><svg viewBox="0 0 28 18" width="28" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1 3h26M1 7h26M1 11h26M1 15h26"/><ellipse cx="16" cy="11" rx="3.2" ry="2.3" fill="currentColor" stroke="none" transform="rotate(-20 16 11)"/><path d="M19 10.5V1.5" stroke-width="1.6"/></svg></button><button data-strip-mode="both" aria-label="Notenbalk met letters"><svg viewBox="0 0 28 18" width="28" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1 3h26M1 7h26M1 11h26M1 15h26"/><ellipse cx="16" cy="11" rx="3.2" ry="2.3" fill="currentColor" stroke="none" transform="rotate(-20 16 11)"/><path d="M19 10.5V1.5" stroke-width="1.6"/></svg><span class="mini">ABC</span></button></div>
   </div>
-  <nav aria-label="Kies een noot"><div class="strip" data-notes></div></nav>
+  <nav aria-label="Kies een noot"><div class="strip-nav"><button class="step" data-step="-1" aria-label="Vorige noot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><div class="strip" data-notes></div><button class="step" data-step="1" aria-label="Volgende noot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button></div></nav>
 </div>
 <script type="module">
 import { mountGrepen } from "./sax3d/ui.js";

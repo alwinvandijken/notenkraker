@@ -29,6 +29,8 @@ main { display: grid; grid-template-columns: 42% 1fr; gap: 22px; min-height: 0; 
 .note-main .staff-svg { height: 230px; }
 .big-name { font-size: 150px; }
 .strip-card { padding: 10px; border-radius: 24px; }
+.note-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.note-foot .sound { margin-left: auto; }
 
 </style>
 </head>
@@ -59,10 +61,10 @@ main { display: grid; grid-template-columns: 42% 1fr; gap: 22px; min-height: 0; 
         <div class="staff-svg" data-note-staff></div>
         <div><div class="big-name" data-note-name></div><div class="sub" data-note-sub></div></div>
       </div>
-      <div class="alts" data-alts></div>
+      <div class="note-foot"><div class="alts" data-alts></div><div class="sound"><div class="seg" role="group" aria-label="Klank"><button data-sound="sax">Sax</button><button data-sound="toon">Toon</button></div><button class="toggle" data-auto aria-pressed="false"><i></i>Bij elke noot</button></div></div>
     </section>
   </main>
-  <nav class="card strip-card" aria-label="Kies een noot"><div class="strip" data-notes></div></nav>
+  <nav class="card strip-card" aria-label="Kies een noot"><div class="strip-nav"><button class="step" data-step="-1" aria-label="Vorige noot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><div class="strip" data-notes></div><button class="step" data-step="1" aria-label="Volgende noot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button></div></nav>
 </div>
 <script type="module">
 import { mountGrepen } from "./sax3d/ui.js";
