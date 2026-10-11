@@ -62,3 +62,37 @@ export function bigStaff(n, statuses = {}, size = { w: 200, h: 150, base: 105, c
     + `<text x="10" y="${base + 3}" font-size="60" fill="currentColor" font-family="serif">𝄞</text>`
     + noteGlyph(n, cx, y, STATUS_COLOR[statuses[n]] ?? "var(--kent)", 1.2) + "</svg>";
 }
+
+// ---------- Eenvoudige greeptekening (zelfde als components/Fingering.tsx in de app) ----------
+export const LAYOUT = {"kind": "keys", "viewBox": [0, 0, 200, 318], "axis": {"x": 100, "y1": 44, "y2": 298}, "keys": [{"id": "oct", "shape": "pill", "x": 48, "y": 54, "w": 36, "h": 16, "label": "Oct", "group": "thumb"}, {"id": "fF", "shape": "circle", "x": 100, "y": 30, "r": 7, "label": "", "group": "left", "optional": true}, {"id": "L1", "shape": "circle", "x": 100, "y": 62, "r": 15, "label": "1", "group": "left"}, {"id": "bis", "shape": "circle", "x": 120, "y": 82, "r": 5, "label": "", "group": "left", "auto": true}, {"id": "L2", "shape": "circle", "x": 100, "y": 102, "r": 15, "label": "2", "group": "left"}, {"id": "L3", "shape": "circle", "x": 100, "y": 142, "r": 15, "label": "3", "group": "left"}, {"id": "pD", "shape": "pill", "x": 44, "y": 96, "w": 28, "h": 12, "label": "D", "group": "palm", "optional": true}, {"id": "pEb", "shape": "pill", "x": 44, "y": 114, "w": 28, "h": 12, "label": "E♭", "group": "palm", "optional": true}, {"id": "pF", "shape": "pill", "x": 44, "y": 132, "w": 28, "h": 12, "label": "F", "group": "palm", "optional": true}, {"id": "gs", "shape": "oval", "x": 52, "y": 176, "w": 44, "h": 20, "label": "G♯", "group": "pinkyL", "auto": true}, {"id": "low", "shape": "oval", "x": 56, "y": 204, "w": 44, "h": 20, "label": "laag", "group": "pinkyL", "auto": true}, {"id": "R4", "shape": "circle", "x": 100, "y": 200, "r": 15, "label": "4", "group": "right"}, {"id": "R5", "shape": "circle", "x": 100, "y": 240, "r": 15, "label": "5", "group": "right"}, {"id": "R6", "shape": "circle", "x": 100, "y": 280, "r": 15, "label": "6", "group": "right"}, {"id": "sE", "shape": "pill", "x": 150, "y": 196, "w": 28, "h": 12, "label": "E", "group": "side", "optional": true}, {"id": "sC", "shape": "pill", "x": 150, "y": 214, "w": 28, "h": 12, "label": "C", "group": "side", "optional": true}, {"id": "sBb", "shape": "pill", "x": 150, "y": 232, "w": 28, "h": 12, "label": "B♭", "group": "side", "optional": true}, {"id": "eb", "shape": "oval", "x": 150, "y": 264, "w": 44, "h": 20, "label": "E♭", "group": "pinkyR", "auto": true}, {"id": "lc", "shape": "oval", "x": 150, "y": 290, "w": 44, "h": 20, "label": "C", "group": "pinkyR", "auto": true}], "captions": [{"text": "linkerhand", "x": 100, "y": 36}, {"text": "rechterhand", "x": 100, "y": 176}, {"text": "duim", "x": 48, "y": 40}, {"text": "pink links", "x": 52, "y": 160, "group": "pinkyL"}, {"text": "pink rechts", "x": 150, "y": 248, "group": "pinkyR"}, {"text": "handpalm", "x": 44, "y": 86, "group": "palm"}, {"text": "zijkant", "x": 150, "y": 186, "group": "side"}], "merge": {"cs": "low", "lb": "low", "lbb": "low"}};
+
+/** Platte greeptekening als SVG. Regels zoals de app: optionele kleppen alleen als ze ingedrukt zijn,
+ *  "auto"-kleppen als een eigen noot ze nodig heeft of bij "toon alle kleppen". */
+export function fingeringSvg(pressed, needed = new Set(), showAll = false) {
+  const m = (k) => LAYOUT.merge[k] ?? k;
+  const on = new Set([...pressed].map(m)), need = new Set([...needed].map(m));
+  const visible = (k) => on.has(k.id) || (!k.optional && (!k.auto || showAll || need.has(k.id)));
+  const keys = LAYOUT.keys.filter(visible), groups = new Set(keys.map((k) => k.group));
+  const [vx, vy, vw, vh] = LAYOUT.viewBox, ax = LAYOUT.axis;
+  let out = `<svg viewBox="${vx} ${vy} ${vw} ${vh}" role="img" aria-label="Greep">`;
+  out += `<line x1="${ax.x}" x2="${ax.x}" y1="${ax.y1}" y2="${ax.y2}" stroke="var(--line)" stroke-width="2"/>`;
+  for (const c of LAYOUT.captions) if (!c.group || groups.has(c.group))
+    out += `<text x="${c.x}" y="${c.y}" font-size="9" fill="var(--muted)" text-anchor="middle">${c.text}</text>`;
+  for (const k of keys) {
+    const isOn = on.has(k.id), fill = isOn ? "var(--kent)" : "var(--surface)", ink = isOn ? "#fff" : "currentColor";
+    out += `<g data-key="${k.id}" style="cursor:pointer">`;
+    if (k.shape === "circle") {
+      const r = k.r ?? 10;
+      out += `<circle cx="${k.x}" cy="${k.y}" r="${r}" fill="${fill}" stroke="currentColor" stroke-width="2"/>`;
+      if (k.label) out += `<text x="${k.x}" y="${k.y + (r > 10 ? 5 : 3)}" font-size="${r > 10 ? 14 : 8}" font-weight="700" text-anchor="middle" fill="${ink}" font-family="Lexend, sans-serif">${k.label}</text>`;
+    } else {
+      const w = k.w ?? 30, h = k.h ?? 14;
+      out += k.shape === "oval"
+        ? `<ellipse cx="${k.x}" cy="${k.y}" rx="${w / 2}" ry="${h / 2}" fill="${fill}" stroke="currentColor" stroke-width="2" transform="rotate(-8 ${k.x} ${k.y})"/>`
+        : `<rect x="${k.x - w / 2}" y="${k.y - h / 2}" width="${w}" height="${h}" rx="${h / 2}" fill="${fill}" stroke="currentColor" stroke-width="2"/>`;
+      out += `<text x="${k.x}" y="${k.y + 3.5}" font-size="${k.shape === "oval" ? 10 : 9}" font-weight="700" text-anchor="middle" fill="${ink}">${k.label}</text>`;
+    }
+    out += "</g>";
+  }
+  return out + "</svg>";
+}

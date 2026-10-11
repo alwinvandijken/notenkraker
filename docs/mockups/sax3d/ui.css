@@ -98,3 +98,12 @@ button { font-family: inherit; color: inherit; }
 /* Met letters eronder iets hoger, zodat de noten even groot blijven */
 .strip.staff.names svg { height: calc(var(--staff-h, 170px) + 34px); }
 .strip.staff g[data-note] { cursor: pointer; }
+
+/* 3D of eenvoudige greeptekening */
+.seg.render { position: absolute; top: 14px; left: 14px; z-index: 2; box-shadow: 0 1px 3px rgba(23,36,64,.12); }
+.seg.render button { min-height: 36px; padding: 0 14px; font-size: 14px; }
+.flat { position: absolute; inset: 0; z-index: 1; background: var(--surface); display: flex; align-items: center; justify-content: center; padding: 64px 72px 24px 24px; color: var(--fg); }
+.flat[hidden] { display: none; }
+.flat svg { height: 100%; width: auto; max-width: 100%; }
+.stage.is-flat [data-3d-only] { display: none; }
+.stage.is-flat .sax-labels { display: none; }
