@@ -42,3 +42,10 @@ html, body, #root { min-height: 100%; }
 body { background: var(--color-bg); color: var(--color-fg); font-family: var(--font-sans); margin: 0; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
 button { font: inherit; }
 button:focus-visible, textarea:focus-visible { outline: 3px solid var(--color-les); outline-offset: 2px; }
+
+/* 3D-sax (components/sax3d): podium en de namen bij de kleppen */
+.sax-stage { background: radial-gradient(ellipse at 50% 40%, #f7f9fc, #dfe6ef); }
+@media (prefers-color-scheme: dark) { .sax-stage { background: radial-gradient(ellipse at 50% 40%, #1c2840, #0b1220); } }
+.sax-label { font: 700 12px var(--font-display); color: #fff; background: var(--color-pressed); padding: 3px 8px; border-radius: 999px; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+.sax-label.idle { background: rgba(23,36,64,.72); font-weight: 600; }
+.sax-label.part { background: var(--color-fg); color: var(--color-surface); font-size: 13px; padding: 5px 12px; }
