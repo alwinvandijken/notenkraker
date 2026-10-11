@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D-grepen indelingen</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;700&display=swap">
+<style>
+:root { --bg: #DCE3EC; --ink: #172440; --muted: #4A5873; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: Lexend, system-ui, sans-serif; }
+.wrap { padding: 32px 32px 64px; display: flex; flex-direction: column; gap: 36px; }
+h1 { margin: 0; font-size: 32px; }
+h2 { margin: 0; font-size: 21px; }
+p { margin: 0; color: var(--muted); max-width: 75ch; line-height: 1.5; }
+a { color: #2459C9; }
+.row { display: flex; flex-direction: column; gap: 14px; }
+.boards { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; }
+figure { margin: 0; display: flex; flex-direction: column; gap: 8px; max-width: 600px; }
+figcaption { font-size: 14px; line-height: 1.45; color: var(--muted); }
+figcaption b { color: var(--ink); }
+.frame { overflow: hidden; border-radius: 18px; box-shadow: 0 2px 10px rgba(23,36,64,0.12); background: #fff; }
+.frame iframe { border: 0; transform-origin: 0 0; display: block; }
+.land .frame { width: 590px; height: 410px; } .land iframe { width: 1180px; height: 820px; transform: scale(.5); }
+.port .frame { width: 410px; height: 590px; } .port iframe { width: 820px; height: 1180px; transform: scale(.5); }
+.phone .frame { width: 293px; height: 633px; border-radius: 30px; } .phone iframe { width: 390px; height: 844px; transform: scale(.75); }
+ul { margin: 0; padding-left: 20px; color: var(--muted); line-height: 1.6; max-width: 80ch; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="row">
+    <h1>3D-grepen: indelingen voor iPad en telefoon</h1>
+    <p>De 3D-sax neemt de plaats in van de platte greeptekening in de grepentabel. Elke indeling is echt te bedienen: draaien, zoomen, een noot kiezen, kleppen aantikken. Voorbeeldleerling is Sanne (6–8 jaar), dus zonder octaafcijfers en alleen haar eigen kleppen. Zie ook <a href="Sax-3D.html">de werkbank met alle opties</a>.</p>
+  </header>
+
+  <section class="row">
+    <h2>Wat in elke indeling hetzelfde is</h2>
+    <ul>
+      <li>De bediening van de sax is vier ronde knoppen op de sax zelf: <b>andere kant</b> (draait verder: voor, links, achter, rechts), <b>inzoomen</b>, <b>uitzoomen</b> en <b>uit elkaar</b>. Vegen en knijpen werken ook.</li>
+      <li>Onder of naast de sax staat "Druk in: 1, 2, 3", met de knop "Toon alle kleppen".</li>
+      <li>Leerling-instellingen (octaafcijfers, notennamen) staan niet op dit scherm maar op de profielpagina. Zo blijft dit scherm rustig.</li>
+    </ul>
+  </section>
+
+  <section class="row land">
+    <h2>iPad liggend</h2>
+    <div class="boards">
+      <figure><div class="frame"><iframe src="Sax3D-iPad-A.html" title="iPad A" loading="lazy"></iframe></div>
+        <figcaption><b>A · Zoals de grepentabel</b> (<a href="Sax3D-iPad-A.html">open</a>). De platte tekening links wordt de 3D-sax; noot en notenkiezer blijven waar ze nu zijn. Kleinste verandering voor wie de app al kent.</figcaption></figure>
+      <figure><div class="frame"><iframe src="Sax3D-iPad-B.html" title="iPad B" loading="lazy"></iframe></div>
+        <figcaption><b>B · Sax centraal</b> (<a href="Sax3D-iPad-B.html">open</a>). De sax krijgt het grootste vlak; noot en een notenbalk-kiezer staan in een smalle kolom rechts. Beter om in te zoomen op de kleppen.</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="row port">
+    <h2>iPad staand</h2>
+    <div class="boards">
+      <figure><div class="frame"><iframe src="Sax3D-iPad-Staand.html" title="iPad staand" loading="lazy"></iframe></div>
+        <figcaption><b>Gestapeld</b> (<a href="Sax3D-iPad-Staand.html">open</a>). Noot bovenaan, sax in het midden (staat mooi rechtop in een staand scherm), notenkiezer onderaan.</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="row phone">
+    <h2>iPhone staand</h2>
+    <div class="boards">
+      <figure><div class="frame"><iframe src="Sax3D-Phone-A.html" title="iPhone A" loading="lazy"></iframe></div>
+        <figcaption><b>A · Gestapeld</b> (<a href="Sax3D-Phone-A.html">open</a>). Zelfde opbouw als de huidige telefoon-grepentabel: noot, sax in een kaart, notenkiezer onderaan.</figcaption></figure>
+      <figure><div class="frame"><iframe src="Sax3D-Phone-B.html" title="iPhone B" loading="lazy"></iframe></div>
+        <figcaption><b>B · Sax schermvullend</b> (<a href="Sax3D-Phone-B.html">open</a>). De sax vult het hele scherm; de noot zweeft rechtsboven en de notenkiezer zit in een onderblad. Meer ruimte voor de sax, wel drukker in beeld.</figcaption></figure>
+    </div>
+  </section>
+</div>
+</body>
+</html>
