@@ -97,6 +97,16 @@ export function createLocalNotenkraker(storageKey = "notenkraker-local", opts: {
         save(); emit(input.studentId); return h;
       },
     },
+    // zonder account geen feedback en geen beheer
+    feedback: {
+      async send() { throw new Error("niet beschikbaar zonder backend"); },
+      async list() { return []; },
+      async setStatus() { /* niets */ },
+    },
+    admin: {
+      async users() { return []; },
+      async setFeedbackAllowed() { /* niets */ },
+    },
     songs: {
       async list(sid) { return state.songs.filter((s) => s.studentId === sid); },
       async create(sid, song) { const s = { ...song, id: uid(), createdAt: now(), studentId: sid }; state.songs.push(s); save(); return s; },
