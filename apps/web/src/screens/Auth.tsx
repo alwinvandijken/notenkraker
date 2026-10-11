@@ -5,25 +5,28 @@ import { Card, Chip } from "@/components/ui";
 import { pendingInvite } from "@/lib/koppel";
 
 /**
- * Inloggen/registreren: e-mail + wachtwoord of Google. Zelf te kiezen: leerling of ouder; leraren
- * maken we samen aan. /app?nieuw (knop "Gratis account maken" op de welkomstpagina) begint bij
+ * Inloggen/registreren: e-mail + wachtwoord, een inloglink per mail (geen wachtwoord, handig voor
+ * wie geen Google heeft) of Google. Zelf te kiezen: leerling of ouder; leraar maakt de beheerder
+ * iemand in Beheer. /app?nieuw (knop "Gratis account maken" op de welkomstpagina) begint bij
  * account maken.
  */
 export function Auth() {
-  const [mode, setMode] = useState<"login" | "signup">(() => (new URLSearchParams(window.location.search).has("nieuw") ? "signup" : "login"));
+  const [mode, setMode] = useState<"login" | "signup" | "link">(() => (new URLSearchParams(window.location.search).has("nieuw") ? "signup" : "login"));
   const [role, setRole] = useState<SelfRole>("leerling");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setError(""); setBusy(true);
     try {
-      if (mode === "login") await client.auth.signInWithPassword(email, password);
+      if (mode === "link") { await client.auth.signInWithEmailLink(email, `${window.location.origin}/app`); setSent(true); }
+      else if (mode === "login") await client.auth.signInWithPassword(email, password);
       else await client.auth.signUpWithPassword(email, password, role, name || email.split("@")[0]!);
-    } catch (err) { setError(err instanceof Error ? err.message : "Inloggen mislukt"); }
+    } catch (err) { setError(linkError(err) ?? (err instanceof Error ? err.message : "Inloggen mislukt")); }
     finally { setBusy(false); }
   }
 
@@ -50,13 +53,24 @@ export function Auth() {
             </>
           )}
           <input id="email" className={field} type="email" placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
-          <input id="password" className={field} type="password" placeholder="Wachtwoord" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === "login" ? "current-password" : "new-password"} required minLength={6} />
+          {mode !== "link" && <input id="password" className={field} type="password" placeholder="Wachtwoord" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === "login" ? "current-password" : "new-password"} required minLength={6} />}
+          {mode === "link" && sent && <p role="status" className="text-sm rounded-xl bg-ok/10 text-ok px-3 py-2 m-0">Kijk in je mail ({email}) en tik op de link. Je kunt dit venster sluiten.</p>}
           {error && <p className="text-sm text-wrong">{error}</p>}
-          <Chip type="submit" primary disabled={busy}>{mode === "login" ? "Inloggen" : "Account maken"}</Chip>
+          <Chip type="submit" primary disabled={busy}>{mode === "link" ? (sent ? "Stuur opnieuw" : "Stuur me een inloglink") : mode === "login" ? "Inloggen" : "Account maken"}</Chip>
         </form>
+        <button type="button" onClick={() => { setMode(mode === "link" ? "login" : "link"); setSent(false); setError(""); }}
+          className="w-full text-sm font-semibold text-kent bg-transparent cursor-pointer mt-3">
+          {mode === "link" ? "Toch met wachtwoord" : "Geen wachtwoord? Stuur me een inloglink"}
+        </button>
         <div className="text-center text-muted text-sm my-3">of</div>
         <Chip className="w-full" onClick={() => client.auth.signInWithGoogle(`${window.location.origin}/app`)}>Doorgaan met Google</Chip>
       </Card>
     </div>
   );
+}
+
+/** een begrijpelijke melding als Supabase te veel mails heeft verstuurd */
+function linkError(err: unknown): string | null {
+  const msg = err instanceof Error ? err.message : "";
+  return /rate limit|too many|seconds/i.test(msg) ? "Er is net al een link gestuurd. Wacht even en probeer het dan opnieuw." : null;
 }

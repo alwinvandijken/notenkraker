@@ -132,6 +132,8 @@ export interface AuthApi {
   /** eenmalig na de eerste Google-login */
   chooseRole(role: SelfRole): Promise<void>;
   signInWithGoogle(redirectTo?: string): Promise<void>;
+  /** inloggen zonder wachtwoord: een link per mail; een nieuw adres krijgt meteen een account (rol kiezen na inloggen) */
+  signInWithEmailLink(email: string, redirectTo?: string): Promise<void>;
   signOut(): Promise<void>;
   currentProfile(): Promise<Profile | null>;
   onAuthChange(cb: (profile: Profile | null) => void): () => void;
@@ -187,6 +189,8 @@ export interface FeedbackApi {
 export interface AdminApi {
   users(): Promise<AdminUser[]>;
   setFeedbackAllowed(userId: string, allowed: boolean): Promise<void>;
+  /** leerling, ouder of leraar; admin alleen via het dashboard, en niet je eigen rol */
+  setRole(userId: string, role: Exclude<Role, "admin">): Promise<void>;
 }
 
 export interface SongsApi {

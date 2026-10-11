@@ -97,6 +97,7 @@ x-rpc:
       telt het nieuwste huiswerk; huiswerk van een ander blijft staan en is niet te wijzigen.
     give_feedback(p_kind, p_message, p_screen, p_url, p_device, p_version) — alleen als profiles.can_give_feedback (0006_feedback.sql).
     set_feedback_allowed(p_user, p_allowed), admin_users() → [{id, display_name, email, role, can_give_feedback}] — alleen admin.
+    set_role(p_user, p_role: 'leerling'|'ouder'|'leraar') — alleen admin, niet de eigen rol; leerling krijgt een eigen leerlingprofiel (0007_rol_beheer.sql).
   roles: |
     profiles.role: null (nog kiezen) | leerling | ouder | leraar | admin.
     leerling en ouder kiest de gebruiker zelf; leraar en admin worden in Supabase toegewezen. admin leest alles.

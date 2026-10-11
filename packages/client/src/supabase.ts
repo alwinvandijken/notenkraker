@@ -33,6 +33,10 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
       const { error } = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
       if (error) throw error;
     },
+    async signInWithEmailLink(email, redirectTo) {
+      const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo, shouldCreateUser: true } });
+      if (error) throw error;
+    },
     async chooseRole(role) {
       const { error } = await sb.rpc("choose_role", { p_role: role });
       if (error) throw error;
@@ -259,6 +263,10 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
     },
     async setFeedbackAllowed(userId, allowed) {
       const { error } = await sb.rpc("set_feedback_allowed", { p_user: userId, p_allowed: allowed });
+      if (error) throw error;
+    },
+    async setRole(userId, role) {
+      const { error } = await sb.rpc("set_role", { p_user: userId, p_role: role });
       if (error) throw error;
     },
   };
