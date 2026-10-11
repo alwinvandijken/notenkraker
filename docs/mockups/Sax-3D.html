@@ -8,17 +8,17 @@
 <style>
 :root {
   --bg: #edf2f7; --surface: #ffffff; --fg: #172440; --muted: #4a5873; --line: #d5dee9;
-  --pressed: #2459c9; --pressed-soft: #dce6fa; --accent: #c2531a; --stage-a: #f7f9fc; --stage-b: #d5dee9;
+  --pressed: #2459c9; --pressed-soft: #dce6fa; --kent: #2459c9; --les: #f4a261; --moet: #8592aa; --accent: #c2531a; --stage-a: #f7f9fc; --stage-b: #d5dee9;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0f1729; --surface: #18233b; --fg: #e8eef8; --muted: #a9b6cf; --line: #2b3a5c;
-    --pressed: #7ea6f5; --pressed-soft: #1d2f57; --accent: #f4a261; --stage-a: #1c2840; --stage-b: #0b1220;
+    --pressed: #7ea6f5; --pressed-soft: #1d2f57; --kent: #4f7fe0; --les: #f4a261; --moet: #7d8aa6; --accent: #f4a261; --stage-a: #1c2840; --stage-b: #0b1220;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0f1729; --surface: #18233b; --fg: #e8eef8; --muted: #a9b6cf; --line: #2b3a5c;
-  --pressed: #7ea6f5; --pressed-soft: #1d2f57; --accent: #f4a261; --stage-a: #1c2840; --stage-b: #0b1220;
+  --pressed: #7ea6f5; --pressed-soft: #1d2f57; --kent: #4f7fe0; --les: #f4a261; --moet: #7d8aa6; --accent: #f4a261; --stage-a: #1c2840; --stage-b: #0b1220;
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
@@ -57,11 +57,26 @@ p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.45; }
   border-radius: 10px; min-height: 44px; cursor: pointer; padding: 4px;
 }
 .notes button sub { font-size: 10px; color: var(--muted); font-weight: 400; }
-.notes button[aria-pressed="true"] { background: var(--pressed); border-color: var(--pressed); color: #fff; }
-.notes button[aria-pressed="true"] sub { color: #fff; }
+.notes button.kent, .chip.kent { background: var(--kent); border-color: var(--kent); color: #fff; }
+.notes button.kent sub { color: #fff; }
+.notes button.les, .chip.les { background: var(--les); border-color: var(--les); color: #172440; }
+.notes button.les sub { color: #172440; }
+.notes button.moet, .chip.moet { background: var(--surface); border: 2px dashed var(--moet); color: var(--muted); }
+.notes button[aria-pressed="true"] { outline: 3px solid var(--fg); outline-offset: 2px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.chip { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 8px; border: 2px solid transparent; }
+.seg { display: flex; background: var(--bg); border-radius: 999px; padding: 4px; gap: 2px; }
+.seg button { flex: 1; font: 600 13px Lexend, system-ui, sans-serif; color: var(--fg); background: none; border: 0; border-radius: 999px; min-height: 40px; padding: 4px 8px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--surface); box-shadow: 0 1px 3px rgba(23,36,64,.18); }
+.greep { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.druk { color: var(--fg); font-size: 15px; }
+button.dashed { font: 500 14px Lexend, system-ui, sans-serif; color: var(--muted); background: none; border: 2px dashed var(--line); border-radius: 999px; min-height: 44px; padding: 0 16px; cursor: pointer; }
+button.dashed[aria-pressed="true"] { color: var(--fg); border-color: var(--muted); }
+.empty-notes { font-size: 14px; color: var(--muted); grid-column: 1 / -1; }
 .now { display: flex; align-items: baseline; gap: 10px; }
 .now strong { font-size: 40px; line-height: 1; }
-.alts { display: flex; gap: 6px; margin-top: 10px; }
+.alts { display: flex; gap: 6px; }
+.alts:empty { display: none; }
 .alts button { font: 600 13px Lexend, system-ui, sans-serif; border: 1px solid var(--line); background: var(--bg); color: var(--fg); border-radius: 999px; padding: 6px 12px; min-height: 36px; cursor: pointer; }
 .alts button[aria-pressed="true"] { background: var(--fg); color: var(--surface); }
 ul.keys { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
@@ -101,20 +116,20 @@ label.check input { width: 20px; height: 20px; accent-color: var(--pressed); }
 <aside>
   <div>
     <h1>Altsax in 3D</h1>
-    <p>Kies een noot. De kleppen die je indrukt worden blauw. Tik op een klep om te zien hoe hij heet.</p>
+    <p>Ingelogd als <b>Sanne</b> (voorbeeldleerling). Je ziet alleen je eigen noten en de kleppen die je daarvoor nodig hebt.</p>
   </div>
+  <div class="seg" role="group" aria-label="Welke noten" id="filter"></div>
   <section>
-    <h2>Noot (geschreven)</h2>
     <div class="notes" id="notes"></div>
+    <div class="legend"><span class="chip kent">Kent al</span><span class="chip les">In de les</span><span class="chip moet">Komt nog</span></div>
   </section>
-  <section>
-    <h2>Greep</h2>
-    <div class="now"><strong id="noteName">G</strong><span id="noteSub" class="muted"></span></div>
+  <section class="greep">
+    <div class="now"><strong id="noteName">G</strong><span id="noteSub"></span></div>
     <div class="alts" id="alts"></div>
-    <ul class="keys" id="keyList"></ul>
+    <p class="druk" id="druk"></p>
+    <button type="button" class="dashed" id="showAll" aria-pressed="false">Toon alle kleppen</button>
   </section>
   <div class="info" id="info" hidden></div>
-  <label class="check"><input type="checkbox" id="allLabels"> Alle kleppen benoemen</label>
 </aside>
 
 <script type="importmap">
@@ -132,6 +147,12 @@ import { CSS2DRenderer, CSS2DObject } from "three/addons/renderers/CSS2DRenderer
 // Grepen en klepnamen uit packages/instruments/src/altsax.json.
 const FINGERINGS = {"bes3":[["L1","L2","L3","R4","R5","R6","lc","lbb"]],"b3":[["L1","L2","L3","R4","R5","R6","lc","lb"]],"c4":[["L1","L2","L3","R4","R5","R6","lc"]],"cis4":[["L1","L2","L3","R4","R5","R6","lc","cs"]],"d4":[["L1","L2","L3","R4","R5","R6"]],"es4":[["L1","L2","L3","R4","R5","R6","eb"]],"e4":[["L1","L2","L3","R4","R5"]],"f4":[["L1","L2","L3","R4"]],"fis4":[["L1","L2","L3","R5"]],"g4":[["L1","L2","L3"]],"gis4":[["L1","L2","L3","gs"]],"a4":[["L1","L2"]],"bes4":[["L1","bis"],["L1","R4"]],"b4":[["L1"]],"c5":[["L2"],["L1","sC"]],"cis5":[[]],"d5":[["oct","L1","L2","L3","R4","R5","R6"]],"es5":[["oct","L1","L2","L3","R4","R5","R6","eb"]],"e5":[["oct","L1","L2","L3","R4","R5"]],"f5":[["oct","L1","L2","L3","R4"]],"fis5":[["oct","L1","L2","L3","R5"]],"g5":[["oct","L1","L2","L3"]],"gis5":[["oct","L1","L2","L3","gs"]],"a5":[["oct","L1","L2"]],"bes5":[["oct","L1","bis"]],"b5":[["oct","L1"]],"c6":[["oct","L2"]],"cis6":[["oct"]],"d6":[["oct","pD"]],"es6":[["oct","pD","pEb"]],"e6":[["oct","pD","pEb","sE"],["oct","fF","L2","L3"]],"f6":[["oct","pD","pEb","pF","sE"],["oct","fF","L2"]]};
 const KEY_NAMES = {"oct":"octaafklep (duim links)","fF":"voorste F-klep","L1":"1","L2":"2","L3":"3","R4":"4","R5":"5","R6":"6","bis":"bis-knopje","gs":"G♯-klep (pink links)","cs":"C♯-klep (pink links)","lb":"lage B-klep (pink links)","lbb":"lage B♭-klep (pink links)","low":"lage klep (pink links)","eb":"E♭-klep (pink rechts)","lc":"lage C-klep (pink rechts)","pD":"handpalmklep D","pEb":"handpalmklep E♭","pF":"handpalmklep F","sE":"zijklep E (rechts)","sC":"zijklep C (rechts)","sBb":"zijklep B♭ (rechts)"};
+// Zelfde regels als de 2D-greeptekening: basiskleppen altijd, "auto" alleen als een eigen noot ze nodig heeft,
+// "optional" alleen als de huidige greep ze gebruikt. "Toon alle kleppen" laat alles zien.
+const AUTO = new Set(["bis", "gs", "cs", "lb", "lbb", "eb", "lc"]);
+const OPTIONAL = new Set(["fF", "pD", "pEb", "pF", "sE", "sC", "sBb"]);
+// Voorbeeldleerling; in de app komt dit uit de notenstatus van de ingelogde leerling.
+const STATUSES = { g4: "kent", a4: "kent", b4: "kent", c5: "les", d5: "les", f4: "moet", e4: "moet" };
 const SHORT = { oct: "Oct", fF: "F", L1: "1", L2: "2", L3: "3", R4: "4", R5: "5", R6: "6", bis: "Bis",
   gs: "G♯", cs: "C♯", lb: "B", lbb: "B♭", eb: "E♭", lc: "C", pD: "D", pEb: "E♭", pF: "F", sE: "E", sC: "C", sBb: "B♭" };
 const NOTE_NL = { c: "C", cis: "Cis", d: "D", es: "Es", e: "E", f: "F", fis: "Fis", g: "G", gis: "Gis", a: "A", bes: "Bes", b: "B" };
@@ -257,7 +278,7 @@ const rBody = (y) => 0.13 + ((Y_TOP - y) / (Y_TOP - Y_BOW)) * 0.19;
 
 // ---------- Hals en mondstuk ----------
 {
-  const curve = new THREE.CatmullRomCurve3([V(0, Y_TOP - 0.1, 0), V(0, 2.95, 0.02), V(0, 3.28, 0.2), V(0, 3.42, 0.52), V(0, 3.4, 0.9)]);
+  const curve = new THREE.CatmullRomCurve3([V(0, Y_TOP - 0.1, 0), V(0, 2.95, 0.02), V(0, 3.3, 0.2), V(0, 3.42, 0.48), V(0, 3.36, 0.76), V(0, 3.2, 0.98)]);
   const pts = curve.getSpacedPoints(50), rs = pts.map((_, i) => 0.135 - 0.06 * (i / 50));
   sax.add(new THREE.Mesh(taperedTube(pts, rs, 32), brass));
   const rec = new THREE.Mesh(new THREE.CylinderGeometry(0.155, 0.155, 0.16, 32), brassKey);
@@ -439,7 +460,7 @@ function pick(ev) {
   const r = renderer.domElement.getBoundingClientRect();
   ndc.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
   ray.setFromCamera(ndc, camera);
-  return ray.intersectObjects(pickables, false)[0]?.object.userData.keyId;
+  return ray.intersectObjects(pickables.filter((m) => keys[m.userData.keyId].g.visible), false)[0]?.object.userData.keyId;
 }
 let down = null, lastTap = { t: 0, id: null };
 renderer.domElement.addEventListener("pointerdown", (e) => { down = { x: e.clientX, y: e.clientY }; });
@@ -464,6 +485,7 @@ function showInfo(id) {
   if (!id) { info.hidden = true; return; }
   const uses = Object.entries(FINGERINGS).filter(([, alts]) => alts.some((a) => a.includes(id)));
   info.hidden = false;
+  info.dataset.key = id;
   info.innerHTML = `<strong>${KEY_NAMES[id] ?? id}</strong>` +
     (uses.length ? `Nodig voor: ${uses.map(([n]) => label(n)).join(", ")}` : "Niet nodig in de grepen van deze tabel.");
   for (const k of Object.values(keys)) k.flash = 0;
@@ -473,18 +495,33 @@ function showInfo(id) {
 const label = (n) => { const p = parse(n); return [p.name, octaveWord(p.octave)].filter(Boolean).join(" "); };
 
 // ---------- Noten ----------
-const notesEl = document.getElementById("notes"), altsEl = document.getElementById("alts"), listEl = document.getElementById("keyList");
-const ORDER = ["oct", "pD", "pEb", "pF", "fF", "L1", "bis", "L2", "L3", "gs", "cs", "lb", "lbb", "sE", "sC", "sBb", "R4", "R5", "R6", "eb", "lc"];
-let current = "g4", alt = 0;
+const notesEl = document.getElementById("notes"), altsEl = document.getElementById("alts"), filterEl = document.getElementById("filter");
+const ALL = Object.keys(FINGERINGS);
+const FILTERS = [["mine", "Mijn noten"], ["les", "In de les"], ["all", "Alle noten"]];
+const inFilter = (f, n) => (f === "all" ? true : f === "les" ? STATUSES[n] === "les" : Boolean(STATUSES[n]));
+const needed = new Set(ALL.filter((n) => STATUSES[n]).flatMap((n) => FINGERINGS[n][0]));
+let filter = "mine", current = "g4", alt = 0, showAll = false;
 
-for (const n of Object.keys(FINGERINGS)) {
+for (const [f, t] of FILTERS) {
   const b = document.createElement("button");
-  const p = parse(n);
-  b.innerHTML = `${p.name}<sub>${p.octave}</sub>`;
-  b.title = label(n);
-  b.dataset.note = n;
-  b.addEventListener("click", () => select(n, 0));
-  notesEl.append(b);
+  b.type = "button"; b.dataset.filter = f;
+  b.textContent = `${t} (${ALL.filter((n) => inFilter(f, n)).length})`;
+  b.addEventListener("click", () => { filter = f; renderNotes(); });
+  filterEl.append(b);
+}
+function renderNotes() {
+  filterEl.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.filter === filter));
+  const visible = ALL.filter((n) => inFilter(filter, n));
+  notesEl.innerHTML = visible.length ? "" : `<p class="empty-notes">Nog geen noten in de les.</p>`;
+  for (const n of visible) {
+    const b = document.createElement("button"), p = parse(n);
+    b.type = "button"; b.className = STATUSES[n] ?? "";
+    b.innerHTML = `${p.name}<sub>${p.octave}</sub>`;
+    b.title = label(n); b.dataset.note = n;
+    b.addEventListener("click", () => select(n, 0));
+    notesEl.append(b);
+  }
+  select(visible.includes(current) ? current : (visible[0] ?? current), visible.includes(current) ? alt : 0);
 }
 function select(n, a) {
   current = n; alt = a;
@@ -496,28 +533,35 @@ function select(n, a) {
   altsEl.innerHTML = "";
   if (alts.length > 1) alts.forEach((_, i) => {
     const b = document.createElement("button");
-    b.textContent = `Greep ${i + 1}`; b.setAttribute("aria-pressed", i === a);
+    b.type = "button"; b.textContent = i === 0 ? "Gewone greep" : `Alternatief ${i}`; b.setAttribute("aria-pressed", i === a);
     b.addEventListener("click", () => select(n, i));
     altsEl.append(b);
   });
-  const ids = ORDER.filter((k) => pressed.has(k));
-  listEl.innerHTML = ids.length
-    ? ids.map((k) => `<li><b>${SHORT[k]}</b>${KEY_NAMES[k]}</li>`).join("")
-    : "";
-  if (!ids.length) listEl.innerHTML = `<li class="empty">Niets indrukken: alle kleppen open.</li>`;
+  const names = alts[a].map((k) => KEY_NAMES[k] ?? k);
+  document.getElementById("druk").innerHTML = names.length
+    ? `Druk in: ${names.map((k) => `<b>${k}</b>`).join(", ")}`
+    : "Niets indrukken, alles <b>open</b>";
   for (const [id, k] of Object.entries(keys)) k.target = pressed.has(id) ? 1 : 0;
-  updateLabels();
+  updateKeys();
 }
-const allLabels = document.getElementById("allLabels");
-allLabels.addEventListener("change", updateLabels);
-function updateLabels() {
-  for (const k of Object.values(keys)) {
+const showAllBtn = document.getElementById("showAll");
+showAllBtn.addEventListener("click", () => {
+  showAll = !showAll;
+  showAllBtn.setAttribute("aria-pressed", showAll);
+  showAllBtn.textContent = showAll ? "Alleen kleppen voor mijn noten" : "Toon alle kleppen";
+  updateKeys();
+});
+function updateKeys() {
+  for (const [id, k] of Object.entries(keys)) {
     const on = k.target === 1;
-    k.label.visible = on || allLabels.checked;
+    k.g.visible = on || showAll || (OPTIONAL.has(id) ? false : AUTO.has(id) ? needed.has(id) : true);
+    // Basiskleppen houden hun nummer, zoals in de 2D-tekening; extra kleppen alleen als je ze indrukt.
+    k.label.visible = on || (k.g.visible && !AUTO.has(id) && !OPTIONAL.has(id));
     k.el.classList.toggle("idle", !on);
   }
+  if (!info.hidden && info.dataset.key && !keys[info.dataset.key].g.visible) info.hidden = true;
 }
-select(current, 0);
+renderNotes();
 
 // ---------- Lus ----------
 function resize() {
