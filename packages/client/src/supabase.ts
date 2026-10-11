@@ -1,7 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { promotionCandidates, scoreRound } from "@notenkraker/core";
 import type {
-  AuthApi, InvitePurpose, NotenkrakerClient, NotesApi, PracticeApi, PracticeSession, Profile, Progress, Role, Round, RoundsApi, RoundSubmission,
+  AuthApi, Homework, HomeworkApi, InvitePurpose, NotenkrakerClient, NotesApi, PracticeApi, PracticeSession, Profile, Progress, Role, Round, RoundsApi, RoundSubmission,
   SelfRole, Song, SongsApi, Student, StudentNote, StudentsApi,
 } from "./types.js";
 
@@ -194,6 +194,30 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
     },
   };
 
+  const rowToHomework = (r: Record<string, unknown>): Homework => ({
+    id: r.id as string, studentId: r.student_id as string, givenBy: r.given_by as string,
+    givenByRole: r.given_by_role as Homework["givenByRole"], givenByName: r.given_by_name as string, createdAt: r.created_at as string,
+    dueDate: r.due_date as string, minutesPerDay: r.minutes_per_day as number, daysPerWeek: r.days_per_week as number,
+    notes: (r.notes as string[]) ?? [], piece: (r.piece as string) ?? "", pieceNote: (r.piece_note as string) ?? "", remark: (r.remark as string) ?? "",
+  });
+
+  // geven is een databasefunctie: die controleert wie het mag en zet de noten op "in de les"
+  const homework: HomeworkApi = {
+    async list(studentId, limit = 20) {
+      const { data, error } = await sb.from("homework").select("*").eq("student_id", studentId).order("created_at", { ascending: false }).limit(limit);
+      if (error) throw error;
+      return (data ?? []).map(rowToHomework);
+    },
+    async give(input) {
+      const { data, error } = await sb.rpc("give_homework", {
+        p_student: input.studentId, p_notes: input.notes, p_minutes: input.minutesPerDay, p_days: input.daysPerWeek,
+        p_piece: input.piece, p_piece_note: input.pieceNote, p_remark: input.remark, p_due: input.dueDate,
+      });
+      if (error) throw error;
+      return rowToHomework(data);
+    },
+  };
+
   const rowToSong = (r: Record<string, unknown>): Song => ({
     id: r.id as string, title: r.title as string, instrumentId: r.instrument_id as string,
     source: r.source as Song["source"], notes: r.notes as Song["notes"], createdAt: r.created_at as string,
@@ -213,7 +237,7 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
     async remove(id) { const { error } = await sb.from("songs").delete().eq("id", id); if (error) throw error; },
   };
 
-  return { auth, students, notes, rounds, practice, songs };
+  return { auth, students, notes, rounds, practice, homework, songs };
 }
 
 /** Lokale scorefunctie, voor optimistische UI en voor de Edge Function (zelfde core). */

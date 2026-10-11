@@ -14,15 +14,19 @@ export function octaveLabel(id: NoteId, range: [string, string]): string {
 export const noteLabel = (id: NoteId, range: [string, string]) => [display(id), octaveLabel(id, range)].filter(Boolean).join(" ");
 
 /**
- * Namen voor een lijst noten zonder dubbele: komt een naam vaker voor, dan krijgt een noot onder
- * de startnoten "laag" en een noot erboven "hoog" (bijv. in de uitslag van de notentoets).
+ * Namen voor een lijst noten zonder dubbele: komt een naam twee keer voor, dan krijgt een noot onder
+ * de startnoten "laag" en een noot erboven "hoog" (bijv. in de uitslag van de notentoets). Komt een
+ * naam drie keer voor (het hele instrument), dan is de laagste "laag", de middelste gewoon en de hoogste "hoog".
  */
 export function distinctLabels(notes: NoteId[], starter: NoteId[]): Record<NoteId, string> {
   const lo = Math.min(...starter.map(idToMidi)), hi = Math.max(...starter.map(idToMidi));
-  const count = new Map<string, number>();
-  for (const n of notes) count.set(display(n), (count.get(display(n)) ?? 0) + 1);
+  const same = new Map<string, NoteId[]>();
+  for (const n of notes) same.set(display(n), [...(same.get(display(n)) ?? []), n]);
   return Object.fromEntries(notes.map((n) => {
     const name = display(n), m = idToMidi(n);
-    return [n, (count.get(name) ?? 0) < 2 ? name : m < lo ? `${name} laag` : m > hi ? `${name} hoog` : name];
+    const group = [...same.get(name)!].sort((a, b) => idToMidi(a) - idToMidi(b));
+    if (group.length < 2) return [n, name];
+    if (group.length > 2) return [n, n === group[0] ? `${name} laag` : n === group[group.length - 1] ? `${name} hoog` : name];
+    return [n, m < lo ? `${name} laag` : m > hi ? `${name} hoog` : name];
   }));
 }

@@ -69,6 +69,28 @@ export interface PracticeSession {
   label: "sax" | "twijfel";
 }
 
+/**
+ * Huiswerk van een ouder of leraar (AC-113). Ieder geeft zijn eigen huiswerk; per gever telt het
+ * nieuwste. dueDate is jjjj-mm-dd; naam en rol van de gever staan erbij, want een leerling mag
+ * hun profielen niet lezen.
+ */
+export interface Homework {
+  id: string;
+  studentId: string;
+  givenBy: string;
+  givenByRole: "ouder" | "leraar";
+  givenByName: string;
+  createdAt: string;
+  dueDate: string;
+  minutesPerDay: number;
+  daysPerWeek: number;
+  notes: NoteId[];
+  piece: string;
+  pieceNote: string;
+  remark: string;
+}
+export type HomeworkInput = Pick<Homework, "studentId" | "dueDate" | "minutesPerDay" | "daysPerWeek" | "notes" | "piece" | "pieceNote" | "remark">;
+
 export interface SongNote { id?: NoteId; rest?: boolean; duration: "1" | "2" | "4" | "8" | "16" }
 export interface Song {
   id: string;
@@ -129,6 +151,13 @@ export interface PracticeApi {
   recent(studentId: string, limit?: number): Promise<PracticeSession[]>;
 }
 
+export interface HomeworkApi {
+  /** nieuwste eerst, ook ouder huiswerk */
+  list(studentId: string, limit?: number): Promise<Homework[]>;
+  /** alleen een ouder (eigenaar) of gekoppelde leraar; de noten komen op "in de les" */
+  give(input: HomeworkInput): Promise<Homework>;
+}
+
 export interface SongsApi {
   list(studentId: string): Promise<Song[]>;
   create(studentId: string, song: Omit<Song, "id" | "createdAt">): Promise<Song>;
@@ -141,5 +170,6 @@ export interface NotenkrakerClient {
   notes: NotesApi;
   rounds: RoundsApi;
   practice: PracticeApi;
+  homework: HomeworkApi;
   songs: SongsApi;
 }
