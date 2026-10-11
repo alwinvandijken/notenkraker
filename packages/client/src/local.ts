@@ -27,6 +27,7 @@ export function createLocalNotenkraker(storageKey = "notenkraker-local", opts: {
       async signInWithPassword() { authListeners.forEach((cb) => cb(profile)); },
       async signUpWithPassword() { authListeners.forEach((cb) => cb(profile)); },
       async signInWithGoogle() { authListeners.forEach((cb) => cb(profile)); },
+      async signInWithEmailLink() { authListeners.forEach((cb) => cb(profile)); },
       async chooseRole() { /* lokaal is er alleen het ouderprofiel */ },
       async signOut() { authListeners.forEach((cb) => cb(null)); },
       async currentProfile() { return profile; },
@@ -40,6 +41,7 @@ export function createLocalNotenkraker(storageKey = "notenkraker-local", opts: {
       async linkByCode() { throw new Error("niet beschikbaar zonder backend"); },
       async claimByCode() { throw new Error("niet beschikbaar zonder backend"); },
       async inviteCode() { throw new Error("niet beschikbaar zonder backend"); },
+      async guardians() { return []; },
     },
     notes: {
       async list(sid) { return state.notes.filter((n) => n.studentId === sid); },
@@ -106,6 +108,8 @@ export function createLocalNotenkraker(storageKey = "notenkraker-local", opts: {
     admin: {
       async users() { return []; },
       async setFeedbackAllowed() { /* niets */ },
+      async setRole() { /* niets */ },
+      async invite() { throw new Error("niet beschikbaar zonder backend"); },
     },
     songs: {
       async list(sid) { return state.songs.filter((s) => s.studentId === sid); },

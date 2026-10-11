@@ -53,6 +53,8 @@ export interface Student {
   onboardedAt?: string | null;
 }
 
+export interface Guardian { studentId: string; name: string; role: "ouder" | "leraar" }
+
 export interface StudentNote { studentId: string; noteId: NoteId; status: NoteStatus; updatedAt: string }
 
 export interface RoundSubmission {
@@ -132,6 +134,8 @@ export interface AuthApi {
   /** eenmalig na de eerste Google-login */
   chooseRole(role: SelfRole): Promise<void>;
   signInWithGoogle(redirectTo?: string): Promise<void>;
+  /** inloggen zonder wachtwoord: een link per mail; een nieuw adres krijgt meteen een account (rol kiezen na inloggen) */
+  signInWithEmailLink(email: string, redirectTo?: string): Promise<void>;
   signOut(): Promise<void>;
   currentProfile(): Promise<Profile | null>;
   onAuthChange(cb: (profile: Profile | null) => void): () => void;
@@ -147,6 +151,8 @@ export interface StudentsApi {
   /** kind met eigen login koppelt zich aan het leerlingprofiel dat de ouder aanmaakte */
   claimByCode(code: string): Promise<Student>;
   inviteCode(studentId: string, purpose?: InvitePurpose): Promise<string>;
+  /** voor een leerling met eigen login: wie zijn ouder en leraren zijn (alleen de naam) */
+  guardians(): Promise<Guardian[]>;
 }
 
 export interface NotesApi {
@@ -187,6 +193,10 @@ export interface FeedbackApi {
 export interface AdminApi {
   users(): Promise<AdminUser[]>;
   setFeedbackAllowed(userId: string, allowed: boolean): Promise<void>;
+  /** leerling, ouder of leraar; admin alleen via het dashboard, en niet je eigen rol */
+  setRole(userId: string, role: Exclude<Role, "admin">): Promise<void>;
+  /** account aanmaken: de persoon krijgt een uitnodiging per mail met een inloglink */
+  invite(input: { email: string; displayName: string; role: Exclude<Role, "admin">; redirectTo: string }): Promise<void>;
 }
 
 export interface SongsApi {

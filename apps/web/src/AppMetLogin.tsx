@@ -90,7 +90,7 @@ export function AppMetLogin() {
   const pageName = ({
     overzicht: "Overzicht", kind: `Kindpagina (${child?.name ?? "?"})`, dag: `Dagpagina (${day?.date ?? "?"})`, huiswerk: "Huiswerk geven",
     oefenen: mode === "learn" ? "Grepen" : mode === "game" ? "Notenspel" : "Vrij oefenen", kinderen: rights.studentsTitle ?? "Kinderen",
-    profiel: "Mijn profiel", feedback: "Feedback geven", beheer: "Beheer", feedbackdetail: "Beheer: feedback",
+    profiel: "Mijn profiel", feedback: "Feedback geven", beheer: extra.tab === "mensen" ? "Beheer: accounts" : "Beheer", feedbackdetail: "Beheer: feedback",
   } satisfies Record<Screen, string>)[current];
   const knop = profile.canGiveFeedback && current !== "feedback" ? <FeedbackKnop onOpen={() => go("feedback", { from: pageName })} /> : null;
   const practice = (id: string) => { selectStudent(id); go("oefenen"); };

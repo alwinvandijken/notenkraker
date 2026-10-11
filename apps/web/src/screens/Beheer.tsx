@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import { whenLabel, type AdminUser, type Feedback, type FeedbackStatus } from "@notenkraker/client";
+import { whenLabel, type AdminUser, type Feedback, type FeedbackStatus, type Role } from "@notenkraker/client";
 import { client } from "@/lib/client";
 import { linearNewUrl } from "@/lib/feedback";
+import { useApp } from "@/lib/store";
 import { Chip, Segmented } from "@/components/ui";
 
 /**
  * Beheer (AC-116, mock-up docs/mockups/Feedback.html stap 4 en 5), alleen voor een admin: de
- * feedback met filters op status, en wie feedback mag geven. Een feedbackbericht opent op een eigen
+ * feedback met filters op status, en per account de rol en of die feedback mag geven. Een feedbackbericht opent op een eigen
  * pagina (FeedbackDetail). "Naar Linear" opent een nieuw Linear-issue met de tekst al ingevuld.
  */
 export type BeheerTab = "feedback" | "mensen";
@@ -16,7 +17,7 @@ const KIND = { idee: "💡 Idee", fout: "🐞 Werkt niet", vraag: "❓ Vraag" } 
 export function Beheer({ tab, onTab, onOpen }: { tab: BeheerTab; onTab(t: BeheerTab): void; onOpen(id: string): void }) {
   return (
     <div className="flex flex-col gap-4 min-w-0">
-      <Segmented value={tab} onChange={onTab} label="Beheer" options={[["feedback", "💬 Feedback"], ["mensen", "👥 Wie mag feedback geven"]]} />
+      <Segmented value={tab} onChange={onTab} label="Beheer" options={[["feedback", "💬 Feedback"], ["mensen", "👥 Accounts"]]} />
       {tab === "feedback" ? <FeedbackLijst onOpen={onOpen} /> : <Mensen />}
     </div>
   );
@@ -94,33 +95,100 @@ export function FeedbackDetail({ id }: { id: string }) {
   );
 }
 
+const ROLES: Array<[Exclude<Role, "admin">, string]> = [["leerling", "Leerling"], ["ouder", "Ouder"], ["leraar", "Leraar"]];
+
 function Mensen() {
+  const { profile } = useApp();
   const [users, setUsers] = useState<AdminUser[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState("");
-  useEffect(() => { void client.admin.users().then(setUsers).catch(() => setUsers([])); }, []);
+  const load = () => void client.admin.users().then(setUsers).catch(() => setUsers([]));
+  useEffect(load, []);
   if (!users) return <p className="text-muted">Laden…</p>;
   const toggle = async (u: AdminUser) => {
     setUsers((list) => list?.map((x) => (x.id === u.id ? { ...x, canGiveFeedback: !u.canGiveFeedback } : x)) ?? null);
     await client.admin.setFeedbackAllowed(u.id, !u.canGiveFeedback);
   };
+  const changeRole = async (u: AdminUser, role: Exclude<Role, "admin">) => {
+    setError(null);
+    setUsers((list) => list?.map((x) => (x.id === u.id ? { ...x, role } : x)) ?? null);
+    try { await client.admin.setRole(u.id, role); }
+    catch { setError(`De rol van ${u.displayName || u.email} wijzigen lukte niet.`); setUsers((list) => list?.map((x) => (x.id === u.id ? u : x)) ?? null); }
+  };
   const shown = users.filter((u) => `${u.displayName} ${u.email}`.toLowerCase().includes(q.trim().toLowerCase()));
   return (
     <>
+      <AccountToevoegen onAdded={load} />
       <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="🔍 Zoek op naam of e-mail" aria-label="Zoek op naam of e-mail"
         className="w-full max-w-sm rounded-xl border-2 border-line bg-surface px-3 py-2 text-[15px]" />
+      {error && <p className="text-sm text-wrong m-0">{error}</p>}
       <section className="rounded-3xl bg-surface p-2 flex flex-col min-w-0">
-        {shown.map((u) => (
-          <label key={u.id} className="flex items-center gap-3 p-3 border-t border-line first:border-t-0 cursor-pointer min-w-0">
-            <span className="flex-1 min-w-0">
-              <b className="block truncate">{u.displayName || u.email}</b>
-              <span className="block text-xs text-muted truncate">{u.email} · {u.role ?? "nog geen rol"}</span>
-            </span>
-            <span className="text-xs text-muted shrink-0 hidden sm:inline">mag feedback geven</span>
-            <input type="checkbox" checked={u.canGiveFeedback} onChange={() => void toggle(u)} aria-label={`${u.displayName || u.email} mag feedback geven`}
-              className="w-6 h-6 accent-[var(--color-ok)] cursor-pointer shrink-0" />
-          </label>
-        ))}
+        {shown.map((u) => {
+          const who = u.displayName || u.email;
+          return (
+            <div key={u.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 p-3 border-t border-line first:border-t-0 min-w-0">
+              <span className="flex-1 min-w-40">
+                <b className="block truncate">{who}</b>
+                <span className="block text-xs text-muted truncate">{u.email}</span>
+              </span>
+              {u.role === "admin" || u.id === profile?.id ? (
+                <span className="text-sm text-muted px-2">{u.role === "admin" ? "Beheerder" : u.role}</span>
+              ) : (
+                <select value={u.role ?? ""} onChange={(e) => void changeRole(u, e.target.value as Exclude<Role, "admin">)} aria-label={`Rol van ${who}`}
+                  className="rounded-xl border-2 border-line bg-surface px-2 py-1.5 text-sm font-semibold">
+                  {!u.role && <option value="" disabled>nog geen rol</option>}
+                  {ROLES.map(([r, label]) => <option key={r} value={r}>{label}</option>)}
+                </select>
+              )}
+              <label className="flex items-center gap-2 text-xs text-muted cursor-pointer">
+                <input type="checkbox" checked={u.canGiveFeedback} onChange={() => void toggle(u)} aria-label={`${who} mag feedback geven`}
+                  className="w-6 h-6 accent-[var(--color-ok)] cursor-pointer shrink-0" />
+                feedback
+              </label>
+            </div>
+          );
+        })}
       </section>
+      <p className="text-xs text-muted m-0">Een nieuwe rol geldt na opnieuw inloggen. Beheerder maken kan alleen in Supabase.</p>
     </>
+  );
+}
+
+/** account aanmaken vanuit de app: de persoon krijgt een uitnodiging per mail met een inloglink */
+function AccountToevoegen({ onAdded }: { onAdded(): void }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState<Exclude<Role, "admin">>("leraar");
+  const [state, setState] = useState<{ busy?: boolean; ok?: string; error?: string }>({});
+  const field = "w-full rounded-xl border-2 border-line bg-surface px-3 py-2 text-[15px]";
+
+  if (!open) return <Chip primary className="self-start" onClick={() => setOpen(true)}>+ Account toevoegen</Chip>;
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault(); setState({ busy: true });
+    try {
+      await client.admin.invite({ email: email.trim(), displayName: name.trim(), role, redirectTo: `${window.location.origin}/app` });
+      setState({ ok: `Uitnodiging gestuurd naar ${email.trim()}. Met de link in die mail logt ${name.trim() || "die persoon"} in.` });
+      setName(""); setEmail(""); onAdded();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      setState({ error: msg === "bestaat al" ? "Dit e-mailadres heeft al een account. Pas de rol hieronder aan."
+        : /rate limit|too many/i.test(msg) ? "Er zijn net te veel mails verstuurd. Probeer het over een uur nog eens." : "Uitnodigen lukte niet." });
+    }
+  };
+  return (
+    <form onSubmit={submit} className="rounded-3xl bg-surface p-4 flex flex-col gap-3 max-w-lg">
+      <b className="font-display">Account toevoegen</b>
+      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Naam" aria-label="Naam" className={field} maxLength={100} />
+      <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="E-mail" aria-label="E-mail" type="email" required className={field} />
+      <Segmented value={role} onChange={setRole} label="Rol" options={ROLES} />
+      <p className="text-xs text-muted m-0">De persoon krijgt een mail met een inloglink; een wachtwoord is niet nodig.</p>
+      {state.ok && <p role="status" className="text-sm rounded-xl bg-ok/10 text-ok px-3 py-2 m-0">{state.ok}</p>}
+      {state.error && <p className="text-sm text-wrong m-0">{state.error}</p>}
+      <div className="flex gap-2">
+        <Chip type="submit" primary disabled={state.busy || !email.trim()}>{state.busy ? "Versturen…" : "Uitnodiging sturen"}</Chip>
+        <Chip onClick={() => { setOpen(false); setState({}); }}>Sluiten</Chip>
+      </div>
+    </form>
   );
 }
