@@ -63,6 +63,7 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu 
   const [view, setView] = usePref<View>("view", "buttons");
   const [render, setRender] = usePref<Render>("render", "3d");
   const [sound, setSound] = usePref<Sound>("sound", "sax");
+  const [auto, setAuto] = usePref<"aan" | "uit">("auto", "uit");
   const [webgl] = useState(hasWebGL);
   const is3d = render === "3d" && webgl;
   const [showAll, setShowAll] = useState(false);
@@ -84,7 +85,11 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu 
     </IconButton>
   );
 
-  const select = (n: NoteId) => { setSel(n); setAlt(0); };
+  /** Een noot kiezen; met "bij elke noot" aan klinkt hij meteen (in de tik zelf, anders speelt iOS niets af). */
+  const select = (n: NoteId) => {
+    setSel(n); setAlt(0);
+    if (auto === "aan") playSound(soundingMidi(n, instrument.transposition), sound);
+  };
   const step = (d: number) => { if (!visible.length) return; const i = visible.indexOf(current); select(visible[(i + d + visible.length) % visible.length]!); };
 
   return (
@@ -144,17 +149,23 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu 
         <section aria-label="Noot" className={`${panel} order-1 md:order-2 p-4 md:p-5 flex flex-col gap-3 md:min-h-0`}>
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
-              <span className={`text-sm font-semibold px-3 py-1.5 rounded-xl border-2 ${statusClass(statuses[current])}`}>
+              <span className={`text-sm font-semibold px-3 py-1.5 rounded-xl border-2 whitespace-nowrap ${statusClass(statuses[current])}`}>
                 {STATUS.find(([v]) => v === (statuses[current] ?? ""))?.[1]}
               </span>
               {/* op het witte vlak een grijze ondergrond, zoals in de mock-up */}
-              <span className="ml-auto [&>span]:bg-bg">
+              <span className="ml-auto [&>span]:bg-bg [&>span]:flex-nowrap [&_button]:px-3 md:[&_button]:px-4">
                 <Segmented value={sound} label="Klank" onChange={(v) => { setSound(v); playSound(sounding, v); }}
                   options={[["sax", "Sax"], ["toon", "Toon"]]} />
               </span>
               <button type="button" aria-label="Laat horen" title="Laat horen" onClick={() => playSound(sounding, sound)}
                 className="w-11 h-11 rounded-full border-2 border-fg flex items-center justify-center cursor-pointer">
                 <svg width="20" height="20" viewBox="0 0 22 22" aria-hidden="true"><path d="M3 8h4l5-4v14l-5-4H3z" fill="currentColor" /><path d="M15 7.5a5 5 0 010 7M17.5 5a8.5 8.5 0 010 12" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" /></svg>
+              </button>
+              <button type="button" aria-pressed={auto === "aan"} onClick={() => { const on = auto !== "aan"; setAuto(on ? "aan" : "uit"); if (on) playSound(sounding, sound); }}
+                aria-label="Bij elke noot" title={auto === "aan" ? "Je hoort elke noot die je kiest (tik om uit te zetten)" : "Speel de noot bij elke wissel"}
+                className="min-h-11 min-w-11 px-2.5 md:px-3.5 rounded-full border-2 border-line text-muted flex items-center justify-center gap-1.5 text-sm font-semibold cursor-pointer aria-pressed:bg-fg aria-pressed:border-fg aria-pressed:text-surface">
+                <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 2l3 3-3 3" /><path d="M4 11V9a4 4 0 014-4h12" /><path d="M7 22l-3-3 3-3" /><path d="M20 13v2a4 4 0 01-4 4H4" /></svg>
+                <span className="hidden md:inline whitespace-nowrap">Bij elke noot</span>
               </button>
             </div>
             <span className="text-muted text-sm">Geschreven {withOctave(current)} · klinkt als {withOctave(toId(midiToPitch(sounding)))}</span>
