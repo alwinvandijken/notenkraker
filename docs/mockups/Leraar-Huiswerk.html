@@ -39,6 +39,9 @@ h2.t{margin:0;font-size:26px;line-height:1.05}
 .lrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
 .lrow:first-of-type{border-top:0}
 .av{width:36px;height:36px;border-radius:18px;background:var(--blue);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
+.av.sm{width:26px;height:26px;font-size:13px}
+.av.ouder{background:var(--accent)}
+.who-hw{display:flex;align-items:center;gap:8px}
 .grow{flex:1;min-width:0}
 .name{font-weight:700;font-size:15px}
 .bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:5px}
@@ -127,7 +130,7 @@ h2.t{margin:0;font-size:26px;line-height:1.05}
     </div>
 
     <div class="step">
-      <div class="label"><div class="num">2</div><div><b>Leerlingpagina</b><span>Bovenaan het huidige huiswerk met de voortgang per dag. Daaronder oefentijd per dag of per week. Noten en eerder huiswerk op eigen pagina's. Tik op een dag voor de dagpagina die al bestaat.</span></div></div>
+      <div class="label"><div class="num">2</div><div><b>Leerlingpagina</b><span>Bovenaan het huiswerk van de leraar met de voortgang per dag; huiswerk van de ouder staat er klein onder, met zijn avatar. Daaronder oefentijd per dag of per week. Noten en eerder huiswerk op eigen pagina's. Tik op een dag voor de dagpagina die al bestaat.</span></div></div>
       <div class="phone">
         <div class="back">← Leerlingen</div>
         <div style="display:flex;justify-content:space-between;align-items:end"><h2 class="t">Lotte</h2><span class="sub">Altsax</span></div>
@@ -142,6 +145,7 @@ h2.t{margin:0;font-size:26px;line-height:1.05}
             <div class="xs muted" style="margin-top:4px">za zo ma di wo · vandaag do · vr</div>
           </div>
         </div>
+        <div class="card who-hw" style="padding:10px 14px"><span class="av sm ouder">P</span><div class="grow"><div class="small"><b>Huiswerk van papa</b> · tot zo</div><div class="xs muted">🎵 Lang zal ze leven</div></div></div>
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center"><span class="cap">Oefentijd</span>
             <div class="tabs" style="width:150px;padding:3px;background:var(--bg)"><span class="on">dag</span><span>week</span></div></div>
@@ -215,16 +219,20 @@ h2.t{margin:0;font-size:26px;line-height:1.05}
         </div>
       </div>
 
-      <div class="label" style="margin-top:16px"><div class="num">5</div><div><b>Wat de leerling ziet</b><span>Op het startscherm van de leerling, boven Grepen en Spel. De noten van het huiswerk komen vaker in het spel.</span></div></div>
+      <div class="label" style="margin-top:16px"><div class="num">5</div><div><b>Wat de leerling ziet</b><span>Op het startscherm van de leerling, boven Grepen en Spel. Elk huiswerk is een eigen kaart; de avatar laat zien van wie het is. De noten van het huiswerk komen vaker in het spel.</span></div></div>
       <div class="phone" style="height:auto">
         <div class="card" style="display:flex;flex-direction:column;gap:10px;border:2px solid var(--orange)">
-          <div style="display:flex;justify-content:space-between"><span class="cap">Huiswerk van Marieke</span><span class="xs muted">tot vr</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center"><span class="who-hw"><span class="av sm">M</span><span class="cap">Huiswerk van Marieke</span></span><span class="xs muted">tot vr</span></div>
           <div style="display:flex;align-items:center;gap:12px">
             <svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="28" r="23" fill="none" stroke="#DCE3EC" stroke-width="7"/><circle cx="28" cy="28" r="23" fill="none" stroke="#1F7A4D" stroke-width="7" stroke-linecap="round" transform="rotate(-90 28 28)" stroke-dasharray="72 145"/></svg>
             <div><b>Vandaag 10 van 20 min</b><div class="xs muted">4 van 5 dagen gehaald deze week</div></div>
           </div>
           <div class="chips"><span class="note les">D</span><span class="note les">E</span><span class="note les">Fis</span></div>
           <div class="small">🎵 Toonladder G groot · 💬 “Let op je ademhaling…”</div>
+        </div>
+        <div class="card" style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span class="who-hw"><span class="av sm ouder">P</span><span class="cap">Huiswerk van papa</span></span><span class="xs muted">tot zo</span></div>
+          <div class="small">🎵 <b>Lang zal ze leven</b> · 💬 “Voor oma's verjaardag!”</div>
         </div>
       </div>
     </div>
@@ -285,15 +293,19 @@ h2.t{margin:0;font-size:26px;line-height:1.05}
       </div>
     </div>
     <div class="step">
-      <div class="label"><div class="num">8</div><div><b>Wel een leraar</b><span>De ouder ziet het huiswerk van de leraar en hoe het gaat. Of de ouder het ook mag aanpassen is nog een open vraag.</span></div></div>
+      <div class="label"><div class="num">8</div><div><b>Wel een leraar</b><span>De ouder ziet het huiswerk van de leraar (niet aan te passen) en kan er eigen huiswerk naast zetten (met dezelfde knop “Huiswerk geven” als in stap 7). De avatar laat zien van wie het is.</span></div></div>
       <div class="phone" style="height:auto">
         <div class="back">← Mijn kinderen</div>
         <div style="display:flex;justify-content:space-between;align-items:end"><h2 class="t">Lotte</h2><span class="sub">Altsax · Marieke</span></div>
         <div class="card" style="display:flex;flex-direction:column;gap:10px">
-          <div style="display:flex;justify-content:space-between;align-items:center"><span class="cap">Huiswerk van Marieke · tot vr</span><span class="badge warn">even opletten</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center"><span class="who-hw"><span class="av sm">M</span><span class="cap">Marieke · tot vr</span></span><span class="badge warn">even opletten</span></div>
           <div class="chips"><span class="note les">D</span><span class="note les">E</span><span class="note les">Fis</span></div>
           <div class="small">🎵 <b>Toonladder G groot</b> · 20 min per dag, 5 dagen</div>
           <div class="small"><b>2 van 5 dagen</b> · nog 3 dagen tot en met vr</div>
+        </div>
+        <div class="card" style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span class="who-hw"><span class="av sm ouder">P</span><span class="cap">Jij · tot zo</span></span><span class="xs muted">aanpassen ›</span></div>
+          <div class="small">🎵 <b>Lang zal ze leven</b> · 💬 “Voor oma's verjaardag!”</div>
         </div>
       </div>
     </div>
@@ -303,7 +315,7 @@ h2.t{margin:0;font-size:26px;line-height:1.05}
     <h2>Keuzes in dit ontwerp</h2>
     <h3>Huiswerk</h3>
     <ul>
-      <li>Eén opgave per leerling tegelijk, met een <b>einddatum</b> (standaard over een week, aan te passen). Een nieuwe opgave vervangt de oude; de oude blijft zichtbaar onder <b>Eerder huiswerk</b>.</li>
+      <li>Per gever één opgave tegelijk (dus hooguit één van de leraar en één van de ouder), met een <b>einddatum</b> (standaard over een week, aan te passen). Een nieuwe opgave van dezelfde gever vervangt zijn oude; de oude blijft zichtbaar onder <b>Eerder huiswerk</b>.</li>
       <li>Geen vaste lesdag per leerling. Kan later als gemak (dan vult de einddatum zich vanzelf in).</li>
       <li><b>Noten:</b> gekozen noten krijgen de status “In de les” (bestaat al) en komen daardoor vaker in het notenspel.</li>
       <li><b>Oefendoel:</b> minuten per dag en dagen per week. Een dag telt als gehaald als de gespeelde tijd (notenspel + vrij oefenen) het dagdoel haalt. Halve dag = lichtgroen.</li>
@@ -314,8 +326,9 @@ h2.t{margin:0;font-size:26px;line-height:1.05}
     <h3>Wie ziet wat</h3>
     <ul>
       <li>De leerling ziet het huiswerk op zijn startscherm, de ouder op de kindpagina.</li>
-      <li>Een leraar én een ouder kunnen huiswerk geven. Er hoeft geen leraar te zijn. Bij de leerling staat van wie het huiswerk is (“Huiswerk van Marieke”, “Huiswerk van papa”).</li>
-      <li>Heeft een kind een leraar én geeft de ouder huiswerk? Voorstel: het nieuwste huiswerk telt, en de ander ziet dat. <b>Open vraag.</b></li>
+      <li>Een leraar én een ouder kunnen huiswerk geven. Er hoeft geen leraar te zijn. De <b>avatar</b> bij elk huiswerk laat zien van wie het is (blauw M = Marieke, oranje P = papa).</li>
+      <li>Niemand past het huiswerk van een ander aan. Leraar en ouder zien elkaars huiswerk wel.</li>
+      <li>Oefentijd telt voor alle lopende opgaven tegelijk: 20 minuten spelen is 20 minuten voor het huiswerk van Marieke én dat van papa.</li>
     </ul>
     <h3>Techniek (voor later)</h3>
     <ul>
