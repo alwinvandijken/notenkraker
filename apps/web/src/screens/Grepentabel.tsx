@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { instrumentNotes, midiToPitch, noteName, parseId, soundingMidi, toId, type Instrument, type NoteId, type NoteStatus, type StatusMap } from "@notenkraker/core";
-import { playMidi } from "@/audio/synth";
+import { playSound, type Sound } from "@/audio/sax";
 import { useStatuses, usePref } from "@/lib/poc";
 import { display, octaveLabel, withOctave } from "@/lib/noten";
 import { StaffNote, StaffRow } from "@/components/Staff";
@@ -62,6 +62,7 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu 
   const [filter, setFilter] = usePref<Filter>("filter", "mine");
   const [view, setView] = usePref<View>("view", "buttons");
   const [render, setRender] = usePref<Render>("render", "3d");
+  const [sound, setSound] = usePref<Sound>("sound", "sax");
   const [webgl] = useState(hasWebGL);
   const is3d = render === "3d" && webgl;
   const [showAll, setShowAll] = useState(false);
@@ -146,8 +147,13 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu 
               <span className={`text-sm font-semibold px-3 py-1.5 rounded-xl border-2 ${statusClass(statuses[current])}`}>
                 {STATUS.find(([v]) => v === (statuses[current] ?? ""))?.[1]}
               </span>
-              <button type="button" aria-label="Laat horen" title="Laat horen" onClick={() => playMidi(sounding, 1.2)}
-                className="ml-auto w-11 h-11 rounded-full border-2 border-fg flex items-center justify-center cursor-pointer">
+              {/* op het witte vlak een grijze ondergrond, zoals in de mock-up */}
+              <span className="ml-auto [&>span]:bg-bg">
+                <Segmented value={sound} label="Klank" onChange={(v) => { setSound(v); playSound(sounding, v); }}
+                  options={[["sax", "Sax"], ["toon", "Toon"]]} />
+              </span>
+              <button type="button" aria-label="Laat horen" title="Laat horen" onClick={() => playSound(sounding, sound)}
+                className="w-11 h-11 rounded-full border-2 border-fg flex items-center justify-center cursor-pointer">
                 <svg width="20" height="20" viewBox="0 0 22 22" aria-hidden="true"><path d="M3 8h4l5-4v14l-5-4H3z" fill="currentColor" /><path d="M15 7.5a5 5 0 010 7M17.5 5a8.5 8.5 0 010 12" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" /></svg>
               </button>
             </div>

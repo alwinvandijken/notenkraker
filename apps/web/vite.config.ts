@@ -25,7 +25,15 @@ export default defineConfig({
           { src: "icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" },
         ],
       },
-      workbox: { globPatterns: ["**/*.{js,css,html,svg,png,woff2}"] },
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
+        // saxopnames (audio/sax.ts) na de eerste keer bewaren, zodat ze ook offline klinken
+        runtimeCaching: [{
+          urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/gh\/nbrosowsky\/tonejs-instruments@/,
+          handler: "CacheFirst",
+          options: { cacheName: "sax-samples", expiration: { maxEntries: 40 }, cacheableResponse: { statuses: [200] } },
+        }],
+      },
     }),
   ],
   // versie voor feedback (AC-116): de commit die Netlify bouwt, lokaal "dev"
