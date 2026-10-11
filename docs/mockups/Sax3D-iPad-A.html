@@ -20,15 +20,15 @@ body { padding: 28px 40px 28px; }
 .strip-card .strip.staff { padding: 0 4px; }
 main { display: grid; grid-template-columns: 42% 1fr; gap: 22px; min-height: 0; }
 .sax-card { display: flex; flex-direction: column; overflow: hidden; }
-.sax-card .stage { flex: 1; border-radius: 28px 28px 0 0; }
+.sax-card .stage { flex: 1; border-radius: 28px; }
 .saxbar.tr { top: 14px; right: 14px; flex-direction: column; }
-.sax-foot { padding: 14px 20px 18px; display: flex; align-items: center; gap: 12px; justify-content: space-between; }
 .note-card { padding: 30px 34px; display: flex; flex-direction: column; gap: 14px; }
 .note-head { display: flex; align-items: center; justify-content: space-between; }
 .note-main { flex: 1; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 20px; min-height: 0; }
 .note-main .staff-svg { height: 230px; }
 .big-name { font-size: 150px; }
 .strip-card { padding: 10px; border-radius: 24px; }
+.druk.big { font-size: 22px; }
 .note-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .note-foot .sound { margin-left: auto; }
 
@@ -50,10 +50,10 @@ main { display: grid; grid-template-columns: 42% 1fr; gap: 22px; min-height: 0; 
         <button class="icon" data-zoom="in" aria-label="Inzoomen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
         <button class="icon" data-zoom="out" aria-label="Uitzoomen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
         <button class="icon" data-explode aria-pressed="false" aria-label="Uit elkaar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M9 6l3-3 3 3M12 21v-6M9 18l3 3 3-3"/><rect x="7" y="10.5" width="10" height="3" rx="1.5"/></svg></button>
+        <button class="icon" data-showall aria-pressed="false" aria-label="Toon alle kleppen" title="Toon alle kleppen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="5.5" r="2.3"/><circle cx="9" cy="12" r="2.3"/><circle cx="9" cy="18.5" r="2.3"/><path d="M18 9v6M15 12h6"/></svg></button>
       </div>
         <div class="toast" data-info hidden></div>
       </div>
-      <div class="sax-foot"><p class="druk" data-druk></p><button class="dashed" data-showall aria-pressed="false">Toon alle kleppen</button></div>
     </section>
     <section class="card note-card" aria-label="Noot">
       <div class="note-head"><span class="badge" data-status></span><button class="pill" data-play><svg width="20" height="20" viewBox="0 0 22 22" aria-hidden="true"><path d="M3 8h4l5-4v14l-5-4H3z" fill="currentColor"/><path d="M15 7.5a5 5 0 010 7M17.5 5a8.5 8.5 0 010 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg> Laat horen</button></div>
@@ -61,6 +61,7 @@ main { display: grid; grid-template-columns: 42% 1fr; gap: 22px; min-height: 0; 
         <div class="staff-svg" data-note-staff></div>
         <div><div class="big-name" data-note-name></div><div class="sub" data-note-sub></div></div>
       </div>
+      <p class="druk big" data-druk></p>
       <div class="note-foot"><div class="alts" data-alts></div><div class="sound"><div class="seg" role="group" aria-label="Klank"><button data-sound="sax">Sax</button><button data-sound="toon">Toon</button></div><button class="toggle" data-auto aria-pressed="false"><i></i>Bij elke noot</button></div></div>
     </section>
   </main>

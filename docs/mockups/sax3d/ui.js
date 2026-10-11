@@ -65,6 +65,12 @@ export function mountGrepen({ learner = "sanne", strip = "buttons", sax: saxOpts
   const sax = createSax($("[data-stage]"), { ...saxOpts, onTap: showInfo });
   sax.setNeeded(ALL.filter((n) => statuses[n]).flatMap((n) => FINGERINGS[n][0]));
 
+  function flashInfo(text) {
+    if (!info) return;
+    info.hidden = false; info.textContent = text;
+    clearTimeout(info._t);
+    info._t = setTimeout(() => (info.hidden = true), 2000);
+  }
   function showInfo(id) {
     if (!info) return;
     if (!id) { info.hidden = true; return; }
@@ -90,7 +96,10 @@ export function mountGrepen({ learner = "sanne", strip = "buttons", sax: saxOpts
   $$("[data-showall]").forEach((b) => b.addEventListener("click", () => {
     showAll = !showAll; sax.setShowAll(showAll);
     b.setAttribute("aria-pressed", showAll);
-    b.textContent = showAll ? "Alleen mijn kleppen" : "Toon alle kleppen";
+    const text = showAll ? "Alleen mijn kleppen" : "Toon alle kleppen";
+    // Als ronde knop op de sax: tekst als label, en kort in beeld wat er gebeurde
+    if (b.classList.contains("icon")) { b.ariaLabel = b.title = text; flashInfo(showAll ? "Alle kleppen zichtbaar" : "Alleen de kleppen voor jouw noten"); }
+    else b.textContent = text;
   }));
   $$("[data-filter]").forEach((b) => b.addEventListener("click", () => { filter = b.dataset.filter; render(); }));
   $$("[data-strip-mode]").forEach((b) => b.addEventListener("click", () => {
