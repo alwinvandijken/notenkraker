@@ -1,7 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { promotionCandidates, scoreRound } from "@notenkraker/core";
 import type {
-  AdminApi, AdminUser, AuthApi, Feedback, FeedbackApi, Homework, HomeworkApi, InvitePurpose, NotenkrakerClient, NotesApi, PracticeApi, PracticeSession, Profile, Progress, Role, Round, RoundsApi, RoundSubmission,
+  AdminApi, AdminUser, AuthApi, Guardian, Feedback, FeedbackApi, Homework, HomeworkApi, InvitePurpose, NotenkrakerClient, NotesApi, PracticeApi, PracticeSession, Profile, Progress, Role, Round, RoundsApi, RoundSubmission,
   SelfRole, Song, SongsApi, Student, StudentNote, StudentsApi,
 } from "./types.js";
 
@@ -31,6 +31,10 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
     },
     async signInWithGoogle(redirectTo) {
       const { error } = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
+      if (error) throw error;
+    },
+    async signInWithEmailLink(email, redirectTo) {
+      const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo, shouldCreateUser: true } });
       if (error) throw error;
     },
     async chooseRole(role) {
@@ -98,6 +102,11 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
       const { data, error } = await sb.functions.invoke("invite-code", { body: { studentId, purpose } });
       if (error) throw error;
       return data.code as string;
+    },
+    async guardians() {
+      const { data, error } = await sb.rpc("my_guardians");
+      if (error) throw error;
+      return ((data ?? []) as Array<Record<string, unknown>>).map((r): Guardian => ({ studentId: r.student_id as string, name: r.name as string, role: r.role as Guardian["role"] }));
     },
   };
 
@@ -259,6 +268,18 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
     },
     async setFeedbackAllowed(userId, allowed) {
       const { error } = await sb.rpc("set_feedback_allowed", { p_user: userId, p_allowed: allowed });
+      if (error) throw error;
+    },
+    async invite(input) {
+      const { error } = await sb.functions.invoke("admin-invite", { body: input });
+      if (error) {
+        // de Edge Function geeft { error: "bestaat al" | … } terug; die tekst willen we tonen
+        const body = await (error as { context?: Response }).context?.json?.().catch(() => null);
+        throw new Error(body?.error ?? error.message);
+      }
+    },
+    async setRole(userId, role) {
+      const { error } = await sb.rpc("set_role", { p_user: userId, p_role: role });
       if (error) throw error;
     },
   };
