@@ -70,5 +70,8 @@ button { font-family: inherit; color: inherit; }
 .dot.kent { background: var(--kent); } .dot.les { background: var(--les); } .dot.moet { background: var(--moet); }
 /* Notenkiezer: notenbalk */
 .strip.staff { display: block; }
-.strip.staff svg { display: block; color: var(--fg); }
+/* Vaste hoogte: met alle noten (hulplijnen boven en onder) schaalt de balk mee in plaats van de sax te verdrukken */
+.strip.staff svg { display: block; color: var(--fg); margin: 0 auto; height: var(--staff-h, 170px); width: auto; }
+/* Met letters eronder iets hoger, zodat de noten even groot blijven */
+.strip.staff.names svg { height: calc(var(--staff-h, 170px) + 34px); }
 .strip.staff g[data-note] { cursor: pointer; }

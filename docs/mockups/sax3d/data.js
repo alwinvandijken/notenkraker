@@ -36,11 +36,11 @@ export function noteGlyph(id, cx, y, col, scale = 1) {
     + (pos < 4 ? `<line x1="${cx + rx * 0.9}" x2="${cx + rx * 0.9}" y1="${cy - 1}" y2="${cy - st}" stroke="${col}" stroke-width="1.6"/>`
                : `<line x1="${cx - rx * 0.9}" x2="${cx - rx * 0.9}" y1="${cy + 1}" y2="${cy + st}" stroke="${col}" stroke-width="1.6"/>`);
 }
-/** Rij noten op één balk, klikbaar via data-note. opts: { current, statuses, showOctave } */
-export function staffRow(notes, { current, statuses = {}, showOctave = false } = {}) {
+/** Rij noten op één balk, klikbaar via data-note. showNames: letters onder de noten (zoals StaffRow in de app). */
+export function staffRow(notes, { current, statuses = {}, showOctave = false, showNames = true } = {}) {
   // Hoogte past zich aan de hoogste en laagste noot aan, zodat een paar noten geen lege ruimte geven.
   const ps = notes.map(staffPos), hi = Math.max(8, ...ps), lo = Math.min(0, ...ps);
-  const sp = 12, x0 = 62, dx = 50, base = 44 + hi * (sp / 2), h = base - lo * (sp / 2) + 78, w = x0 + Math.max(notes.length, 1) * dx + 6, y = (s) => base - s * (sp / 2);
+  const sp = 12, x0 = 62, dx = 50, base = 44 + hi * (sp / 2), h = base - lo * (sp / 2) + (showNames ? 78 : 44), w = x0 + Math.max(notes.length, 1) * dx + 6, y = (s) => base - s * (sp / 2);
   let out = `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">`;
   out += [0, 1, 2, 3, 4].map((i) => `<line x1="8" x2="${w - 8}" y1="${base - i * sp}" y2="${base - i * sp}" stroke="currentColor" stroke-width="1.2"/>`).join("");
   out += `<text x="12" y="${base + 3}" font-size="60" fill="currentColor" font-family="serif">𝄞</text>`;
@@ -50,8 +50,8 @@ export function staffRow(notes, { current, statuses = {}, showOctave = false } =
     out += `<g role="button" tabindex="0" data-note="${n}" aria-pressed="${sel}" aria-label="${label(n)}">`
       + `<rect x="${cx - 23}" y="${top}" width="46" height="${h - top - 2}" rx="10" fill="${sel ? "var(--bg)" : "transparent"}" stroke="${sel ? "currentColor" : "none"}" stroke-width="2"/>`
       + noteGlyph(n, cx, y, col)
-      + `<text x="${cx}" y="${h - 26}" font-size="16" font-weight="800" fill="${col}" text-anchor="middle" font-family="Lexend, sans-serif">${p.name}</text>`
-      + `<text x="${cx}" y="${h - 10}" font-size="10" fill="var(--muted)" text-anchor="middle">${showOctave ? p.octave : octaveWord(p.octave)}</text></g>`;
+      + (showNames ? `<text x="${cx}" y="${h - 26}" font-size="16" font-weight="800" fill="${col}" text-anchor="middle" font-family="Lexend, sans-serif">${p.name}</text>`
+      + `<text x="${cx}" y="${h - 10}" font-size="10" fill="var(--muted)" text-anchor="middle">${showOctave ? p.octave : octaveWord(p.octave)}</text>` : "") + "</g>";
   });
   return out + "</svg>";
 }

@@ -30,7 +30,11 @@ body { padding: 16px 16px calc(12px + env(safe-area-inset-bottom)); }
 .sax-foot { padding: 10px 14px 12px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 .druk { font-size: 15px; }
 .dashed { min-height: 36px; font-size: 13px; }
-.seg { align-self: center; }
+.strip { --staff-h: 132px; }
+.picker-row { display: flex; justify-content: space-between; gap: 8px; }
+.seg.mode button { padding: 0 9px; min-width: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; }
+.seg.mode .mini { font-size: 8px; font-weight: 700; line-height: 1; margin-top: 1px; }
+.seg.mode button svg { width: 24px; height: 15px; }
 .seg button { min-height: 34px; font-size: 13px; padding: 0 14px; }
 .note-btn { flex: 0 0 56px; min-height: 58px; font-size: 20px; }
 
@@ -59,7 +63,10 @@ body { padding: 16px 16px calc(12px + env(safe-area-inset-bottom)); }
     </div>
     <div class="sax-foot"><p class="druk" data-druk></p><div class="alts" data-alts></div><button class="dashed" data-showall aria-pressed="false">Toon alle kleppen</button></div>
   </section>
-  <div class="seg" role="group" aria-label="Welke noten"><button data-filter="mine">Mijn noten</button><button data-filter="all">Alle noten</button></div>
+  <div class="picker-row">
+    <div class="seg" role="group" aria-label="Welke noten"><button data-filter="mine">Mijn noten</button><button data-filter="all">Alle</button></div>
+    <div class="seg mode" role="group" aria-label="Notenkiezer"><button data-strip-mode="buttons" aria-label="Letters">ABC</button><button data-strip-mode="staff" aria-label="Notenbalk"><svg viewBox="0 0 28 18" width="28" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1 3h26M1 7h26M1 11h26M1 15h26"/><ellipse cx="16" cy="11" rx="3.2" ry="2.3" fill="currentColor" stroke="none" transform="rotate(-20 16 11)"/><path d="M19 10.5V1.5" stroke-width="1.6"/></svg></button><button data-strip-mode="both" aria-label="Notenbalk met letters"><svg viewBox="0 0 28 18" width="28" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1 3h26M1 7h26M1 11h26M1 15h26"/><ellipse cx="16" cy="11" rx="3.2" ry="2.3" fill="currentColor" stroke="none" transform="rotate(-20 16 11)"/><path d="M19 10.5V1.5" stroke-width="1.6"/></svg><span class="mini">ABC</span></button></div>
+  </div>
   <nav aria-label="Kies een noot"><div class="strip" data-notes></div></nav>
 </div>
 <script type="module">

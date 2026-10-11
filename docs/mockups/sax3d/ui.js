@@ -32,6 +32,8 @@ export function mountGrepen({ learner = "sanne", strip = "buttons", sax: saxOpts
   const $ = (s) => document.querySelector(s), $$ = (s) => [...document.querySelectorAll(s)];
   const L = LEARNERS[learner], statuses = L.statuses, showOctave = octaveDefault(L.age);
   let filter = "mine", current = "g4", alt = 0, showAll = false;
+  // Alleen indelingen met een schakelaar onthouden de keuze (per apparaat, zoals usePref in de app)
+  if ($("[data-strip-mode]")) try { strip = localStorage.getItem("nk.sax3d.strip") || strip; } catch {}
 
   const info = $("[data-info]");
   const sax = createSax($("[data-stage]"), { ...saxOpts, onTap: showInfo });
@@ -65,6 +67,11 @@ export function mountGrepen({ learner = "sanne", strip = "buttons", sax: saxOpts
     b.textContent = showAll ? "Alleen mijn kleppen" : "Toon alle kleppen";
   }));
   $$("[data-filter]").forEach((b) => b.addEventListener("click", () => { filter = b.dataset.filter; render(); }));
+  $$("[data-strip-mode]").forEach((b) => b.addEventListener("click", () => {
+    strip = b.dataset.stripMode;
+    try { localStorage.setItem("nk.sax3d.strip", strip); } catch {}
+    render();
+  }));
   $$("[data-play]").forEach((b) => b.addEventListener("click", () => play(current)));
 
   const notesEl = $("[data-notes]");
@@ -77,6 +84,9 @@ export function mountGrepen({ learner = "sanne", strip = "buttons", sax: saxOpts
 
   function render() {
     $$("[data-filter]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.filter === filter));
+    $$("[data-strip-mode]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.stripMode === strip));
+    notesEl?.classList.toggle("staff", strip !== "buttons");
+    notesEl?.classList.toggle("names", strip === "both");
     const vis = visibleNotes();
     if (!vis.includes(current)) current = vis[0] ?? current;
     select(current, alt);
@@ -85,8 +95,9 @@ export function mountGrepen({ learner = "sanne", strip = "buttons", sax: saxOpts
   function drawStrip(vis) {
     if (!notesEl) return;
     const names = distinct(vis), scroll = notesEl.scrollLeft;
-    if (strip === "staff") {
-      notesEl.innerHTML = staffRow(vis, { current, statuses, showOctave });
+    // "staff": alleen de balk, de leerling leest de noot; "both": balk met letters eronder (extra optie)
+    if (strip === "staff" || strip === "both") {
+      notesEl.innerHTML = staffRow(vis, { current, statuses, showOctave, showNames: strip === "both" });
     } else {
       notesEl.innerHTML = vis.map((n) => {
         const { name, word } = names[n], p = parse(n), mark = showOctave ? `<sub>${p.octave}</sub>` : word === "laag" ? "↓" : word === "hoog" ? "↑" : "";
