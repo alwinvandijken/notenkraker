@@ -278,7 +278,9 @@ const rBody = (y) => 0.13 + ((Y_TOP - y) / (Y_TOP - Y_BOW)) * 0.19;
 
 // ---------- Hals en mondstuk ----------
 {
-  const curve = new THREE.CatmullRomCurve3([V(0, Y_TOP - 0.1, 0), V(0, 2.95, 0.02), V(0, 3.3, 0.2), V(0, 3.42, 0.48), V(0, 3.36, 0.76), V(0, 3.2, 0.98)]);
+  // De hals buigt weg van de beker (zoals op elke saxfoto), een klein beetje naar de speler toe.
+  const swing = (15 * Math.PI) / 180, N = (y, d) => V(-d * Math.cos(swing), y, d * Math.sin(swing));
+  const curve = new THREE.CatmullRomCurve3([N(Y_TOP - 0.1, 0), N(2.95, 0.02), N(3.3, 0.2), N(3.42, 0.48), N(3.36, 0.76), N(3.2, 0.98)]);
   const pts = curve.getSpacedPoints(50), rs = pts.map((_, i) => 0.135 - 0.06 * (i / 50));
   sax.add(new THREE.Mesh(taperedTube(pts, rs, 32), brass));
   const rec = new THREE.Mesh(new THREE.CylinderGeometry(0.155, 0.155, 0.16, 32), brassKey);
