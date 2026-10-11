@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { instrumentNotes, midiToPitch, noteName, parseId, soundingMidi, toId, type Instrument, type NoteId, type NoteStatus, type StatusMap } from "@notenkraker/core";
 import { playMidi } from "@/audio/synth";
 import { useStatuses, usePref } from "@/lib/poc";
@@ -6,6 +6,11 @@ import { display, octaveLabel, withOctave } from "@/lib/noten";
 import { StaffNote, StaffRow } from "@/components/Staff";
 import { Fingering } from "@/components/Fingering";
 import { Segmented } from "@/components/ui";
+import { IconButton } from "@/components/sax3d/IconButton";
+import { hasWebGL } from "@/components/sax3d/webgl";
+
+// three.js is groot: pas laden als de 3D-weergave in beeld komt
+const Sax3D = lazy(() => import("@/components/sax3d/Sax3D"));
 
 /**
  * Proefconcept (AC-107): alleen de grepentabel, zonder leerling of spel,
@@ -21,6 +26,7 @@ import { Segmented } from "@/components/ui";
 
 type Filter = "mine" | "les" | "all";
 type View = "buttons" | "staff";
+type Render = "3d" | "2d";
 
 const FILTERS: Array<[Filter, string]> = [["mine", "Mijn noten"], ["les", "In de les"], ["all", "Alle noten"]];
 const STATUS: Array<[NoteStatus | "", string]> = [["kent", "Kent al"], ["les", "In de les"], ["moet", "Komt nog"], ["", "Geen"]];
@@ -55,6 +61,9 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu 
   const { statuses, setStatus } = student ?? local;
   const [filter, setFilter] = usePref<Filter>("filter", "mine");
   const [view, setView] = usePref<View>("view", "buttons");
+  const [render, setRender] = usePref<Render>("render", "3d");
+  const [webgl] = useState(hasWebGL);
+  const is3d = render === "3d" && webgl;
   const [showAll, setShowAll] = useState(false);
   const [sel, setSel] = useState<NoteId>(instrument.starterNotes[0] ?? all[0]!);
   const [alt, setAlt] = useState(0);
@@ -67,6 +76,12 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu 
   const keyNames = fingering.map((k) => instrument.keyNames[k] ?? k);
   const sounding = soundingMidi(current, instrument.transposition);
   const counts = { mine: all.filter((n) => statuses[n]).length, les: all.filter((n) => statuses[n] === "les").length, all: all.length };
+
+  const showAllButton = (
+    <IconButton label={showAll ? "Alleen kleppen voor mijn noten" : "Toon alle kleppen"} pressed={showAll} onClick={() => setShowAll((v) => !v)}>
+      <circle cx="9" cy="5.5" r="2.3" /><circle cx="9" cy="12" r="2.3" /><circle cx="9" cy="18.5" r="2.3" /><path d="M18 9v6M15 12h6" />
+    </IconButton>
+  );
 
   const select = (n: NoteId) => { setSel(n); setAlt(0); };
   const step = (d: number) => { if (!visible.length) return; const i = visible.indexOf(current); select(visible[(i + d + visible.length) % visible.length]!); };
@@ -93,24 +108,36 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu 
       </header>
       {notice}
 
-      <main className="grid gap-3 md:flex-1 md:min-h-0 md:grid-cols-[minmax(240px,34%)_1fr] lg:grid-cols-[minmax(280px,32%)_1fr]">
-        <section aria-label="Greep" className={`${panel} order-2 md:order-1 p-4 flex flex-col items-center gap-2 md:min-h-0`}>
-          {options.length > 1 && (
-            <Segmented value={String(alt)} onChange={(v) => setAlt(Number(v))} label="Greep"
-              options={options.map((_, i) => [String(i), i === 0 ? "Gewone greep" : `Alternatief ${i}`] as [string, string])} />
-          )}
-          <div className="w-full max-w-[300px] md:max-w-none md:flex-1 md:min-h-0 flex items-center justify-center [&_svg]:max-w-none md:[&_svg]:h-full md:[&_svg]:w-auto md:[&_svg]:max-w-full">
-            <Fingering instrument={instrument} pressed={fingering} needed={needed} showAll={showAll} />
+      <main className="grid gap-3 md:flex-1 md:min-h-0 md:grid-cols-[minmax(260px,40%)_1fr] lg:grid-cols-[minmax(300px,42%)_1fr]">
+        <section aria-label="Greep" className={`${panel} order-2 md:order-1 relative flex flex-col h-[440px] md:h-auto md:min-h-0`}>
+          <div className="relative flex-1 min-h-0 rounded-3xl">
+            {is3d ? (
+              <Suspense fallback={<p className="absolute inset-0 grid place-items-center text-muted m-0">Sax laden…</p>}>
+                <Sax3D instrument={instrument} pressed={fingering} needed={needed} showAll={showAll} extra={showAllButton} />
+              </Suspense>
+            ) : (
+              <div className="absolute inset-0 pt-16 pb-3 pl-4 pr-[72px] flex items-center justify-center [&_svg]:max-w-none [&_svg]:h-full [&_svg]:w-auto [&_svg]:max-w-full">
+                <Fingering instrument={instrument} pressed={fingering} needed={needed} showAll={showAll} />
+                <div className="absolute top-3.5 right-3.5 z-[2] flex flex-col gap-2">{showAllButton}</div>
+              </div>
+            )}
+            {webgl && (
+              <div className="absolute top-3.5 left-3.5 z-[2] shadow-sm rounded-3xl">
+                <Segmented value={render} onChange={setRender} label="Weergave greep" options={[["3d", "3D"], ["2d", "Eenvoudig"]]} />
+              </div>
+            )}
           </div>
-          <p className="text-center text-base leading-snug m-0">
-            {keyNames.length
-              ? <>Druk in: {keyNames.map((k, i) => <b key={i}>{k}{i < keyNames.length - 1 ? ", " : ""}</b>)}</>
-              : <>Niets indrukken, alles <b>open</b></>}
-          </p>
-          <button type="button" onClick={() => setShowAll((v) => !v)} aria-pressed={showAll}
-            className="min-h-11 px-4 rounded-full border-2 border-dashed border-line text-muted text-sm font-medium cursor-pointer shrink-0">
-            {showAll ? "Alleen kleppen voor mijn noten" : "Toon alle kleppen"}
-          </button>
+          <div className="p-4 pt-3 flex flex-col items-center gap-2 shrink-0">
+            {options.length > 1 && (
+              <Segmented value={String(alt)} onChange={(v) => setAlt(Number(v))} label="Greep"
+                options={options.map((_, i) => [String(i), i === 0 ? "Gewone greep" : `Alternatief ${i}`] as [string, string])} />
+            )}
+            <p className="text-center text-base leading-snug m-0">
+              {keyNames.length
+                ? <>Druk in: {keyNames.map((k, i) => <b key={i}>{k}{i < keyNames.length - 1 ? ", " : ""}</b>)}</>
+                : <>Niets indrukken, alles <b>open</b></>}
+            </p>
+          </div>
         </section>
 
         <section aria-label="Noot" className={`${panel} order-1 md:order-2 p-4 md:p-5 flex flex-col gap-3 md:min-h-0`}>
