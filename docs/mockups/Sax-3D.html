@@ -33,6 +33,7 @@ body {
   font: 700 12px Lexend, system-ui, sans-serif; color: #fff; background: var(--pressed); padding: 3px 8px;
   border-radius: 999px; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.25);
 }
+.label.part { background: var(--fg); color: var(--surface); font-size: 13px; padding: 5px 12px; }
 .label.idle { background: rgba(23,36,64,.72); font-weight: 600; }
 .toolbar { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; flex-wrap: wrap; gap: 6px; pointer-events: none; }
 .toolbar button, .zoom button {
@@ -105,6 +106,7 @@ label.check input { width: 20px; height: 20px; accent-color: var(--pressed); }
     <button data-view="right">Rechts</button>
     <button data-view="top">Boven</button>
     <button id="spin" aria-pressed="false">Draaien</button>
+    <button id="explode" aria-pressed="false">Uit elkaar</button>
   </div>
   <div class="zoom">
     <button id="zin" aria-label="Inzoomen">+</button>
@@ -202,6 +204,10 @@ const pressedMat = new THREE.MeshStandardMaterial({ color: 0x2459c9, emissive: 0
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const sax = new THREE.Group();
 scene.add(sax);
+// Losse onderdelen voor de uit-elkaar-animatie. Corpus met beker is `sax` zelf en blijft staan.
+const neckPart = new THREE.Group(), mpPart = new THREE.Group();
+sax.add(neckPart, mpPart);
+const parts = [];
 
 /** Buis met wisselende straal langs een reeks punten (parallel transport, dus geen knik in de naad). */
 function taperedTube(pts, radii, radial = 48) {
@@ -233,12 +239,12 @@ function taperedTube(pts, radii, radial = 48) {
   g.setIndex(idx);
   return g;
 }
-function rod(a, b, r = 0.012, mat = brassKey) {
+function rod(a, b, r = 0.012, mat = brassKey, parent = sax) {
   const len = a.distanceTo(b);
   const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 10), mat);
   m.position.copy(a).add(b).multiplyScalar(0.5);
   m.quaternion.setFromUnitVectors(V(0, 1, 0), b.clone().sub(a).normalize());
-  sax.add(m);
+  parent.add(m);
   return m;
 }
 const ring = (x, y, r, t = 0.022) => {
@@ -282,32 +288,39 @@ const rBody = (y) => 0.13 + ((Y_TOP - y) / (Y_TOP - Y_BOW)) * 0.19;
   const swing = (15 * Math.PI) / 180, N = (y, d) => V(-d * Math.cos(swing), y, d * Math.sin(swing));
   const curve = new THREE.CatmullRomCurve3([N(Y_TOP - 0.1, 0), N(2.95, 0.02), N(3.3, 0.2), N(3.42, 0.48), N(3.36, 0.76), N(3.2, 0.98)]);
   const pts = curve.getSpacedPoints(50), rs = pts.map((_, i) => 0.135 - 0.06 * (i / 50));
-  sax.add(new THREE.Mesh(taperedTube(pts, rs, 32), brass));
+  neckPart.add(new THREE.Mesh(taperedTube(pts, rs, 32), brass));
   const rec = new THREE.Mesh(new THREE.CylinderGeometry(0.155, 0.155, 0.16, 32), brassKey);
   rec.position.set(0, Y_TOP - 0.02, 0); sax.add(rec);
   const screw = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.12, 12), brassKey);
   screw.position.set(0, Y_TOP, 0.2); screw.rotation.x = Math.PI / 2; sax.add(screw);
   // Octaafmechaniek op de hals
   const octRing = new THREE.Mesh(new THREE.TorusGeometry(0.125, 0.012, 8, 32), brassKey);
-  octRing.position.copy(curve.getPoint(0.42)); octRing.quaternion.setFromUnitVectors(V(0, 0, 1), curve.getTangent(0.42)); sax.add(octRing);
+  octRing.position.copy(curve.getPoint(0.42)); octRing.quaternion.setFromUnitVectors(V(0, 0, 1), curve.getTangent(0.42)); neckPart.add(octRing);
   const pip = new THREE.Mesh(new THREE.SphereGeometry(0.04, 16, 12), brassKey);
-  pip.position.copy(curve.getPoint(0.55)).add(V(0, 0.12, 0)); pip.scale.set(1.3, 0.6, 1.3); sax.add(pip);
-  rod(curve.getPoint(0.42).add(V(0, 0.13, 0)), V(0, 2.75, -0.17), 0.012);
+  pip.position.copy(curve.getPoint(0.55)).add(V(0, 0.12, 0)); pip.scale.set(1.3, 0.6, 1.3); neckPart.add(pip);
+  rod(curve.getPoint(0.42).add(V(0, 0.13, 0)), V(0, 2.75, -0.17), 0.012, brassKey, neckPart);
 
   const end = pts[pts.length - 1], dir = curve.getTangent(1);
   const mp = new THREE.Group();
-  mp.position.copy(end); mp.quaternion.setFromUnitVectors(V(0, 0, 1), dir); sax.add(mp);
+  mp.position.copy(end); mp.quaternion.setFromUnitVectors(V(0, 0, 1), dir); mpPart.add(mp);
   const cyl = (r1, r2, len, z, mat) => {
     const m = new THREE.Mesh(new THREE.CylinderGeometry(r2, r1, len, 32), mat);
     m.rotation.x = Math.PI / 2; m.position.z = z; mp.add(m); return m;
   };
-  cyl(0.082, 0.082, 0.2, 0.0, corkMat);
+  const cork = new THREE.Mesh(new THREE.CylinderGeometry(0.082, 0.082, 0.2, 32), corkMat);
+  cork.position.copy(end); cork.quaternion.setFromUnitVectors(V(0, 1, 0), dir); neckPart.add(cork);
   cyl(0.1, 0.095, 0.36, 0.25, blackMat);
   const beak = cyl(0.095, 0.05, 0.22, 0.54, blackMat); beak.scale.set(1, 1, 0.75);
   cyl(0.103, 0.103, 0.09, 0.34, silverMat);
   cyl(0.103, 0.103, 0.06, 0.46, silverMat);
   const reed = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.012, 0.5), reedMat);
   reed.position.set(0, -0.085, 0.4); mp.add(reed);
+
+  // Hals schuift omhoog uit het corpus, het mondstuk daarna van de kurk af.
+  const neckOff = V(-0.2, 1.1, 0);
+  parts.push({ obj: neckPart, off: neckOff, from: 0, to: 0.65, name: "Hals", at: curve.getPoint(0.55).add(V(0, 0.35, 0)) });
+  parts.push({ obj: mpPart, off: neckOff.clone().addScaledVector(dir, 1.1), from: 0.35, to: 1, name: "Mondstuk", at: end.clone().addScaledVector(dir, 0.35).add(V(0, 0.3, 0)) });
+  parts.push({ obj: null, off: V(), from: 0, to: 1, name: "Corpus met beker", at: V(BELL_X + 0.95, -0.2, 0) });
 }
 
 // ---------- Kleppen ----------
@@ -439,9 +452,47 @@ let fly = null;
 function flyTo(pos, target, ms = 650) {
   fly = { p0: camera.position.clone(), t0: controls.target.clone(), p1: pos, t1: target, start: performance.now(), ms };
 }
+let explode = 0, explodeTarget = 0;
+// Uit elkaar staan de delen hoger, dus dan kijkt de camera iets hoger en van verder weg.
+const framing = () => (explodeTarget ? { t: V(0.1, 0.8, 0), d: DIST * 1.2 } : { t: TARGET.clone(), d: DIST });
 document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => {
-  flyTo(TARGET.clone().addScaledVector(VIEWS[b.dataset.view].clone().normalize(), DIST), TARGET.clone());
+  const { t, d } = framing();
+  flyTo(t.clone().addScaledVector(VIEWS[b.dataset.view].clone().normalize(), d), t);
 }));
+// ---------- Uit elkaar ----------
+const partLabels = parts.map((pt) => {
+  const el = document.createElement("div");
+  el.className = "label part"; el.textContent = pt.name;
+  const l = new CSS2DObject(el);
+  l.position.copy(pt.at);
+  (pt.obj ?? sax).add(l);
+  l.visible = false;
+  return l;
+});
+const explodeBtn = document.getElementById("explode");
+explodeBtn.addEventListener("click", () => {
+  explodeTarget = explodeTarget ? 0 : 1;
+  explodeBtn.setAttribute("aria-pressed", explodeTarget === 1);
+  explodeBtn.textContent = explodeTarget ? "In elkaar" : "Uit elkaar";
+  // Iets verder weg zodat de opgeschoven hals en het mondstuk in beeld blijven
+  const dirCam = camera.position.clone().sub(controls.target).normalize();
+  const { t, d } = framing();
+  flyTo(t.clone().addScaledVector(dirCam, d), t, 900);
+});
+function updateExplode(dt) {
+  const step = dt / 1.4;
+  explode = explodeTarget > explode ? Math.min(explodeTarget, explode + step) : Math.max(explodeTarget, explode - step);
+  for (const pt of parts) {
+    if (!pt.obj) continue;
+    const local = THREE.MathUtils.clamp((explode - pt.from) / (pt.to - pt.from), 0, 1);
+    pt.obj.position.copy(pt.off).multiplyScalar(ease(local));
+  }
+  const showParts = explode > 0.6;
+  partLabels.forEach((l) => (l.visible = showParts));
+  // Klepnummers even weg terwijl de delen los zijn, anders wordt het te druk
+  for (const k of Object.values(keys)) k.el.style.opacity = String(1 - Math.min(1, explode * 2));
+}
+
 const spin = document.getElementById("spin");
 spin.addEventListener("click", () => {
   controls.autoRotate = !controls.autoRotate;
@@ -591,6 +642,7 @@ renderer.setAnimationLoop(() => {
     const blink = k.flash > 0 && Math.sin(k.flash * 18) > 0;
     for (const m of k.hl) m.material = k.press > 0.5 || blink ? pressedMat : m.userData.base;
   }
+  updateExplode(dt);
   controls.update();
   renderer.render(scene, camera);
   labelRenderer.render(scene, camera);
