@@ -195,6 +195,8 @@ export interface AdminApi {
   setFeedbackAllowed(userId: string, allowed: boolean): Promise<void>;
   /** leerling, ouder of leraar; admin alleen via het dashboard, en niet je eigen rol */
   setRole(userId: string, role: Exclude<Role, "admin">): Promise<void>;
+  /** account aanmaken: de persoon krijgt een uitnodiging per mail met een inloglink */
+  invite(input: { email: string; displayName: string; role: Exclude<Role, "admin">; redirectTo: string }): Promise<void>;
 }
 
 export interface SongsApi {

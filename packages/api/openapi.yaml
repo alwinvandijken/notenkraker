@@ -75,6 +75,14 @@ paths:
       responses:
         "200": { description: Code (7 dagen geldig), content: { application/json: { schema: { type: object, properties: { code: { type: string } } } } } }
         "403": { description: Geen toegang tot deze leerling }
+  /admin-invite:
+    post:
+      summary: Beheerder maakt een account aan; de persoon krijgt een uitnodiging per mail met een inloglink (alleen admin)
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [email, role], properties: { email: { type: string, format: email }, displayName: { type: string }, role: { type: string, enum: [leerling, ouder, leraar] }, redirectTo: { type: string } } } } } }
+      responses:
+        "200": { description: Uitgenodigd, content: { application/json: { schema: { type: object, properties: { id: { type: string, format: uuid } } } } } }
+        "400": { description: "Ongeldig, of { error: 'bestaat al' }" }
+        "403": { description: Geen admin }
   /link-student:
     post:
       summary: Leraar koppelt zichzelf aan een leerling via code

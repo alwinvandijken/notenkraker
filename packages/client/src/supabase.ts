@@ -270,6 +270,14 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
       const { error } = await sb.rpc("set_feedback_allowed", { p_user: userId, p_allowed: allowed });
       if (error) throw error;
     },
+    async invite(input) {
+      const { error } = await sb.functions.invoke("admin-invite", { body: input });
+      if (error) {
+        // de Edge Function geeft { error: "bestaat al" | … } terug; die tekst willen we tonen
+        const body = await (error as { context?: Response }).context?.json?.().catch(() => null);
+        throw new Error(body?.error ?? error.message);
+      }
+    },
     async setRole(userId, role) {
       const { error } = await sb.rpc("set_role", { p_user: userId, p_role: role });
       if (error) throw error;

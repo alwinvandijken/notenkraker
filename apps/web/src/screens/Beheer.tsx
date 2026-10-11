@@ -102,7 +102,8 @@ function Mensen() {
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState("");
-  useEffect(() => { void client.admin.users().then(setUsers).catch(() => setUsers([])); }, []);
+  const load = () => void client.admin.users().then(setUsers).catch(() => setUsers([]));
+  useEffect(load, []);
   if (!users) return <p className="text-muted">Laden…</p>;
   const toggle = async (u: AdminUser) => {
     setUsers((list) => list?.map((x) => (x.id === u.id ? { ...x, canGiveFeedback: !u.canGiveFeedback } : x)) ?? null);
@@ -117,6 +118,7 @@ function Mensen() {
   const shown = users.filter((u) => `${u.displayName} ${u.email}`.toLowerCase().includes(q.trim().toLowerCase()));
   return (
     <>
+      <AccountToevoegen onAdded={load} />
       <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="🔍 Zoek op naam of e-mail" aria-label="Zoek op naam of e-mail"
         className="w-full max-w-sm rounded-xl border-2 border-line bg-surface px-3 py-2 text-[15px]" />
       {error && <p className="text-sm text-wrong m-0">{error}</p>}
@@ -149,5 +151,44 @@ function Mensen() {
       </section>
       <p className="text-xs text-muted m-0">Een nieuwe rol geldt na opnieuw inloggen. Beheerder maken kan alleen in Supabase.</p>
     </>
+  );
+}
+
+/** account aanmaken vanuit de app: de persoon krijgt een uitnodiging per mail met een inloglink */
+function AccountToevoegen({ onAdded }: { onAdded(): void }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState<Exclude<Role, "admin">>("leraar");
+  const [state, setState] = useState<{ busy?: boolean; ok?: string; error?: string }>({});
+  const field = "w-full rounded-xl border-2 border-line bg-surface px-3 py-2 text-[15px]";
+
+  if (!open) return <Chip primary className="self-start" onClick={() => setOpen(true)}>+ Account toevoegen</Chip>;
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault(); setState({ busy: true });
+    try {
+      await client.admin.invite({ email: email.trim(), displayName: name.trim(), role, redirectTo: `${window.location.origin}/app` });
+      setState({ ok: `Uitnodiging gestuurd naar ${email.trim()}. Met de link in die mail logt ${name.trim() || "die persoon"} in.` });
+      setName(""); setEmail(""); onAdded();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      setState({ error: msg === "bestaat al" ? "Dit e-mailadres heeft al een account. Pas de rol hieronder aan."
+        : /rate limit|too many/i.test(msg) ? "Er zijn net te veel mails verstuurd. Probeer het over een uur nog eens." : "Uitnodigen lukte niet." });
+    }
+  };
+  return (
+    <form onSubmit={submit} className="rounded-3xl bg-surface p-4 flex flex-col gap-3 max-w-lg">
+      <b className="font-display">Account toevoegen</b>
+      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Naam" aria-label="Naam" className={field} maxLength={100} />
+      <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="E-mail" aria-label="E-mail" type="email" required className={field} />
+      <Segmented value={role} onChange={setRole} label="Rol" options={ROLES} />
+      <p className="text-xs text-muted m-0">De persoon krijgt een mail met een inloglink; een wachtwoord is niet nodig.</p>
+      {state.ok && <p role="status" className="text-sm rounded-xl bg-ok/10 text-ok px-3 py-2 m-0">{state.ok}</p>}
+      {state.error && <p className="text-sm text-wrong m-0">{state.error}</p>}
+      <div className="flex gap-2">
+        <Chip type="submit" primary disabled={state.busy || !email.trim()}>{state.busy ? "Versturen…" : "Uitnodiging sturen"}</Chip>
+        <Chip onClick={() => { setOpen(false); setState({}); }}>Sluiten</Chip>
+      </div>
+    </form>
   );
 }

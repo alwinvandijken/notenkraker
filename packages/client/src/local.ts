@@ -109,6 +109,7 @@ export function createLocalNotenkraker(storageKey = "notenkraker-local", opts: {
       async users() { return []; },
       async setFeedbackAllowed() { /* niets */ },
       async setRole() { /* niets */ },
+      async invite() { throw new Error("niet beschikbaar zonder backend"); },
     },
     songs: {
       async list(sid) { return state.songs.filter((s) => s.studentId === sid); },
