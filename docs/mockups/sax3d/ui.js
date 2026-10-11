@@ -1,7 +1,7 @@
 // Koppelt een indeling (mock-up) aan de 3D-sax. De pagina zet data-attributen op haar eigen
 // elementen; alles wat er niet is, wordt overgeslagen. Zo delen alle indelingen dezelfde logica.
 import { createSax } from "./engine.js";
-import { FINGERINGS, KEY_NAMES, LEARNERS, ALL, parse, octaveWord, staffRow, bigStaff, octaveDefault } from "./data.js";
+import { FINGERINGS, KEY_NAMES, LEARNERS, ALL, LAYOUT, parse, octaveWord, staffRow, bigStaff, octaveDefault, fingeringSvg } from "./data.js";
 
 const SEMI = { c: 0, cis: 1, d: 2, es: 3, e: 4, f: 5, fis: 6, g: 7, gis: 8, a: 9, bes: 10, b: 11 };
 const midi = (id) => { const m = id.match(/^([a-z]+)(\d)$/); return 12 * (+m[2] + 1) + SEMI[m[1]]; };
@@ -63,7 +63,26 @@ export function mountGrepen({ learner = "sanne", strip = "buttons", sax: saxOpts
 
   const info = $("[data-info]");
   const sax = createSax($("[data-stage]"), { ...saxOpts, onTap: showInfo });
-  sax.setNeeded(ALL.filter((n) => statuses[n]).flatMap((n) => FINGERINGS[n][0]));
+  const needed = ALL.filter((n) => statuses[n]).flatMap((n) => FINGERINGS[n][0]);
+  sax.setNeeded(needed);
+
+  // 3D of de eenvoudige (platte) greeptekening; keuze per apparaat onthouden
+  const flat = $("[data-flat]"), stage = $("[data-stage]");
+  let render = pref("render", "3d");
+  function drawFlat() {
+    if (flat && render === "2d") flat.innerHTML = fingeringSvg(FINGERINGS[current][alt], new Set(needed), showAll);
+  }
+  function syncRender() {
+    $$("[data-render]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.render === render));
+    if (flat) flat.hidden = render !== "2d";
+    stage?.classList.toggle("is-flat", render === "2d");
+    drawFlat();
+  }
+  $$("[data-render]").forEach((b) => b.addEventListener("click", () => { render = b.dataset.render; setPref("render", render); syncRender(); }));
+  flat?.addEventListener("click", (e) => {
+    const k = e.target.closest("[data-key]")?.dataset.key;
+    if (k) flashInfo(KEY_NAMES[k] ?? (k === "low" ? "lage klep (pink links): lage C♯, B of B♭" : k));
+  });
 
   function flashInfo(text) {
     if (!info) return;
@@ -94,18 +113,18 @@ export function mountGrepen({ learner = "sanne", strip = "buttons", sax: saxOpts
     t.textContent = on ? "In elkaar" : "Uit elkaar";
   }));
   $$("[data-showall]").forEach((b) => b.addEventListener("click", () => {
-    showAll = !showAll; sax.setShowAll(showAll);
+    showAll = !showAll; sax.setShowAll(showAll); drawFlat();
     b.setAttribute("aria-pressed", showAll);
     const text = showAll ? "Alleen mijn kleppen" : "Toon alle kleppen";
     // Als ronde knop op de sax: tekst als label, en kort in beeld wat er gebeurde
     if (b.classList.contains("icon")) { b.ariaLabel = b.title = text; flashInfo(showAll ? "Alle kleppen zichtbaar" : "Alleen de kleppen voor jouw noten"); }
     else b.textContent = text;
   }));
-  $$("[data-filter]").forEach((b) => b.addEventListener("click", () => { filter = b.dataset.filter; render(); }));
+  $$("[data-filter]").forEach((b) => b.addEventListener("click", () => { filter = b.dataset.filter; renderNotes(); }));
   $$("[data-strip-mode]").forEach((b) => b.addEventListener("click", () => {
     strip = b.dataset.stripMode;
     try { localStorage.setItem("nk.sax3d.strip", strip); } catch {}
-    render();
+    renderNotes();
   }));
   let sound = pref("sound", "sax"), auto = pref("auto", "0") === "1";
   $$("[data-play]").forEach((b) => b.addEventListener("click", () => play(current, sound)));
@@ -140,7 +159,7 @@ export function mountGrepen({ learner = "sanne", strip = "buttons", sax: saxOpts
 
   const visibleNotes = () => ALL.filter((n) => (filter === "all" ? true : Boolean(statuses[n])));
 
-  function render() {
+  function renderNotes() {
     $$("[data-filter]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.filter === filter));
     $$("[data-strip-mode]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.stripMode === strip));
     notesEl?.classList.toggle("staff", strip !== "buttons");
@@ -176,6 +195,7 @@ export function mountGrepen({ learner = "sanne", strip = "buttons", sax: saxOpts
     const alts = FINGERINGS[n], vis = visibleNotes(), names = distinct(vis), p = parse(n);
     drawStrip(vis);
     sax.setFingering(alts[a]);
+    drawFlat();
     const word = names[n]?.word ?? octaveWord(p.octave);
     $$("[data-note-name]").forEach((el) => (el.textContent = p.name));
     $$("[data-note-sub]").forEach((el) => (el.textContent = [word, showOctave && `octaaf ${p.octave}`].filter(Boolean).join(" · ")));
@@ -192,6 +212,7 @@ export function mountGrepen({ learner = "sanne", strip = "buttons", sax: saxOpts
     });
   }
 
-  render();
+  syncRender();
+  renderNotes();
   return sax;
 }
