@@ -92,6 +92,9 @@ x-rpc:
     practice_update(p_id, p_minutes, p_notes, p_done) → PracticeSession — elke 30 s en bij Klaar. p_minutes is
       [{ s: 0..60, notes: [NoteId] }] per minuut sinds de start. De server zet ended_at, weigert meer minuten dan er
       verstreken zijn, kapt de gespeelde tijd af op de verstreken tijd (max 3 uur) en geeft het label sax|twijfel.
+    give_homework(p_student, p_notes, p_minutes, p_days, p_piece, p_piece_note, p_remark, p_due) → Homework — alleen
+      de ouder (eigenaar) of een gekoppelde leraar (0005_huiswerk.sql). Zet de noten op 'les' (behalve 'kent'). Per gever
+      telt het nieuwste huiswerk; huiswerk van een ander blijft staan en is niet te wijzigen.
   roles: |
     profiles.role: null (nog kiezen) | leerling | ouder | leraar | admin.
     leerling en ouder kiest de gebruiker zelf; leraar en admin worden in Supabase toegewezen. admin leest alles.
@@ -99,7 +102,7 @@ x-postgrest:
   description: |
     Tabellen die rechtstreeks via PostgREST (met RLS) gelezen/geschreven worden:
     students (select/insert/update/delete), student_notes (select/upsert/delete),
-    rounds (select), practice_sessions (select), songs (select/insert/delete), attempts (select/insert).
+    rounds (select), practice_sessions (select), homework (select), songs (select/insert/delete), attempts (select/insert).
     Instrumentdefinities zijn geen API-data maar versiebeheerde content
     (packages/instruments); een niet-TypeScript frontend leest de JSON-bestanden
     uit de repo of een gepubliceerde kopie.
