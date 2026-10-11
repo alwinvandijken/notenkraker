@@ -66,6 +66,13 @@ button { font-family: inherit; color: inherit; }
 .step { flex: none; width: 48px; border: 0; border-radius: 16px; background: var(--bg); display: grid; place-items: center; cursor: pointer; }
 .step svg { width: 22px; height: 22px; }
 .step:active { background: var(--line); }
+/* Laat horen + aan/uit voor elke noot, als één knop */
+.playgroup { display: inline-flex; align-items: center; }
+.playgroup .pill { box-shadow: none; }
+.playgroup .pill:first-child { border-radius: 999px 0 0 999px; }
+.playgroup .pill.auto { border-radius: 0 999px 999px 0; border-left: 0; color: var(--muted); }
+.playgroup .round + .round { margin-left: 6px; border-color: var(--line); color: var(--muted); }
+.playgroup [data-auto][aria-pressed="true"] { background: var(--fg); color: var(--surface); border-color: var(--fg); }
 /* Geluid: klank en "bij elke noot" */
 .sound { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .sound .seg { background: var(--bg); }

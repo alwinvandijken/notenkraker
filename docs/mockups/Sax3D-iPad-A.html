@@ -56,13 +56,13 @@ main { display: grid; grid-template-columns: 42% 1fr; gap: 22px; min-height: 0; 
       </div>
     </section>
     <section class="card note-card" aria-label="Noot">
-      <div class="note-head"><span class="badge" data-status></span><button class="pill" data-play><svg width="20" height="20" viewBox="0 0 22 22" aria-hidden="true"><path d="M3 8h4l5-4v14l-5-4H3z" fill="currentColor"/><path d="M15 7.5a5 5 0 010 7M17.5 5a8.5 8.5 0 010 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg> Laat horen</button></div>
+      <div class="note-head"><span class="badge" data-status></span><div class="playgroup" role="group" aria-label="Laat horen"><button class="pill" data-play><svg width="20" height="20" viewBox="0 0 22 22" aria-hidden="true"><path d="M3 8h4l5-4v14l-5-4H3z" fill="currentColor"/><path d="M15 7.5a5 5 0 010 7M17.5 5a8.5 8.5 0 010 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg> Laat horen</button><button class="pill auto" data-auto aria-pressed="false" title="Speel de noot bij elke wissel"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 014-4h12"/><path d="M7 22l-3-3 3-3"/><path d="M20 13v2a4 4 0 01-4 4H4"/></svg><span>Bij elke noot</span></button></div></div>
       <div class="note-main">
         <div class="staff-svg" data-note-staff></div>
         <div><div class="big-name" data-note-name></div><div class="sub" data-note-sub></div></div>
       </div>
       <p class="druk big" data-druk></p>
-      <div class="note-foot"><div class="alts" data-alts></div><div class="sound"><div class="seg" role="group" aria-label="Klank"><button data-sound="sax">Sax</button><button data-sound="toon">Toon</button></div><button class="toggle" data-auto aria-pressed="false"><i></i>Bij elke noot</button></div></div>
+      <div class="note-foot"><div class="alts" data-alts></div><div class="sound"><div class="seg" role="group" aria-label="Klank"><button data-sound="sax">Sax</button><button data-sound="toon">Toon</button></div></div></div>
     </section>
   </main>
   <nav class="card strip-card" aria-label="Kies een noot"><div class="strip-nav"><button class="step" data-step="-1" aria-label="Vorige noot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><div class="strip" data-notes></div><button class="step" data-step="1" aria-label="Volgende noot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button></div></nav>

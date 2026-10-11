@@ -48,14 +48,14 @@ body { padding: 16px 16px calc(12px + env(safe-area-inset-bottom)); }
   <header class="top">
     <button class="back" aria-label="Terug"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
     <h1>Grepentabel</h1>
-    <button class="round" data-play aria-label="Laat horen"><svg width="20" height="20" viewBox="0 0 22 22" aria-hidden="true"><path d="M3 8h4l5-4v14l-5-4H3z" fill="currentColor"/><path d="M15 7.5a5 5 0 010 7M17.5 5a8.5 8.5 0 010 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></button>
+    <div class="playgroup" role="group" aria-label="Laat horen"><button class="round" data-play aria-label="Laat horen"><svg width="20" height="20" viewBox="0 0 22 22" aria-hidden="true"><path d="M3 8h4l5-4v14l-5-4H3z" fill="currentColor"/><path d="M15 7.5a5 5 0 010 7M17.5 5a8.5 8.5 0 010 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></button><button class="round auto" data-auto aria-pressed="false" aria-label="Speel bij elke noot" title="Speel de noot bij elke wissel"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 014-4h12"/><path d="M7 22l-3-3 3-3"/><path d="M20 13v2a4 4 0 01-4 4H4"/></svg></button></div>
   </header>
   <section class="card note-card" aria-label="Noot">
     <div class="staff-svg" data-note-staff="small"></div>
     <div class="note-right"><div class="big-name" data-note-name></div><span class="badge" data-status></span></div>
     <p class="druk" data-druk></p>
     <div class="alts" data-alts></div>
-    <div class="sound"><div class="seg" role="group" aria-label="Klank"><button data-sound="sax">Sax</button><button data-sound="toon">Toon</button></div><button class="toggle" data-auto aria-pressed="false"><i></i>Bij elke noot</button></div>
+    <div class="sound"><div class="seg" role="group" aria-label="Klank"><button data-sound="sax">Sax</button><button data-sound="toon">Toon</button></div></div>
   </section>
   <section class="card sax-card" aria-label="Greep op de sax">
     <div class="stage" data-stage>

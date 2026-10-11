@@ -110,10 +110,10 @@ export function mountGrepen({ learner = "sanne", strip = "buttons", sax: saxOpts
   let sound = pref("sound", "sax"), auto = pref("auto", "0") === "1";
   $$("[data-play]").forEach((b) => b.addEventListener("click", () => play(current, sound)));
   $$("[data-sound]").forEach((b) => b.addEventListener("click", () => { sound = b.dataset.sound; setPref("sound", sound); syncSound(); play(current, sound); }));
-  $$("[data-auto]").forEach((b) => b.addEventListener("click", () => { auto = !auto; setPref("auto", auto ? "1" : "0"); syncSound(); if (auto) play(current, sound); }));
+  $$("[data-auto]").forEach((b) => b.addEventListener("click", () => { auto = !auto; setPref("auto", auto ? "1" : "0"); syncSound(); flashInfo(auto ? "Je hoort nu elke noot" : "Geluid bij elke noot uit"); if (auto) play(current, sound); }));
   function syncSound() {
     $$("[data-sound]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.sound === sound));
-    $$("[data-auto]").forEach((b) => b.setAttribute("aria-pressed", auto));
+    $$("[data-auto]").forEach((b) => { b.setAttribute("aria-pressed", auto); b.title = auto ? "Geluid bij elke noot staat aan (tik om uit te zetten)" : "Speel de noot bij elke wissel"; });
   }
   syncSound();
 
