@@ -1,0 +1,384 @@
+<title>Notenkraker rustiger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Layout: leesbare kolom met brede "lessenaars" voor iPad-mock-ups; het verhaal leest van huidig → plan → varianten → beslissingen */
+:root{
+  --bg:#E4EAF2; --surface:#FFFFFF; --ink:#172440; --muted:#4A5873; --line:#CCD6E3; --accent:#C2531A; --good:#1F7A4D;
+  --display:"Lexend", ui-rounded, system-ui, sans-serif; --body:"Lexend", system-ui, sans-serif;
+  /* app-kleuren: de mock-ups tonen het product zelf, in basislook A, in beide thema's gelijk */
+  --a-bg:#EDF2F7; --a-card:#FFFFFF; --a-ink:#172440; --a-muted:#4A5873; --a-line:#DCE3EC; --a-blue:#2459C9; --a-blue-soft:#DCE6FA;
+  --a-orange:#F4A261; --a-orange-soft:#FDEBDD; --a-accent:#C2531A; --a-ok:#1F7A4D; --a-ok-soft:#DDF2E5; --a-gold:#C9A04A; --a-navy:#172440;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0F1729;--surface:#18233B;--ink:#E8EEF8;--muted:#A9B6CF;--line:#2B3A5C;--accent:#F4A261;--good:#3FAE74;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0F1729;--surface:#18233B;--ink:#E8EEF8;--muted:#A9B6CF;--line:#2B3A5C;--accent:#F4A261;--good:#3FAE74;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:40px 80px}
+h1,h2,h3{font-family:var(--display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(32px,5vw,52px);font-weight:800;letter-spacing:-.01em}
+h2{font-size:clamp(24px,3vw,32px);font-weight:700;margin-top:64px}
+h3{font-size:19px;font-weight:700}
+p{margin:0;max-width:68ch}
+.lead{font-size:18px;color:var(--muted);margin-top:12px}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+nav.toc a{color:var(--ink);text-decoration:none;border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 14px;font-size:14px}
+nav.toc a:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.stack{display:flex;flex-direction:column;gap:14px;margin-top:16px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:24px;margin-top:20px}
+.panel{background:var(--surface);border-radius:20px;padding:22px;min-width:0}
+.shots{display:flex;gap:16px;overflow-x:auto;padding-bottom:8px;margin-top:16px}
+.shots figure{margin:0;flex:none}
+.shots img{display:block;height:340px;width:auto;max-width:none;border-radius:10px;border:1px solid var(--line)}
+.shots figcaption{font-size:13px;color:var(--muted);margin-top:6px;max-width:30ch}
+.find{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;align-items:baseline}
+.find b{font-family:var(--display);font-size:28px;color:var(--accent);font-variant-numeric:tabular-nums;line-height:1}
+.find span{color:var(--muted)}
+ul.clean{margin:8px 0 0;padding-left:20px}
+ul.clean li{margin:4px 0;max-width:68ch}
+.principles{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:20px}
+.principles .panel p{color:var(--muted);font-size:15px;margin-top:6px}
+.variant{margin-top:28px}
+.vhead{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 16px}
+.vhead .tag{font-size:13px;font-weight:600;border-radius:999px;padding:3px 10px;background:var(--surface);border:1.5px solid var(--line)}
+.vhead .tag.pick{background:var(--good);border-color:var(--good);color:#fff}
+.vhead p{color:var(--muted)}
+.frames{display:flex;gap:22px;overflow-x:auto;padding:6px 2px 14px;margin-top:14px}
+.fcap{font-size:13px;color:var(--muted);margin-top:8px;max-width:600px}
+.pros{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:6px}
+.pros div{font-size:15px}
+.pros strong{display:block;font-size:14px;margin-bottom:2px}
+.pros .plus strong{color:var(--good)} .pros .min strong{color:var(--accent)}
+ol.decide{margin:16px 0 0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:12px;counter-reset:d}
+ol.decide li{background:var(--surface);border-radius:16px;padding:16px 18px 16px 58px;position:relative;counter-increment:d}
+ol.decide li::before{content:counter(d);position:absolute;left:18px;top:15px;width:28px;height:28px;border-radius:50%;background:var(--ink);color:var(--bg);font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+ol.decide p{color:var(--muted);font-size:15px;margin-top:4px}
+ol.decide .rec{color:var(--good);font-weight:600}
+
+/* ── iPad-mock-ups: vaste 600×417 (1180×820 op halve schaal); staand 417×600 ── */
+.ipad{flex:none;width:600px;height:417px;border-radius:26px;background:#101827;padding:11px;box-shadow:0 1px 0 rgba(255,255,255,.04) inset}
+.ipad.portrait{width:417px;height:600px}
+.scr{width:100%;height:100%;border-radius:16px;background:var(--a-bg);color:var(--a-ink);font-family:var(--body);font-size:10px;line-height:1.35;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.scr .row{display:flex;align-items:center;gap:6px}
+.scr .bar{display:flex;align-items:center;gap:8px;padding:10px 14px}
+.scr .logo{width:22px;height:22px;border-radius:7px;background:var(--a-navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px}
+.scr .ttl{font-family:var(--display);font-weight:700;font-size:15px}
+.scr .seg{display:inline-flex;background:var(--a-card);border-radius:999px;padding:3px;gap:2px}
+.scr .seg span{padding:4px 10px;border-radius:999px;color:var(--a-muted);font-weight:500}
+.scr .seg span.on{background:var(--a-navy);color:#fff;font-weight:600}
+.scr .pill{border:1.5px solid var(--a-line);background:var(--a-card);border-radius:999px;padding:4px 10px;font-weight:500}
+.scr .av{width:24px;height:24px;border-radius:50%;background:var(--a-blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px}
+.scr .card{background:var(--a-card);border-radius:14px;padding:12px}
+.scr .muted{color:var(--a-muted)}
+.scr .big{font-family:var(--display);font-weight:700}
+.scr .btn{background:var(--a-accent);color:#fff;border-radius:999px;padding:8px 18px;font-weight:700;text-align:center}
+.scr .btn.line{background:var(--a-card);color:var(--a-ink);border:1.5px solid var(--a-line)}
+.scr .chip{border-radius:8px;padding:3px 8px;font-weight:700;background:var(--a-orange)}
+.scr .chip.k{background:var(--a-blue-soft)}
+.scr .grow{flex:1;min-width:0}
+.scr .tabbar{margin-top:auto;display:flex;justify-content:space-around;background:var(--a-card);border-top:1px solid var(--a-line);padding:7px 0 9px}
+.scr .tabbar div{display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--a-muted);font-size:9px;font-weight:500}
+.scr .tabbar div i{font-style:normal;font-size:15px;line-height:1}
+.scr .tabbar div.on{color:var(--a-accent);font-weight:700}
+.scr .ring{width:46px;height:46px;border-radius:50%;background:conic-gradient(var(--a-ok) 0 40%, var(--a-line) 40% 100%);display:flex;align-items:center;justify-content:center}
+.scr .ring b{width:36px;height:36px;border-radius:50%;background:var(--a-card);display:flex;align-items:center;justify-content:center;font-size:9px}
+.scr .task{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--a-line)}
+.scr .task:first-of-type{border-top:0}
+.scr .box{width:13px;height:13px;border-radius:4px;border:1.5px solid var(--a-line);flex:none}
+.scr .box.on{background:var(--a-ok);border-color:var(--a-ok)}
+.scr .tile{background:var(--a-card);border-radius:14px;padding:10px;display:flex;align-items:center;gap:9px}
+.scr .tile i{font-style:normal;width:30px;height:30px;border-radius:9px;background:var(--a-blue-soft);display:flex;align-items:center;justify-content:center;font-size:15px}
+.scr .key{flex:1;background:var(--a-card);border-radius:10px;padding:9px 0;text-align:center;font-family:var(--display);font-weight:700;font-size:13px;box-shadow:0 2px 0 var(--a-line)}
+.scr svg{display:block}
+.stage{background:var(--a-navy)!important;color:#E8EEF8}
+.stage .card{background:#22314F;color:#E8EEF8}
+.stage .muted{color:#A9B6CF}
+.stand{background:#F7F4EC;color:var(--a-ink);border-radius:14px}
+.note-dock{display:flex;gap:5px}
+.note-dock span{flex:1;text-align:center;border-radius:9px;padding:7px 0;font-weight:700;background:#22314F;color:#E8EEF8}
+.note-dock span.on{background:var(--a-orange);color:var(--a-ink)}
+.mark{outline:2px dashed var(--a-accent);outline-offset:2px;border-radius:12px}
+@media (prefers-reduced-motion:no-preference){nav.toc a{transition:border-color .15s}nav.toc a:hover{border-color:var(--ink)}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="staff" viewBox="0 0 220 80">
+      <g stroke="#172440" stroke-width="1.4"><line x1="0" y1="20" x2="220" y2="20"/><line x1="0" y1="30" x2="220" y2="30"/><line x1="0" y1="40" x2="220" y2="40"/><line x1="0" y1="50" x2="220" y2="50"/><line x1="0" y1="60" x2="220" y2="60"/></g>
+      <text x="4" y="62" font-size="54" fill="#172440" font-family="serif">𝄞</text>
+      <ellipse cx="140" cy="45" rx="7.5" ry="5.5" fill="#2459C9" transform="rotate(-20 140 45)"/><line x1="147" y1="43" x2="147" y2="12" stroke="#2459C9" stroke-width="2"/>
+    </symbol>
+    <symbol id="sax" viewBox="0 0 90 170">
+      <path d="M58 6 q10 -4 18 4 l-8 10 q-4 -4 -8 -2 l-2 120 q0 26 -26 26 q-26 0 -26 -26 l0 -14 q0 -12 12 -12 q10 0 10 10 l0 14 q0 8 6 8 q6 0 6 -8 z" fill="#C9A04A" stroke="#9C7A2E" stroke-width="1.5"/>
+      <g fill="#2459C9"><circle cx="54" cy="40" r="5"/><circle cx="54" cy="54" r="5"/><circle cx="54" cy="68" r="5"/></g>
+      <g fill="#fff" stroke="#9C7A2E"><circle cx="54" cy="88" r="5"/><circle cx="54" cy="102" r="5"/><circle cx="54" cy="116" r="5"/></g>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <h1>Notenkraker rustiger</h1>
+  <p class="lead">Een kijk op de huidige schermen, met de leerling op de iPad voorop: wat je nu ziet, wat er schuurt, een plan in vijf principes, drie richtingen om uit te kiezen en de beslissingen die bij jou liggen.</p>
+  <nav class="toc" aria-label="Op deze pagina">
+    <a href="#nu">Zo is het nu</a><a href="#schuurt">Wat er schuurt</a><a href="#plan">Plan</a>
+    <a href="#a">Variant A</a><a href="#b">Variant B (voorkeur)</a><a href="#c">Variant C</a>
+    <a href="#ouder">Ouder en leraar</a><a href="#beslissen">Jouw beslissingen</a>
+  </nav>
+
+  <h2 id="nu">Zo is het nu: de leerling op de iPad</h2>
+  <p class="lead">Ingelogd als Lotte (9–12 jaar, met huiswerk van haar ouder). Schuif opzij voor meer schermen.</p>
+  <div class="panel" style="margin-top:16px">
+    <h3>iPad liggend</h3>
+    <div class="shots">
+      <figure><img src="img/i1-grepen-ls.jpg" alt="Grepen op iPad liggend" loading="lazy"><figcaption>Grepen: drie rijen keuzes linksboven, huiswerkregel, sax, notenkaart, status en notenbalk onderin.</figcaption></figure>
+      <figure><img src="img/i2-spel-ls.jpg" alt="Notenspel op iPad liggend" loading="lazy"><figcaption>Notenspel: de huiswerkkaart staat bovenaan; de knop Spelen valt onder de rand.</figcaption></figure>
+      <figure><img src="img/i3-vrij-ls.jpg" alt="Vrij oefenen op iPad liggend" loading="lazy"><figcaption>Vrij oefenen: weer de huiswerkkaart, dan pas de uitleg.</figcaption></figure>
+      <figure><img src="img/i6-zonder-start-ls.jpg" alt="Startscherm zonder account" loading="lazy"><figcaption>Zonder account is er wél een startscherm met drie tegels. Met account niet.</figcaption></figure>
+    </div>
+    <h3 style="margin-top:20px">iPad staand</h3>
+    <div class="shots">
+      <figure><img src="img/i1-grepen-ps.jpg" alt="Grepen op iPad staand" loading="lazy"><figcaption>Grepen staand.</figcaption></figure>
+      <figure><img src="img/i2-spel-ps.jpg" alt="Notenspel op iPad staand" loading="lazy"><figcaption>Notenspel staand.</figcaption></figure>
+      <figure><img src="img/i3-vrij-ps.jpg" alt="Vrij oefenen op iPad staand" loading="lazy"><figcaption>Vrij oefenen staand.</figcaption></figure>
+      <figure><img src="img/i5-menu-ps.jpg" alt="Menu van de leerling" loading="lazy"><figcaption>Menu: Oefenen, Mijn profiel, Welkomstpagina, Uitloggen.</figcaption></figure>
+    </div>
+  </div>
+
+  <h2 id="schuurt">Wat er schuurt</h2>
+  <div class="grid2">
+    <div class="panel find">
+      <b>24</b><span>tikbare dingen op het Grepen-scherm (4 filters en weergaven, 3 onderdelen, Sax/Toon, geluid, herhalen, 4 statussen, 3D/Eenvoudig, 5 sax-knoppen, de notenrij). Een kind van 9 ziet eerst knoppen, dan pas de noot.</span>
+      <b>2×</b><span>dezelfde navigatie: Grepen / Spel / Vrij oefenen staat als schakelaar op de pagina én als “Oefenen” in het menu. Het menu bevat verder vooral dingen die je zelden nodig hebt.</span>
+      <b>3</b><span>verschillende kopteksten: Grepen heeft logo + naam, Spel en Vrij oefenen tonen “Notenkraker” met een uitlegregel en daaronder nog eens “Lotte”.</span>
+    </div>
+    <div class="panel find">
+      <b>1</b><span>huiswerkkaart die bij elk onderdeel opnieuw bovenaan staat en het spel naar beneden duwt. Huiswerk is overal en nergens: er is geen plek waar je ziet wat je vandaag moet doen.</span>
+      <b>0</b><span>startscherm voor een leerling met account. Je valt direct in Grepen. Zonder account is er wel een startscherm; dat is de beste plek die we nu hebben.</span>
+      <b>½</b><span>van het iPad-scherm blijft leeg bij Spel en Vrij oefenen (de inhoud is 900 px breed). De hoofdknop Spelen staat onderaan, onder uitleg en instellingen.</span>
+    </div>
+  </div>
+
+  <h2 id="plan">Plan in vijf principes</h2>
+  <div class="principles">
+    <div class="panel"><h3>Eén ding per scherm</h3><p>Elk scherm heeft één hoofdactie in oranje. Alles wat je zelden nodig hebt, gaat naar een eigen pagina (bijvoorbeeld “Weergave”).</p></div>
+    <div class="panel"><h3>Vaste plek voor navigatie</h3><p>Onderaan een tabbalk met hooguit vier plekken. Het menu rechtsboven wordt alleen “ik”: profiel, uitloggen.</p></div>
+    <div class="panel"><h3>Huiswerk heeft een thuis</h3><p>Eén plek waar je ziet wat er vandaag moet; in de oefenschermen hooguit één dunne regel.</p></div>
+    <div class="panel"><h3>Oefenen is focus</h3><p>Tijdens spelen of opnemen verdwijnt alles behalve de muziek en een duidelijke “Klaar”.</p></div>
+    <div class="panel"><h3>Het hele iPad-scherm</h3><p>Liggend naast elkaar (sax en noot, of taken en tegels), staand onder elkaar. Grote doelen voor kinderhanden.</p></div>
+  </div>
+
+  <h2 id="a">Variant A: dezelfde schermen, rustiger</h2>
+  <div class="variant">
+    <div class="vhead"><span class="tag">kleinste stap</span><p>De indeling blijft Grepen / Spel / Vrij oefenen, maar met één kopregel, een tabbalk onderin en de instellingen achter “Weergave”.</p></div>
+    <div class="frames">
+      <div>
+        <div class="ipad"><div class="scr">
+          <div class="bar"><span class="logo">♪</span><span class="ttl">Grepen</span><span class="grow"></span><span class="pill">Weergave</span><span class="av">L</span></div>
+          <div class="row" style="padding:0 14px 8px"><span class="pill" style="border-color:var(--a-orange);background:var(--a-orange-soft)">Huiswerk van Olaf · vandaag 0 van 15 min ›</span></div>
+          <div class="row" style="padding:0 14px;gap:12px;flex:1;align-items:stretch">
+            <div class="card" style="width:38%;display:flex;align-items:center;justify-content:center"><svg width="90" height="170"><use href="#sax"/></svg></div>
+            <div class="card grow" style="display:flex;flex-direction:column;gap:8px">
+              <div class="row"><span class="chip">In de les</span><span class="grow"></span><span class="pill">🔊 Luister</span></div>
+              <div class="row" style="flex:1"><svg width="220" height="80" class="grow"><use href="#staff"/></svg><span class="big" style="font-size:54px">G</span></div>
+              <div class="muted">Druk in: 1, 2, 3</div>
+            </div>
+          </div>
+          <div class="row" style="padding:8px 14px;gap:5px"><span class="chip">G</span><span class="chip">A</span><span class="chip">D</span><span class="chip">E</span><span class="chip">Fis</span><span class="grow"></span><span class="muted">mijn noten ▾</span></div>
+          <div class="tabbar"><div class="on"><i>🎷</i>Grepen</div><div><i>🎮</i>Spel</div><div><i>🎙️</i>Vrij oefenen</div><div><i>📝</i>Huiswerk</div></div>
+        </div></div>
+        <p class="fcap">Grepen: van 24 naar 11 tikbare dingen. Filter, Letters/Notenbalk, Sax/Toon en 3D staan op de pagina “Weergave”; de status zet de leraar.</p>
+      </div>
+      <div>
+        <div class="ipad"><div class="scr">
+          <div class="bar"><span class="logo">♪</span><span class="ttl">Notenspel</span><span class="grow"></span><span class="pill">Weergave</span><span class="av">L</span></div>
+          <div class="row" style="padding:0 14px 8px"><span class="pill" style="border-color:var(--a-orange);background:var(--a-orange-soft)">Huiswerk van Olaf · vandaag 0 van 15 min ›</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px">
+            <div class="card" style="width:70%;display:flex;justify-content:center"><svg width="260" height="90"><use href="#staff"/></svg></div>
+            <div class="btn" style="font-size:14px;padding:10px 34px">▶ Spelen</div>
+            <div class="muted">8 noten · 3 levens · beste tijd 8 s</div>
+          </div>
+          <div class="tabbar"><div><i>🎷</i>Grepen</div><div class="on"><i>🎮</i>Spel</div><div><i>🎙️</i>Vrij oefenen</div><div><i>📝</i>Huiswerk</div></div>
+        </div></div>
+        <p class="fcap">Spel: Spelen in het midden, direct zichtbaar. Knoppen of microfoon staat bij Weergave.</p>
+      </div>
+    </div>
+    <div class="pros"><div class="plus"><strong>Sterk</strong>Weinig nieuw te bouwen; alles blijft herkenbaar voor wie de app al kent.</div><div class="min"><strong>Zwak</strong>Nog steeds geen antwoord op “wat moet ik vandaag doen?”. Huiswerk wordt een vierde tab naast de oefeningen.</div></div>
+  </div>
+
+  <h2 id="b">Variant B: Vandaag</h2>
+  <div class="variant">
+    <div class="vhead"><span class="tag pick">mijn voorkeur</span><p>De leerling begint op “Vandaag”: wat er moet, met één grote knop. Oefenen gebeurt in een rustig scherm met alleen de muziek en “Klaar”.</p></div>
+    <div class="frames">
+      <div>
+        <div class="ipad"><div class="scr">
+          <div class="bar"><span class="ttl" style="font-size:18px">Hoi Lotte</span><span class="muted">zaterdag 12 oktober</span><span class="grow"></span><span class="av">L</span></div>
+          <div class="row" style="padding:0 14px;gap:12px;flex:1;align-items:stretch">
+            <div class="card" style="width:58%;display:flex;flex-direction:column;gap:6px">
+              <div class="row"><div class="ring"><b>0/15</b></div><div><div class="big" style="font-size:14px">Vandaag</div><div class="muted">Huiswerk van Olaf en Marieke · tot zaterdag</div></div></div>
+              <div style="margin-top:4px">
+                <div class="task"><span class="box"></span><span class="grow"><b>15 minuten oefenen</b><br><span class="muted">notenspel of vrij spelen telt mee</span></span><span class="chip">G A</span></div>
+                <div class="task"><span>🎙️</span><span class="grow"><b>Lang zal ze leven opnemen</b><br><span class="muted">Methode 1 · blz. 23 · track 17</span></span></div>
+                <div class="task"><span class="box on"></span><span class="grow"><b style="text-decoration:line-through;color:var(--a-muted)">Notenalfabet achteruit</b></span></div>
+              </div>
+              <div class="btn" style="margin-top:auto;font-size:13px">Begin met oefenen</div>
+            </div>
+            <div class="grow" style="display:flex;flex-direction:column;gap:9px">
+              <div class="tile"><i>🎮</i><span><b>Notenspel</b><br><span class="muted">8 noten, 3 levens</span></span></div>
+              <div class="tile"><i>🎷</i><span><b>Grepen opzoeken</b><br><span class="muted">welke kleppen bij een noot</span></span></div>
+              <div class="tile"><i style="background:var(--a-orange-soft)">🎙️</i><span><b>Vrij spelen</b><br><span class="muted">de app telt mee</span></span></div>
+            </div>
+          </div>
+          <div class="tabbar"><div class="on"><i>☀️</i>Vandaag</div><div><i>🎮</i>Spelen</div><div><i>🎷</i>Grepen</div><div><i>🙂</i>Ik</div></div>
+        </div></div>
+        <p class="fcap">Vandaag: één ring, een korte takenlijst uit al het huiswerk samen, één oranje knop die de eerstvolgende taak start. Rechts de drie dingen die je altijd kunt doen.</p>
+      </div>
+      <div>
+        <div class="ipad"><div class="scr">
+          <div class="bar"><span class="pill">✕ Klaar</span><span class="grow"></span><span style="color:var(--a-accent);font-size:13px">♥ ♥ ♥</span><span class="grow"></span><span class="muted big" style="font-size:13px">0:04</span></div>
+          <div style="flex:1;display:flex;align-items:center;justify-content:center"><svg width="360" height="130"><use href="#staff"/></svg></div>
+          <div class="row" style="padding:0 14px 6px;justify-content:center"><span class="muted">Noot 3 van 8 · welke noot is dit?</span></div>
+          <div class="row" style="padding:6px 14px 14px;gap:6px"><span class="key">C</span><span class="key">D</span><span class="key">E</span><span class="key">F</span><span class="key">G</span><span class="key">A</span><span class="key">B</span></div>
+        </div></div>
+        <p class="fcap">Spelen in focus: geen tabbalk, geen huiswerkkaart, geen instellingen. Alleen levens, tijd, de noot en grote antwoordknoppen. Na “Klaar” terug naar Vandaag, met de ring bijgewerkt.</p>
+      </div>
+    </div>
+    <div class="frames">
+      <div>
+        <div class="ipad portrait"><div class="scr">
+          <div class="bar"><span class="ttl">Grepen</span><span class="grow"></span><span class="pill">Weergave</span></div>
+          <div class="card" style="margin:0 14px;display:flex;flex-direction:column;align-items:center;gap:4px"><div class="row" style="width:100%"><span class="chip">In de les</span><span class="grow"></span><span class="pill">🔊 Luister</span></div><div class="row"><svg width="220" height="80"><use href="#staff"/></svg><span class="big" style="font-size:50px">G</span></div></div>
+          <div class="card" style="margin:10px 14px;flex:1;display:flex;align-items:center;justify-content:center"><svg width="110" height="210"><use href="#sax"/></svg></div>
+          <div class="row" style="padding:0 14px 10px;gap:5px"><span class="chip">G</span><span class="chip">A</span><span class="chip">D</span><span class="chip">E</span><span class="chip">Fis</span></div>
+          <div class="tabbar"><div><i>☀️</i>Vandaag</div><div><i>🎮</i>Spelen</div><div class="on"><i>🎷</i>Grepen</div><div><i>🙂</i>Ik</div></div>
+        </div></div>
+        <p class="fcap" style="max-width:417px">Grepen staand: noot boven, sax eronder, notenrij onderaan. Zelfde rust als liggend.</p>
+      </div>
+      <div>
+        <div class="ipad portrait"><div class="scr">
+          <div class="bar"><span class="pill">✕ Terug</span><span class="grow"></span></div>
+          <div style="padding:0 18px"><div class="big" style="font-size:17px">Lang zal ze leven</div><div class="muted">Methode 1 · blz. 23 · track 17 · tot zaterdag</div></div>
+          <div class="row" style="padding:10px 18px;gap:6px"><span class="pill">📄 Bladmuziek</span><span class="pill">▶ Voorbeeld</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px">
+            <div class="big" style="font-size:30px">0:00</div>
+            <div style="width:84px;height:84px;border-radius:50%;background:#C4362B;box-shadow:0 0 0 10px #F8E0DD;color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px">●</div>
+            <div class="muted">Tik en speel het stuk · hooguit 5 minuten</div>
+          </div>
+        </div></div>
+        <p class="fcap" style="max-width:417px">Een taak openen: alles voor die ene taak op één pagina (bladmuziek, voorbeeld, opnemen).</p>
+      </div>
+    </div>
+    <div class="pros"><div class="plus"><strong>Sterk</strong>Beantwoordt meteen “wat moet ik doen?”. Kinderen hoeven niets te kiezen: één knop. Huiswerk van ouder en leraar komt samen in één lijst. Werkt ook zonder account (dan zonder huiswerk, met het dagdoel).</div><div class="min"><strong>Zwak</strong>Nieuw startscherm en een focusmodus bouwen. Voor wie geen huiswerk heeft, moet Vandaag nog steeds zinvol zijn (dagdoel en voorstel).</div></div>
+  </div>
+
+  <h2 id="c">Variant C: de lessenaar</h2>
+  <div class="variant">
+    <div class="vhead"><span class="tag">grootste stap</span><p>De iPad wordt een muziekstandaard. Eén donkere “oefenruimte” met de noot groot in het midden, de onderdelen als iconen aan de rand en het huiswerk als vaste zijkolom.</p></div>
+    <div class="frames">
+      <div>
+        <div class="ipad"><div class="scr stage">
+          <div class="row" style="flex:1;align-items:stretch;gap:10px;padding:12px">
+            <div style="display:flex;flex-direction:column;gap:10px;align-items:center;padding-top:4px">
+              <span class="av" style="background:var(--a-orange);color:var(--a-ink)">L</span>
+              <span style="font-size:17px;opacity:1">🎷</span><span style="font-size:17px;opacity:.5">🎮</span><span style="font-size:17px;opacity:.5">🎙️</span>
+            </div>
+            <div class="grow" style="display:flex;flex-direction:column;gap:10px">
+              <div class="stand" style="flex:1;display:flex;align-items:center;justify-content:center;gap:16px"><svg width="300" height="110"><use href="#staff"/></svg><span class="big" style="font-size:56px">G</span></div>
+              <div class="row" style="gap:10px"><div class="card" style="display:flex;align-items:center;justify-content:center;padding:6px 14px"><svg width="40" height="76"><use href="#sax"/></svg></div><div class="grow note-dock"><span class="on">G</span><span>A</span><span>D</span><span>E</span><span>Fis</span></div></div>
+            </div>
+            <div class="card" style="width:30%;display:flex;flex-direction:column;gap:6px">
+              <div class="big" style="font-size:12px">Huiswerk</div>
+              <div class="muted">0 van 15 min vandaag</div>
+              <div style="border-top:1px solid #33456B;padding-top:6px">☐ 15 min oefenen</div>
+              <div>🎙️ Lang zal ze leven</div>
+              <div class="muted" style="text-decoration:line-through">☑ Alfabet achteruit</div>
+              <div class="btn" style="margin-top:auto;background:var(--a-orange);color:var(--a-ink)">Begin</div>
+            </div>
+          </div>
+        </div></div>
+        <p class="fcap">Eén ruimte, geen pagina’s: links kies je wat je doet, in het midden de lessenaar, rechts altijd je huiswerk.</p>
+      </div>
+      <div>
+        <div class="ipad portrait"><div class="scr stage">
+          <div class="row" style="padding:12px 14px"><span class="av" style="background:var(--a-orange);color:var(--a-ink)">L</span><span class="grow"></span><span style="font-size:15px">🎷</span><span style="font-size:15px;opacity:.5">🎮</span><span style="font-size:15px;opacity:.5">🎙️</span></div>
+          <div class="stand" style="margin:0 14px;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px"><svg width="300" height="110"><use href="#staff"/></svg><span class="big" style="font-size:52px">G</span></div>
+          <div style="padding:10px 14px" class="note-dock"><span class="on">G</span><span>A</span><span>D</span><span>E</span><span>Fis</span></div>
+          <div class="card" style="margin:0 14px 14px">Huiswerk · 0 van 15 min · <b>3 taken</b> ›</div>
+        </div></div>
+        <p class="fcap" style="max-width:417px">Staand schuift het huiswerk naar onderen als één regel.</p>
+      </div>
+    </div>
+    <div class="pros"><div class="plus"><strong>Sterk</strong>Het meest eigen en het meest “muziek”: de app voelt als een instrument, niet als een website. Weinig navigatie.</div><div class="min"><strong>Zwak</strong>Grootste verbouwing en een nieuwe donkere stijl naast basislook A. Op een iPhone is er te weinig ruimte voor drie kolommen; ouder en leraar passen er niet in.</div></div>
+  </div>
+
+  <h2>Waarom B</h2>
+  <div class="panel" style="margin-top:16px">
+    <p>De leerling heeft de hoogste prioriteit, en een leerling van 9 heeft vooral één vraag: wat moet ik nu doen? B is de enige variant die die vraag op het eerste scherm beantwoordt, zonder dat het kind iets hoeft te kiezen. De focusmodus haalt de drukte weg op het moment dat het telt: tijdens het spelen. Uit A nemen we de pagina “Weergave” mee, uit C de grote noot en de notenrij als vaste plek. B past binnen basislook A en werkt op iPad staand, liggend en op de iPhone.</p>
+  </div>
+
+  <h2 id="ouder">Ouder en leraar (kort)</h2>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Wat er schuurt</h3>
+      <ul class="clean">
+        <li>Het menu van een leraar heeft 9 items: Overzicht, Oefenen, Mijn leerlingen, Opdrachtenbank, Sjablonen, Mijn boeken, Mijn profiel, Welkomstpagina, Uitloggen.</li>
+        <li>De kindpagina is één lange rol van zes blokken; huiswerk, oefentijd, spel en noten door elkaar.</li>
+        <li>Huiswerk geven is één lange pagina van zeven onderdelen.</li>
+        <li>“Overzicht” en “Mijn kinderen/leerlingen” tonen bijna hetzelfde.</li>
+      </ul>
+      <h3 style="margin-top:16px">Voorstel</h3>
+      <ul class="clean">
+        <li>Tabbalk (iPhone) of zijbalk (iPad, desktop): <b>Leerlingen · Huiswerk · Bibliotheek · Ik</b>.</li>
+        <li>Bibliotheek = Opdrachtenbank, Sjablonen en Mijn boeken samen, met drie tabbladen.</li>
+        <li>Kindpagina met tabbladen <b>Huiswerk · Oefentijd · Noten</b> en één knop “Huiswerk geven”.</li>
+        <li>Huiswerk geven in drie stappen: <b>Wat</b> (noten en opdrachten) · <b>Doel</b> (minuten, dagen, tot wanneer) · <b>Versturen</b>.</li>
+      </ul>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+      <div class="frames" style="margin-top:0">
+        <div class="ipad"><div class="scr">
+          <div class="row" style="flex:1;align-items:stretch">
+            <div style="width:120px;background:var(--a-card);padding:12px 8px;display:flex;flex-direction:column;gap:4px;border-right:1px solid var(--a-line)">
+              <div class="row" style="padding:0 6px 10px"><span class="logo">♪</span><b>Notenkraker</b></div>
+              <div class="pill" style="border:0;background:var(--a-orange-soft);font-weight:700">👥 Leerlingen</div>
+              <div class="pill" style="border:0;background:transparent">📝 Huiswerk</div>
+              <div class="pill" style="border:0;background:transparent">📚 Bibliotheek</div>
+              <div class="pill" style="border:0;background:transparent;margin-top:auto">🙂 Ik</div>
+            </div>
+            <div class="grow" style="padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+              <div class="row"><span class="muted">← Leerlingen</span></div>
+              <div class="row"><span class="av" style="width:30px;height:30px">L</span><span class="ttl" style="font-size:17px">Lotte</span><span class="grow"></span><span class="btn">Huiswerk geven</span></div>
+              <div class="seg"><span class="on">Huiswerk</span><span>Oefentijd</span><span>Noten</span></div>
+              <div class="card"><div class="row"><span class="av" style="width:18px;height:18px;font-size:9px">M</span><b>Marieke · tot zaterdag</b><span class="grow"></span><span style="background:var(--a-ok-soft);color:var(--a-ok);border-radius:8px;padding:2px 7px;font-weight:600">gaat goed</span></div>
+                <div class="task"><span class="box"></span><span class="grow">15 min per dag · 2 van 5 dagen</span></div>
+                <div class="task"><span>🎙️</span><span class="grow">Lang zal ze leven · <b>opname ingestuurd</b></span><span class="pill">▶</span></div>
+                <div class="task"><span class="box on"></span><span class="grow">Notenalfabet achteruit</span></div></div>
+              <div class="card muted">Olaf · Lang zal ze leven · tot zaterdag</div>
+            </div>
+          </div>
+        </div></div>
+      </div>
+      <p class="fcap">Leraar op de iPad: zijbalk met vier plekken, de kindpagina in tabbladen, één knop “Huiswerk geven”.</p>
+    </div>
+  </div>
+
+  <h2 id="beslissen">Jouw beslissingen</h2>
+  <p class="lead">Voor de leerling eerst; de laatste drie gaan over ouder en leraar.</p>
+  <ol class="decide">
+    <li><h3>Welke richting voor de leerling?</h3><p>A (zelfde schermen, rustiger), B (Vandaag) of C (lessenaar). <span class="rec">Advies: B.</span></p></li>
+    <li><h3>Startscherm van de leerling</h3><p>Begin op “Vandaag” met het huiswerk, of meteen in een oefening zoals nu. <span class="rec">Advies: Vandaag.</span></p></li>
+    <li><h3>Navigatie</h3><p>Een tabbalk onderin met vier plekken (Vandaag, Spelen, Grepen, Ik) in plaats van het menu rechtsboven. <span class="rec">Advies: tabbalk; het menu wordt alleen “Ik”.</span></p></li>
+    <li><h3>Wie zet de status van een noot?</h3><p>Nu kan de leerling op het Grepen-scherm zelf kiezen tussen Kent al, In de les, Komt nog en Geen. Mag dat blijven, of doen ouder en leraar dat? <span class="rec">Advies: alleen ouder en leraar; de leerling ziet de status en het spel promoveert noten vanzelf.</span></p></li>
+    <li><h3>Wat gaat naar “Weergave”?</h3><p>Mijn noten / In de les / Alle, Letters / Notenbalk / Beide, Sax / Toon, 3D / Eenvoudig, Bij elke noot, Knoppen / microfoon. <span class="rec">Advies: allemaal; op het scherm blijven alleen Luister en de notenrij.</span></p></li>
+    <li><h3>Vrij oefenen als eigen onderdeel?</h3><p>Houden als tegel op Vandaag, of laten opgaan in “15 minuten oefenen” (de timer loopt dan bij elke oefening). <span class="rec">Advies: tegel houden, want de microfoon-uitleg is een eigen moment.</span></p></li>
+    <li><h3>Zonder account dezelfde indeling?</h3><p>Vandaag zonder huiswerk, met het dagdoel en een voorstel (“speel 5 minuten het notenspel”). <span class="rec">Advies: ja, één indeling voor iedereen.</span></p></li>
+    <li><h3>Bibliotheek samenvoegen</h3><p>Opdrachtenbank, Sjablonen en Mijn boeken als één plek met tabbladen. <span class="rec">Advies: ja.</span></p></li>
+    <li><h3>Kindpagina in tabbladen</h3><p>Huiswerk · Oefentijd · Noten in plaats van één lange pagina. <span class="rec">Advies: ja.</span></p></li>
+    <li><h3>Huiswerk geven in stappen</h3><p>Wat · Doel · Versturen, of één pagina met inklapbare delen. <span class="rec">Advies: stappen op de iPhone, één pagina met twee kolommen op iPad en desktop.</span></p></li>
+  </ol>
+
+  <h2>Volgende stap</h2>
+  <div class="panel" style="margin-top:16px">
+    <p>Na jouw keuzes maak ik de gekozen richting af als volledige mock-up (alle leerlingschermen, iPad staand en liggend, plus iPhone), en daarna een bouwplan in kleine PR’s: eerst Vandaag en de tabbalk, dan de focusmodus, dan Weergave, dan ouder en leraar.</p>
+  </div>
+</div>
