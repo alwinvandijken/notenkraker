@@ -130,8 +130,7 @@ export function AppMetLogin() {
           {menu}
         </header>
         <NotenOvernemen />
-        {/* opnieuw beginnen als leeftijd of ervaring later binnenkomt (ouder vulde ze net in, lijst nog aan het laden) */}
-        <Kennismaking key={`${student.id}-${student.ageBand}-${student.experience}`} student={student} statuses={statuses} onDone={() => void loadStudents()} />
+        <Kennismaking key={student.id} student={student} statuses={statuses} onDone={() => void loadStudents()} />
         {knop}
       </div>
     );
