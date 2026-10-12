@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
-import { midiToPitch, PracticeTracker, soundingMidi, toId, type NoteId, type PracticeState, type PracticeSummary } from "@notenkraker/core";
+import { ageProfile, midiToPitch, PracticeTracker, soundingMidi, toId, type NoteId, type PracticeState, type PracticeSummary } from "@notenkraker/core";
 import { getInstrument } from "@notenkraker/instruments";
 import type { PracticeSession } from "@notenkraker/client";
 import { MicListener } from "@/audio/mic";
-import { client } from "@/lib/client";
+import { client, isAnonymous } from "@/lib/client";
+import { loadToday } from "@/lib/vandaagData";
+import { gainLabel } from "@/lib/spelen";
 import { useApp } from "@/lib/store";
 import { noteLabel } from "@/lib/noten";
-import { Card, Chip } from "@/components/ui";
+import { Chip } from "@/components/ui";
+import { Focus } from "@/components/Focus";
 import { Donut } from "@/components/Donut";
 import { StaffRow } from "@/components/Staff";
 
@@ -16,26 +19,35 @@ import { StaffRow } from "@/components/Staff";
  * De server legt start en einde vast; daartussen luistert de app en telt alleen de tijd
  * waarin het instrument klinkt. Elke halve minuut gaat de stand naar de server, zodat een
  * sessie ook telt als de app wegvalt. Er wordt geen geluid opgeslagen.
+ *
+ * AC-120 (mock-up docs/ux-review/vandaag.html, Vrij spelen): klaarzetten met één knop (de uitleg over
+ * de microfoon alleen de eerste keer), spelen in focus met de tijd groot, een meter en "Klaar", en
+ * daarna het resultaat met wat het oplevert voor vandaag.
  */
 const SYNC_MS = 30_000;
 const MIC_OK = "nk.mic-ok";
 
-type Phase = "uitleg" | "klaar-om-te-starten" | "bezig" | "samenvatting";
+type Phase = "klaar" | "bezig" | "samenvatting";
 
 const clock = (ms: number) => {
   const s = Math.floor(ms / 1000);
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 };
 
-/** `after`: extra blok onder de samenvatting, bijv. de uitnodiging voor een account (zonder account) */
-export function VrijOefenen({ after }: { after?: React.ReactNode } = {}) {
+/** `after`: extra blok onder de samenvatting, bijv. de uitnodiging voor een account (zonder account); `onDone`: naar Vandaag */
+export function VrijOefenen({ after, onDone }: { after?: React.ReactNode; onDone?(): void } = {}) {
   const { students, studentId } = useApp();
   const student = students.find((s) => s.id === studentId);
   const instrument = getInstrument(student?.instrumentId ?? "altsax");
   const range = instrument.range;
   const written = (midi: number): NoteId => toId(midiToPitch(midi - instrument.transposition));
 
-  const [phase, setPhase] = useState<Phase>(() => (localStorage.getItem(MIC_OK) ? "klaar-om-te-starten" : "uitleg"));
+  const [phase, setPhase] = useState<Phase>("klaar");
+  /** de uitleg over de microfoon alleen de eerste keer */
+  const [firstTime] = useState(() => !localStorage.getItem(MIC_OK));
+  const before = useRef<Promise<number> | null>(null);
+  const [gain, setGain] = useState<string | null>(null);
+  const todayFor = (id: string) => loadToday(id, { withHomework: !isAnonymous, dailyGoal: ageProfile(student?.ageBand).dailyGoal });
   const [error, setError] = useState("");
   const [now, setNow] = useState(() => performance.now());
   const [summary, setSummary] = useState<{ local: PracticeSummary; saved: PracticeSession | null; sequence: number[] } | null>(null);
@@ -59,6 +71,8 @@ export function VrijOefenen({ after }: { after?: React.ReactNode } = {}) {
     try { session = await client.practice.start(student.id); } catch (e) {
       mic.stop(); setError(e instanceof Error ? e.message : "Starten lukte niet."); return;
     }
+    before.current = todayFor(student.id).then((d) => d.today).catch(() => 0);
+    setGain(null);
     const startMs = performance.now();
     const tracker = new PracticeTracker({
       minMidi: soundingMidi(range[0], instrument.transposition) - 1,
@@ -87,6 +101,10 @@ export function VrijOefenen({ after }: { after?: React.ReactNode } = {}) {
     run.current = null;
     setSummary({ local, saved, sequence });
     setPhase("samenvatting");
+    if (saved && student) {
+      const [was, now] = await Promise.all([before.current ?? Promise.resolve(0), todayFor(student.id).catch(() => null)]);
+      if (now) setGain(gainLabel(now.today - was, now.goal - now.today));
+    }
   }
 
   // tijdens het oefenen: scherm aan, teller verversen, elke halve minuut naar de server
@@ -121,32 +139,21 @@ export function VrijOefenen({ after }: { after?: React.ReactNode } = {}) {
 
   if (!student) return null;
 
-  if (phase === "uitleg") {
+  // klaarzetten: één knop; de uitleg alleen de eerste keer
+  if (phase === "klaar") {
+    const sax = instrument.name.toLowerCase();
     return (
-      <Card className="mt-3 flex flex-col items-center text-center gap-4 max-w-[520px] mx-auto">
-        <div className="text-6xl" aria-hidden="true">🎙️</div>
-        <h2 className="font-display font-bold text-2xl m-0">Mag ik meeluisteren?</h2>
-        <p className="text-muted m-0 leading-relaxed">Ik luister alleen of ik je {instrument.name.toLowerCase()} hoor en welke noot je speelt. Ik neem niets op en stuur geen geluid weg.</p>
-        <ul className="list-none m-0 p-4 rounded-2xl bg-bg text-left flex flex-col gap-1.5 text-sm">
-          <li>✓ Ik tel alleen de tijd waarin ik je {instrument.name.toLowerCase()} hoor</li>
-          <li>✓ Praten of stilte telt niet mee</li>
-          <li>✓ Je ouder en leraar zien hoe lang je speelde en welke noten</li>
-        </ul>
-        <Chip primary className="text-lg px-8 py-3" onClick={() => void start()}>Microfoon aanzetten</Chip>
+      <div className="flex flex-col items-center text-center gap-4 py-6 max-w-[520px] mx-auto">
+        <div className="w-24 h-24 rounded-full bg-accent-soft flex items-center justify-center text-5xl" aria-hidden="true">🎙️</div>
+        <h2 className="font-display font-bold text-3xl m-0">Speel wat je wilt</h2>
+        <p className="text-muted m-0 leading-relaxed">
+          {firstTime
+            ? `Ik tel alleen de tijd waarin ik je ${sax} hoor. Praten en stilte tellen niet mee. Ik neem niets op en stuur geen geluid weg; je ouder en leraar zien hoe lang je speelde en welke noten.`
+            : `Pak je ${sax} en speel. Ik tel mee hoe lang ik je hoor.`}
+        </p>
+        <Chip primary className="text-xl px-12 py-4" onClick={() => void start()}>Begin</Chip>
         {error && <p className="text-sm text-wrong m-0">{error}</p>}
-      </Card>
-    );
-  }
-
-  if (phase === "klaar-om-te-starten") {
-    return (
-      <Card className="mt-3 flex flex-col items-center text-center gap-4 max-w-[520px] mx-auto">
-        <div className="text-6xl" aria-hidden="true">🎷</div>
-        <h2 className="font-display font-bold text-2xl m-0">Vrij oefenen</h2>
-        <p className="text-muted m-0">Pak je {instrument.name.toLowerCase()} en speel. Ik tel mee hoe lang ik je hoor.</p>
-        <Chip primary className="text-xl px-8 py-3" onClick={() => void start()}>▶ Start</Chip>
-        {error && <p className="text-sm text-wrong m-0">{error}</p>}
-      </Card>
+      </div>
     );
   }
 
@@ -156,66 +163,67 @@ export function VrijOefenen({ after }: { after?: React.ReactNode } = {}) {
     const percent = totalSec ? Math.min(100, Math.round((100 * playedSec) / totalSec)) : 0;
     const notes = summary.saved?.notes ?? summary.local.notes.map(written);
     return (
-      <Card className="mt-3 flex flex-col items-center text-center gap-4 max-w-[520px] mx-auto">
-        <h2 className="font-display font-bold text-2xl m-0">{playedSec >= 60 ? "Goed gedaan! 🎉" : "Klaar"}</h2>
-        <Donut percent={percent} size={150} stroke={14}>
-          <b className="font-display text-3xl">{clock(playedSec * 1000)}</b><span className="text-xs text-muted mt-1">van {clock(totalSec * 1000)}</span>
-        </Donut>
-        <div className="w-full rounded-2xl bg-bg p-4 flex flex-col gap-2 text-left">
-          <div className="flex justify-between text-sm"><span>Gespeeld</span><b>{percent}% van de tijd</b></div>
-          <div className="flex gap-1 h-6" aria-label="Per minuut: gespeeld of niet">
-            {summary.local.minutes.map((m, i) => (
-              <i key={i} title={`minuut ${i + 1}: ${m.s} s`} className={clsx("flex-1 rounded", m.s >= 30 ? "bg-ok" : m.s > 0 ? "bg-ok/40" : "bg-line")} />
-            ))}
+      <Focus label="Vrij spelen">
+        <div className="flex-1 flex flex-col items-center gap-4 px-4 py-8 text-center w-full max-w-[640px] mx-auto">
+          <h2 className="font-display font-bold text-3xl m-0">{playedSec >= 60 ? "Goed gedaan! 🎉" : "Klaar"}</h2>
+          <Donut percent={percent} size={150} stroke={14}>
+            <b className="font-display text-3xl">{clock(playedSec * 1000)}</b><span className="text-xs text-muted mt-1">van {clock(totalSec * 1000)}</span>
+          </Donut>
+          {gain && <div className="rounded-2xl bg-ok/15 text-ok font-semibold px-4 py-2">{gain}</div>}
+          <div className="w-full rounded-2xl bg-surface p-4 flex flex-col gap-2 text-left">
+            <div className="flex justify-between text-sm"><span>Gespeeld</span><b>{percent}% van de tijd</b></div>
+            <div className="flex gap-1 h-6" aria-label="Per minuut: gespeeld of niet">
+              {summary.local.minutes.map((m, i) => (
+                <i key={i} title={`minuut ${i + 1}: ${m.s} s`} className={clsx("flex-1 rounded", m.s >= 30 ? "bg-ok" : m.s > 0 ? "bg-ok/40" : "bg-line")} />
+              ))}
+            </div>
+            {notes.length > 0 && <span className="text-sm text-muted">Noten: {notes.map((n) => noteLabel(n, range)).join(" · ")}</span>}
+            {summary.sequence.length > 0 && (
+              <>
+                <span className="text-sm text-muted mt-1">Zo speelde je (de laatste 200 noten, scroll voor meer)</span>
+                <div className="text-fg">
+                  <StaffRow clef={instrument.clef} naming={student.naming} height={170}
+                    notes={summary.sequence.slice(-200).map((m) => ({ id: written(m), color: "var(--color-kent)", label: noteLabel(written(m), range) }))} />
+                </div>
+              </>
+            )}
+            {summary.saved?.label === "twijfel" && <span className="text-sm text-muted">Ik hoorde steeds dezelfde noot. Je ouder ziet dit als twijfelachtig.</span>}
+            {!summary.saved && <span className="text-sm text-wrong">Opslaan lukte niet; de laatste tussenstand is wel bewaard.</span>}
           </div>
-          {notes.length > 0 && <span className="text-sm text-muted">Noten: {notes.map((n) => noteLabel(n, range)).join(" · ")}</span>}
-          {summary.sequence.length > 0 && (
-            <>
-              <span className="text-sm text-muted mt-1">Zo speelde je (de laatste 200 noten, scroll voor meer)</span>
-              <div className="text-fg">
-                <StaffRow clef={instrument.clef} naming={student.naming} height={170}
-                  notes={summary.sequence.slice(-200).map((m) => ({ id: written(m), color: "var(--color-kent)", label: noteLabel(written(m), range) }))} />
-              </div>
-            </>
-          )}
-          {summary.saved?.label === "twijfel" && <span className="text-sm text-muted">Ik hoorde steeds dezelfde noot. Je ouder ziet dit als twijfelachtig.</span>}
-          {!summary.saved && <span className="text-sm text-wrong">Opslaan lukte niet; de laatste tussenstand is wel bewaard.</span>}
+          <div className="flex flex-wrap justify-center gap-3">
+            <Chip primary className="text-lg px-8 py-3" onClick={() => { setSummary(null); setPhase("klaar"); void start(); }}>Nog een keer</Chip>
+            <Chip className="text-lg px-8 py-3" onClick={() => { setSummary(null); setPhase("klaar"); onDone?.(); }}>{onDone ? "Naar Vandaag" : "Klaar"}</Chip>
+          </div>
+          {after}
         </div>
-        <Chip primary onClick={() => { setSummary(null); setPhase("klaar-om-te-starten"); }}>Nog een keer</Chip>
-        {after}
-      </Card>
+      </Focus>
     );
   }
 
-  // bezig
+  // spelen in focus: de tijd groot, een meter die laat zien dat de app je hoort, en Klaar
   const r = run.current;
   if (!r) return null;
   const s = r.tracker.summary(now);
   const state = r.tracker.state(now);
   const midi = r.tracker.currentMidi(now);
-  // de laatste noten op de balk, nieuwste rechts
-  const seq = r.tracker.sequence().slice(-8);
   return (
-    <Card className="mt-3 flex flex-col items-center text-center gap-4 max-w-[520px] mx-auto">
-      <div className="text-sm text-muted">Vrij oefenen</div>
-      <div className={clsx("font-display font-extrabold text-7xl tabular-nums leading-none", state !== "playing" && "text-muted")}>{clock(s.playedMs)}</div>
-      <div className="text-sm text-muted -mt-2">gespeeld · timer staat {clock(s.elapsedMs)} aan · {s.percent}%</div>
-      <Status state={state} note={midi === null ? null : noteLabel(written(midi), range)} instrument={instrument.name.toLowerCase()} />
-      <div className="w-full flex flex-col gap-2 text-left">
-        <span className="text-sm text-muted">{seq.length ? "Zo speelde je net" : "Hier verschijnen de noten die je speelt"}</span>
-        <div className="text-fg">
-          <StaffRow clef={instrument.clef} naming={student.naming} height={190}
-            notes={seq.map((n, i) => ({ id: written(n.midi), color: i === seq.length - 1 && state === "playing" ? "var(--color-ok)" : "var(--color-kent)", label: noteLabel(written(n.midi), range) }))} />
-        </div>
+    <Focus label="Vrij spelen">
+      <div className="flex-1 flex flex-col items-center justify-center gap-5 px-4 text-center w-full max-w-[640px] mx-auto">
+        <div className={clsx("font-display font-extrabold text-8xl sm:text-9xl tabular-nums leading-none", state !== "playing" && "text-muted")} aria-live="off">{clock(s.playedMs)}</div>
+        <div className="text-sm text-muted -mt-2">gespeeld · timer staat {clock(s.elapsedMs)} aan</div>
+        <Status state={state} note={midi === null ? null : noteLabel(written(midi), range)} instrument={instrument.name.toLowerCase()} />
         {s.notes.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-muted mr-1">In deze sessie:</span>
-            {s.notes.map((m) => <span key={m} className="rounded-lg px-2 py-0.5 text-sm font-bold bg-kent-soft">{noteLabel(written(m), range)}</span>)}
+          <div className="flex flex-wrap justify-center items-center gap-1.5">
+            <span className="text-sm text-muted mr-1">Noten:</span>
+            {s.notes.map((m) => <span key={m} className="rounded-lg px-2 py-0.5 font-bold bg-kent-soft">{noteLabel(written(m), range)}</span>)}
           </div>
         )}
       </div>
-      <Chip primary className="text-xl px-10 py-3" onClick={() => void finish()}>Klaar</Chip>
-    </Card>
+      {/* één grote knop onderaan: met een sax in je handen beter te raken dan een kleine linksboven */}
+      <div className="px-4 pb-6 flex justify-center">
+        <Chip primary className="text-xl px-16 py-4" onClick={() => void finish()}>Klaar</Chip>
+      </div>
+    </Focus>
   );
 }
 

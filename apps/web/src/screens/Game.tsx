@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { ageProfile, instrumentNotes, makeSequence, nextNewNote, noteLadder, midiToPitch, NoteMatcher, noteName, parseId, scoreRound, soundingMidi, toId, weightedPool, type NoteId, type PitchReading } from "@notenkraker/core";
 import { getInstrument } from "@notenkraker/instruments";
 import type { Round } from "@notenkraker/client";
@@ -9,6 +8,7 @@ import { gainLabel, hardLabel, secondsLabel } from "@/lib/spelen";
 import { useApp } from "@/lib/store";
 import { StaffRow } from "@/components/Staff";
 import { Chip, Segmented } from "@/components/ui";
+import { Focus } from "@/components/Focus";
 import { playMidi } from "@/audio/synth";
 import { MicListener } from "@/audio/mic";
 
@@ -144,9 +144,8 @@ export function Game({ onDone }: { onDone?(): void }) {
   // spelen en het resultaat: in focus, over het hele scherm; de rest van de app (tabbalk, avatar) is zolang weg
   if (running || result) {
     const good = answers.filter((a) => a.correct).length;
-    return createPortal(
-      <section aria-label="Spelen" className="fixed inset-0 z-50 bg-bg flex flex-col overflow-y-auto"
-        style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}>
+    return (
+      <Focus label="Spelen">
         {running ? (
           <>
             <div className="flex items-center gap-3 px-4 py-3">
@@ -206,9 +205,7 @@ export function Game({ onDone }: { onDone?(): void }) {
             </div>
           </div>
         )}
-        <Focus />
-      </section>,
-      document.body,
+      </Focus>
     );
   }
 
@@ -231,13 +228,4 @@ export function Game({ onDone }: { onDone?(): void }) {
       </p>
     </div>
   );
-}
-
-/** zolang de focus open is, verdwijnt de app eronder: ook voor VoiceOver en het toetsenbord */
-function Focus() {
-  useEffect(() => {
-    document.body.classList.add("in-focus");
-    return () => document.body.classList.remove("in-focus");
-  }, []);
-  return null;
 }

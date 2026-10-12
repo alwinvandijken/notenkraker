@@ -206,8 +206,7 @@ export function AppMetLogin() {
           {title !== null && <h1 className="font-display font-extrabold text-3xl sm:text-4xl leading-none">{title}</h1>}
           {current === "vandaag" && <p className="text-muted mt-1">{new Date().toLocaleDateString("nl-NL", { weekday: "long", day: "numeric", month: "long" })}</p>}
           {current === "overzicht" && <p className="text-muted mt-1">Zo ging het oefenen deze week</p>}
-          {current === "oefenen" && mode === "vrij" && <p className="text-muted mt-1">Speel wat je wilt. Ik tel mee hoe lang ik je hoor.</p>}
-        </div>
+                  </div>
         {menu}
       </header>
       <KoppelMelding />
@@ -260,7 +259,7 @@ export function AppMetLogin() {
       {current === "oefenen" && (
         <>
           {!hasBackend && <p className="text-xs text-muted border border-line rounded-lg px-3 py-2 mb-2">Zonder backend: gegevens staan alleen in deze browser. Zet VITE_SUPABASE_URL en VITE_SUPABASE_ANON_KEY in .env voor de echte database.</p>}
-          {student ? (mode === "vrij" ? <VrijOefenen key={student.id} /> : <Game key={student.id} onDone={() => go("vandaag")} />) : noStudent}
+          {student ? (mode === "vrij" ? <VrijOefenen key={student.id} onDone={() => go("vandaag")} /> : <Game key={student.id} onDone={() => go("vandaag")} />) : noStudent}
         </>
       )}
       {tabBalk}
