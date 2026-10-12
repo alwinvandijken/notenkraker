@@ -2,7 +2,7 @@
 -- Draaien: supabase start && supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(10);
+select plan(6);
 
 delete from auth.users;
 create function pg_temp.als(uid uuid) returns void language plpgsql as $$
@@ -27,14 +27,9 @@ with s as (insert into students (name) values ('Sem'), ('Noor') returning id, na
 select pg_temp.als((select id from ids where naam = 'olaf'));
 with s as (insert into students (name) values ('Daan') returning id) insert into ids select 'daan', id from s;
 
--- ── Huiswerk voor meerdere leerlingen ────────────────────────────────
+-- Huiswerk voor meer leerlingen tegelijk geeft de app nu per leerling (give_homework per privégroep, 0014);
+-- de weigering voor een leerling die niet van jou is, staat in lesgroepen-functies.test.sql (ensure_group).
 select pg_temp.als((select id from ids where naam = 'marieke'));
-select is(give_homework_many(array[(select id from ids where naam = 'sem'), (select id from ids where naam = 'noor')],
-  '["g4"]', 15, 5, 'Toonladder G', '', '', current_date + 7), 2, 'Leraar geeft twee leerlingen tegelijk huiswerk');
-select is((select count(*)::int from homework), 2, 'Elke leerling krijgt een eigen opgave');
-select throws_ok($$ select give_homework_many(array[(select id from ids where naam = 'sem'), (select id from ids where naam = 'daan')],
-  '[]', 15, 5, '', '', '', current_date + 7) $$, 'P0001', 'geen toegang', 'Eén leerling die niet van jou is: dan niemand');
-select is((select count(*)::int from homework), 2, 'Er is dan ook niets opgeslagen');
 
 -- ── Sjablonen ────────────────────────────────────────────────────────
 select lives_ok($$ insert into homework_templates (name, notes, minutes_per_day, days_per_week, piece)

@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import clsx from "clsx";
-import { dueLabel, taskReference, type Homework, type HomeworkTask, type TaskRecording } from "@notenkraker/client";
+import { currentHomework, dueLabel, taskReference, type Homework, type HomeworkTask, type TaskRecording } from "@notenkraker/client";
 import { client } from "@/lib/client";
 import { useApp } from "@/lib/store";
 import { MAX_SECONDS, pickAudioType, timeLabel } from "@/lib/opname";
 import { GiverAvatar, mayRecord as mayRecordFor } from "@/components/Huiswerk";
 import { OpnameLijst, openSheet, Play } from "@/components/Opdrachten";
-import { Chip } from "@/components/ui";
+import { Chip, Week } from "@/components/ui";
 
 /**
  * Een taak openen (AC-120 PR 5, mock-up docs/ux-review/vandaag.html "Een taak"): één pagina met alles
@@ -14,15 +14,18 @@ import { Chip } from "@/components/ui";
  * rechts het opnemen en je opnames met de reactie per opname. Je kunt een stuk vaker opnemen,
  * bijvoorbeeld aan het begin en aan het eind van de week (AC-121).
  */
-export function Taak({ studentId, taskId }: { studentId: string; taskId: string }) {
+/** `lessonId`: de les waaruit de taak geopend werd; een opdracht die meeging staat in meer lessen (AC-124) */
+export function Taak({ studentId, taskId, lessonId }: { studentId: string; taskId: string; lessonId?: string }) {
   const { students } = useApp();
   const student = students.find((s) => s.id === studentId);
   const [found, setFound] = useState<{ h: Homework; t: HomeworkTask } | null | undefined>(undefined);
 
   const load = useCallback(() => client.homework.list(studentId).then((list) => {
-    for (const h of list) { const t = h.tasks.find((x) => x.id === taskId); if (t) return setFound({ h, t }); }
+    // de les waaruit je kwam; anders de lopende les; anders de nieuwste waarin de opdracht staat
+    const order = [...list.filter((h) => h.id === lessonId), ...currentHomework(list), ...list];
+    for (const h of order) { const t = h.tasks.find((x) => x.id === taskId); if (t) return setFound({ h, t }); }
     setFound(null);
-  }).catch(() => setFound(null)), [studentId, taskId]);
+  }).catch(() => setFound(null)), [studentId, taskId, lessonId]);
   useEffect(() => { void load(); }, [load]);
 
   if (found === undefined) return <p className="text-muted">Laden…</p>;
@@ -41,6 +44,7 @@ export function Taak({ studentId, taskId }: { studentId: string; taskId: string 
       <section aria-label="Wat je speelt" className="rounded-3xl bg-surface p-5 flex flex-col gap-4 min-w-0">
         <div>
           <h1 className="font-display font-extrabold text-3xl leading-tight m-0">{t.title}</h1>
+          {t.week > 1 && <div className="mt-1"><Week n={t.week} /></div>}
           <p className="text-muted m-0 mt-1">{[taskReference(t), `tot ${dueLabel(h.dueDate)}`].filter(Boolean).join(" · ")}</p>
         </div>
         {(t.sheetPath || t.examplePath) && (
@@ -55,7 +59,7 @@ export function Taak({ studentId, taskId }: { studentId: string; taskId: string 
             <span className="text-sm whitespace-pre-line"><b>{h.givenByName}:</b> “{h.remark}”</span>
           </div>
         )}
-        {t.kind === "opdracht" && <Afvinken task={t} />}
+        {t.kind === "opdracht" && <Afvinken task={t} studentId={studentId} />}
       </section>
 
       {t.recording && (
@@ -65,7 +69,7 @@ export function Taak({ studentId, taskId }: { studentId: string; taskId: string 
             : <p className="rounded-3xl bg-surface p-5 m-0 text-muted">Vraag je ouder om opnames toe te staan (op jouw pagina bij je ouder).</p>}
           <div className="rounded-3xl bg-surface p-5 flex flex-col gap-3">
             <h2 className="font-display font-bold text-xl m-0">Jouw opnames</h2>
-            <OpnameLijst recordings={t.recordings} viewer="pupil" dueDate={h.dueDate} onDelete={(r) => void remove(r)} />
+            <OpnameLijst recordings={t.recordings} viewer="pupil" dueDate={h.dueDate} weeks={t.weeks} onDelete={(r) => void remove(r)} />
           </div>
         </section>
       )}
@@ -73,11 +77,11 @@ export function Taak({ studentId, taskId }: { studentId: string; taskId: string 
   );
 }
 
-function Afvinken({ task }: { task: HomeworkTask }) {
+function Afvinken({ task, studentId }: { task: HomeworkTask; studentId: string }) {
   const [done, setDone] = useState(!!task.doneAt);
   const tick = async () => {
     const next = !done; setDone(next);
-    try { await client.homework.setTaskDone(task.id, next); } catch { setDone(!next); }
+    try { await client.homework.setTaskDone(task.homeworkItemId, studentId, next); } catch { setDone(!next); }
   };
   return (
     <button type="button" aria-pressed={done} onClick={() => void tick()}
@@ -140,7 +144,7 @@ function Recorder({ studentId, task, onSent }: { studentId: string; task: Homewo
     setFase("insturen"); setError("");
     try {
       const path = await client.files.uploadRecording(studentId, task.id, blob, type.current.ext);
-      await client.homework.submitRecording(task.id, path, seconds);
+      await client.homework.submitRecording(task.id, studentId, path, seconds);
       await onSent();
       setBlob(null); setSeconds(0); setFase("klaar"); setSent(true);
     } catch {

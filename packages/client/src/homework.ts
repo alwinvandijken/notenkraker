@@ -36,14 +36,14 @@ const toMinutes = (ms: number) => (ms > 0 ? Math.max(1, Math.round(ms / 60_000))
 /** al het huiswerk dat nog loopt (einddatum vandaag of later), nieuwste eerst */
 export function currentHomework(list: Homework[], now = new Date()): Homework[] {
   const today = dateKey(now);
-  // de lopende les(sen); huiswerk voor de volgende les telt pas vanaf de startdatum (0013)
-  return list.filter((h) => (h.startDate ?? "") <= today && h.dueDate >= today).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  // de lopende les(sen); huiswerk voor de volgende les telt pas vanaf de startdatum, een gestopte les niet (0014)
+  return list.filter((h) => h.status !== "afgezegd" && (h.startDate ?? "") <= today && h.dueDate >= today).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 /** huiswerk dat nog moet beginnen (de volgende les); alleen wie het gaf krijgt het van de database */
 export function upcomingHomework(list: Homework[], now = new Date()): Homework[] {
   const today = dateKey(now);
-  return list.filter((h) => (h.startDate ?? "") > today).sort((a, b) => a.startDate.localeCompare(b.startDate));
+  return list.filter((h) => h.status !== "afgezegd" && (h.startDate ?? "") > today).sort((a, b) => a.startDate.localeCompare(b.startDate));
 }
 
 /**

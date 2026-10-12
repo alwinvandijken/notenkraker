@@ -6,11 +6,11 @@ const progress = (todayMinutes: number, p: Partial<HomeworkProgress> = {}): Home
   ({ days: [], goalDays: 5, doneDays: 2, daysLeft: 3, todayMinutes, status: "goed", ...p });
 const task = (t: Partial<HomeworkTask>): HomeworkTask => ({
   id: "t", homeworkId: "h", position: 0, kind: "opdracht", title: "Taak", bookTitle: "", bookAuthor: "", page: "", chapter: "", number: "", track: "",
-  doneAt: null, sheetPath: null, sheetName: "", examplePath: null, recording: false, recordings: [], ...t,
+  homeworkItemId: "hi", doneAt: null, sheetPath: null, sheetName: "", examplePath: null, recording: false, recordings: [], week: 1, weeks: [], progress: null, ...t,
 });
 const rec = (submittedAt: string): TaskRecording => ({ id: submittedAt, taskId: "t", path: "p", submittedAt, deletedAt: null, reactionEmoji: "", reaction: "", reactedAt: null });
 const hw = (h: Partial<Homework>): Homework => ({
-  id: "h", studentId: "s", givenBy: "u", givenByRole: "leraar", givenByName: "Marieke", createdAt: "2026-10-10T10:00:00Z", startDate: "2026-10-10", dueDate: "2026-10-17",
+  id: "h", groupId: "g", status: "gegeven", studentId: "s", givenBy: "u", givenByRole: "leraar", givenByName: "Marieke", createdAt: "2026-10-10T10:00:00Z", startDate: "2026-10-10", dueDate: "2026-10-17",
   minutesPerDay: 15, daysPerWeek: 5, notes: [], piece: "", pieceNote: "", remark: "", tasks: [], ...h,
 });
 
@@ -44,6 +44,14 @@ describe("planVandaag", () => {
     const plan = planVandaag([{ h: hw({ tasks: [task({ id: "op", kind: "stuk", recording: true, recordings: [rec("2026-10-12T09:00:00Z")] })] }), p: progress(4) }], { mayRecord: true })!;
     expect(plan.next).toEqual({ kind: "spelen" });
     expect(plan.started).toBe(true);
+  });
+
+  it("een stuk dat meeging: alleen opnames van deze les tellen", () => {
+    const weeks = [{ lessonId: "vorige", start: "2026-10-03", end: "2026-10-09" }, { lessonId: "h", start: "2026-10-10", end: "2026-10-16" }];
+    const op = task({ id: "op", homeworkId: "h", kind: "stuk", recording: true, week: 2, weeks, recordings: [rec("2026-10-05T09:00:00Z")] });
+    const plan = planVandaag([{ h: hw({ tasks: [op] }), p: progress(0) }], { mayRecord: true })!;
+    expect(plan.rows[1]).toMatchObject({ kind: "opname", done: false });
+    expect(plan.next).toEqual({ kind: "opname", task: op });
   });
 
   it("opnemen zonder toestemming slaat de knop over", () => {

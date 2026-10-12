@@ -1,7 +1,8 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { promotionCandidates, scoreRound } from "@notenkraker/core";
+import { lessonEnd, weekOf } from "./lessons.js";
 import type {
-  AdminApi, AdminUser, AuthApi, BankApi, FilesApi, BankTask, Book, BooksApi, HomeworkTask, TaskInput, TaskRecording, Guardian, Feedback, FeedbackApi, Homework, HomeworkApi, HomeworkTemplate, InvitePurpose, NotenkrakerClient, NotesApi, PracticeApi, PracticeSession, Profile, Progress, Role, Round, RoundsApi, RoundSubmission,
+  AdminApi, AdminUser, AuthApi, BankApi, FilesApi, BankTask, Book, BooksApi, HomeworkTask, LessonSpan, TaskInput, TaskRecording, Guardian, Feedback, FeedbackApi, Homework, HomeworkApi, HomeworkTemplate, InvitePurpose, NotenkrakerClient, NotesApi, PracticeApi, PracticeSession, Profile, Progress, Role, Round, RoundsApi, RoundSubmission,
   SelfRole, Song, SongsApi, Student, StudentNote, StudentsApi,
 } from "./types.js";
 
@@ -62,7 +63,6 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
     naming: (r.naming as "nl" | "en") ?? "nl", userId: (r.user_id as string | null) ?? null, ownerId: r.owner_id as string, createdAt: r.created_at as string,
     ageBand: (r.age_band as Student["ageBand"]) ?? null, experience: (r.experience as Student["experience"]) ?? null,
     onboardedAt: (r.onboarded_at as string | null) ?? null, recordingConsent: r.recording_consent === true,
-    lessonWeekday: (r.lesson_weekday as number | null) ?? null,
   });
 
   const students: StudentsApi = {
@@ -84,7 +84,6 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
       if (patch.ageBand !== undefined) row.age_band = patch.ageBand;
       if (patch.experience !== undefined) row.experience = patch.experience;
       if (patch.onboardedAt !== undefined) row.onboarded_at = patch.onboardedAt;
-      if (patch.lessonWeekday !== undefined) row.lesson_weekday = patch.lessonWeekday;
       const { data, error } = await sb.from("students").update(row).eq("id", id).select().single();
       if (error) throw error;
       return rowToStudent(data);
@@ -212,25 +211,28 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
     },
   };
 
-  const rowToHomework = (r: Record<string, unknown>): Homework => ({
-    id: r.id as string, studentId: r.student_id as string, givenBy: r.given_by as string,
-    givenByRole: r.given_by_role as Homework["givenByRole"], givenByName: r.given_by_name as string, createdAt: r.created_at as string,
-    startDate: (r.start_date as string) ?? (r.created_at as string).slice(0, 10), dueDate: r.due_date as string, minutesPerDay: r.minutes_per_day as number, daysPerWeek: r.days_per_week as number,
-    notes: (r.notes as string[]) ?? [], piece: (r.piece as string) ?? "", pieceNote: (r.piece_note as string) ?? "", remark: (r.remark as string) ?? "",
-    tasks: ((r.homework_tasks as Array<Record<string, unknown>>) ?? []).map(rowToTask).sort((a, b) => a.position - b.position),
-  });
-
-  const rowToTask = (r: Record<string, unknown>): HomeworkTask => ({
-    id: r.id as string, homeworkId: r.homework_id as string, position: r.position as number, kind: r.kind as HomeworkTask["kind"],
-    title: r.title as string, bookTitle: (r.book_title as string) ?? "", bookAuthor: (r.book_author as string) ?? "",
-    page: (r.page as string) ?? "", chapter: (r.chapter as string) ?? "", number: (r.number as string) ?? "", track: (r.track as string) ?? "",
-    doneAt: (r.done_at as string | null) ?? null,
-    sheetPath: (r.sheet_path as string | null) ?? null, sheetName: (r.sheet_name as string) ?? "", examplePath: (r.example_path as string | null) ?? null,
-    recording: r.recording === true,
-    recordings: ((r.task_recordings as Array<Record<string, unknown>>) ?? []).map(rowToRecording).sort((a, b) => a.submittedAt.localeCompare(b.submittedAt)),
-  });
+  type Row = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  /** opdracht met zijn huiswerkregel in deze les, voor één leerling (gemaksvorm, AC-124) */
+  const rowToTask = (h: Row, lessonId: string, studentId: string): HomeworkTask => {
+    const a = h.assignments as Row;
+    // de lessen van de opdracht (niet afgezegd), oudste eerst; een week loopt tot de dag vóór de volgende
+    const starts = ((a.homework ?? []) as Row[]).map((x) => x.lessons as Row | null).filter((x): x is Row => !!x && x.status !== "afgezegd")
+      .map((x) => ({ lessonId: x.id as string, start: x.date as string })).sort((p, q) => p.start.localeCompare(q.start));
+    const weeks: LessonSpan[] = starts.map((x, k) => ({ ...x, end: lessonEnd(starts[k + 1] ? [starts[k + 1]!.start] : [], x.start) }));
+    const progress = ((a.progress ?? []) as Row[]).find((x) => x.student_id === studentId);
+    return {
+      id: a.id, homeworkId: lessonId, homeworkItemId: h.id, position: h.position, kind: a.kind, title: a.title,
+      bookTitle: a.book_title ?? "", bookAuthor: a.book_author ?? "", page: a.page ?? "", chapter: a.chapter ?? "", number: a.number ?? "", track: a.track ?? "",
+      doneAt: ((h.homework_done ?? []) as Row[]).find((d) => d.student_id === studentId)?.done_at ?? null,
+      sheetPath: a.sheet_path ?? null, sheetName: a.sheet_name ?? "", examplePath: a.example_path ?? null, recording: a.recording === true,
+      recordings: ((a.recordings ?? []) as Row[]).filter((r) => r.student_id === studentId).map(rowToRecording)
+        .sort((p, q) => p.submittedAt.localeCompare(q.submittedAt)),
+      week: weekOf(weeks, lessonId) || 1, weeks,
+      progress: progress ? { status: progress.status, grade: progress.grade === null ? null : Number(progress.grade) } : null,
+    };
+  };
   const rowToRecording = (r: Record<string, unknown>): TaskRecording => ({
-    id: r.id as string, taskId: r.task_id as string, path: (r.path as string | null) ?? null, submittedAt: r.submitted_at as string,
+    id: r.id as string, taskId: r.assignment_id as string, path: (r.path as string | null) ?? null, submittedAt: r.submitted_at as string,
     deletedAt: (r.deleted_at as string | null) ?? null, reactionEmoji: (r.reaction_emoji as string) ?? "", reaction: (r.reaction as string) ?? "",
     reactedAt: (r.reacted_at as string | null) ?? null,
   });
@@ -247,27 +249,37 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
   });
 
   // geven is een databasefunctie: die controleert wie het mag en zet de noten op "in de les"
+  /** mijn privégroep met deze leerling (maakt hem aan als hij er nog niet is) */
+  const ensureGroup = async (studentId: string) => {
+    const { data, error } = await sb.rpc("ensure_group", { p_student: studentId });
+    if (error) throw error;
+    return data as string;
+  };
+
+  // geven is een databasefunctie: die controleert wie het mag en zet de noten op "in de les"
   const homework: HomeworkApi = {
-    async list(studentId, limit = 20) {
-      const { data, error } = await sb.from("homework").select("*, homework_tasks(*, task_recordings(*))").eq("student_id", studentId).order("created_at", { ascending: false }).limit(limit);
+    /** alle lessen van alle groepen van de leerling, nieuwste eerst (0014) */
+    async list(studentId, limit = 50) {
+      const { data, error } = await sb.from("group_members")
+        .select("lesson_groups(id, teacher_id, teacher_name, kind, lessons(*, homework(id, position, homework_done(student_id, done_at), assignments(*, recordings(*), progress(*), homework(lessons(id, date, status))))))")
+        .eq("student_id", studentId);
       if (error) throw error;
-      return (data ?? []).map(rowToHomework);
-    },
-    async give(input) {
-      const { data, error } = await sb.rpc("give_homework", {
-        p_student: input.studentId, p_notes: input.notes, p_minutes: input.minutesPerDay, p_days: input.daysPerWeek,
-        p_piece: input.piece, p_piece_note: input.pieceNote, p_remark: input.remark, p_due: input.dueDate,
-      });
-      if (error) throw error;
-      return rowToHomework(data);
-    },
-    async giveMany(studentIds, input) {
-      const { data, error } = await sb.rpc("give_homework_many", {
-        p_students: studentIds, p_notes: input.notes, p_minutes: input.minutesPerDay, p_days: input.daysPerWeek,
-        p_piece: input.piece, p_piece_note: input.pieceNote, p_remark: input.remark, p_due: input.dueDate,
-      });
-      if (error) throw error;
-      return data as number;
+      const out: Homework[] = [];
+      for (const m of (data ?? []) as Row[]) {
+        const g = m.lesson_groups as Row | null;
+        if (!g) continue;
+        const lessons = (g.lessons ?? []) as Row[];
+        const dates = lessons.filter((l) => l.status !== "afgezegd").map((l) => l.date as string);
+        for (const l of lessons) {
+          out.push({
+            id: l.id, groupId: g.id, studentId, givenBy: g.teacher_id, givenByRole: g.kind === "les" ? "leraar" : "ouder", givenByName: g.teacher_name,
+            createdAt: l.created_at, startDate: l.date, dueDate: lessonEnd(dates, l.date), status: l.status,
+            minutesPerDay: l.minutes_per_day, daysPerWeek: l.days_per_week, notes: l.notes ?? [], remark: l.remark ?? "", piece: "", pieceNote: "",
+            tasks: ((l.homework ?? []) as Row[]).filter((h) => h.assignments).map((h) => rowToTask(h, l.id, studentId)).sort((a, b) => a.position - b.position),
+          });
+        }
+      }
+      return out.sort((a, b) => b.startDate.localeCompare(a.startDate)).slice(0, limit);
     },
     async templates() {
       const { data, error } = await sb.from("homework_templates").select("*").order("name");
@@ -286,39 +298,47 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
       const { error } = await sb.from("homework_templates").delete().eq("id", id);
       if (error) throw error;
     },
-    async giveWithTasks(studentIds, input, tasks) {
-      const { data, error } = await sb.rpc("give_homework_with_tasks", {
-        p_students: studentIds, p_notes: input.notes, p_minutes: input.minutesPerDay, p_days: input.daysPerWeek,
-        p_remark: input.remark, p_due: input.dueDate, p_tasks: tasks.map(taskToJson),
-      });
-      if (error) throw error;
-      return data as number;
+    async give(studentIds, which, input, tasks, carry = {}) {
+      for (const sid of studentIds) {
+        const { error } = await sb.rpc("give_homework", {
+          p_group: await ensureGroup(sid), p_which: which, p_notes: input.notes, p_minutes: input.minutesPerDay, p_days: input.daysPerWeek,
+          p_remark: input.remark, p_tasks: tasks.map(taskToJson), p_carry: carry[sid] ?? [],
+        });
+        if (error) throw error;
+      }
+      return studentIds.length;
     },
-    async giveForLesson(studentIds, which, input, tasks) {
-      const { data, error } = await sb.rpc("give_for_lesson", {
-        p_students: studentIds, p_which: which, p_notes: input.notes, p_minutes: input.minutesPerDay, p_days: input.daysPerWeek,
-        p_remark: input.remark, p_tasks: tasks.map(taskToJson),
-      });
-      if (error) throw error;
-      return data as number;
-    },
-    async update(homeworkId, input, tasks) {
-      const { error } = await sb.rpc("update_homework", {
-        p_homework: homeworkId, p_notes: input.notes, p_minutes: input.minutesPerDay, p_days: input.daysPerWeek,
-        p_remark: input.remark, p_start: input.startDate, p_due: input.dueDate, p_tasks: tasks.map(taskToJson),
+    async update(lessonId, input, tasks) {
+      const { error } = await sb.rpc("update_lesson", {
+        p_lesson: lessonId, p_notes: input.notes, p_minutes: input.minutesPerDay, p_days: input.daysPerWeek,
+        p_remark: input.remark, p_date: input.startDate, p_tasks: tasks.map(taskToJson),
       });
       if (error) throw error;
     },
-    async end(homeworkId) {
-      const { error } = await sb.rpc("end_homework", { p_homework: homeworkId });
+    async end(lessonId) {
+      const { error } = await sb.rpc("end_lesson", { p_lesson: lessonId });
       if (error) throw error;
     },
-    async setTaskDone(taskId, done) {
-      const { error } = await sb.rpc("set_task_done", { p_task: taskId, p_done: done });
+    async setTaskDone(homeworkItemId, studentId, done) {
+      const { error } = await sb.rpc("set_done", { p_homework: homeworkItemId, p_student: studentId, p_done: done });
       if (error) throw error;
     },
-    async submitRecording(taskId, path, seconds) {
-      const { error } = await sb.rpc("submit_recording", { p_task: taskId, p_path: path, p_seconds: Math.round(seconds) });
+    async submitRecording(assignmentId, studentId, path, seconds) {
+      const { error } = await sb.rpc("submit_recording", { p_assignment: assignmentId, p_student: studentId, p_path: path, p_seconds: Math.round(seconds) });
+      if (error) throw error;
+    },
+    async schedule(studentId) {
+      const gid = await ensureGroup(studentId);
+      const { data, error } = await sb.from("schedule_rules").select("weekday").eq("group_id", gid).is("valid_until", null).order("valid_from", { ascending: false }).limit(1);
+      if (error) throw error;
+      return ((data ?? [])[0]?.weekday as number | undefined) ?? null;
+    },
+    async setSchedule(studentId, weekday) {
+      const { error } = await sb.rpc("set_schedule", { p_group: await ensureGroup(studentId), p_weekday: weekday });
+      if (error) throw error;
+    },
+    async setProgress(assignmentId, studentId, status, grade) {
+      const { error } = await sb.rpc("set_progress", { p_assignment: assignmentId, p_student: studentId, p_status: status, p_grade: grade });
       if (error) throw error;
     },
     async deleteRecording(recordingId) {

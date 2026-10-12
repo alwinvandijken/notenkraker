@@ -35,15 +35,15 @@ select lives_ok($$ insert into storage.objects (bucket_id, name, owner) values (
   'Leraar zet bladmuziek in haar eigen map');
 select throws_ok($$ insert into storage.objects (bucket_id, name, owner) values ('bladmuziek', (select id from ids where naam = 'olaf') || '/x.pdf', auth.uid()) $$,
   '42501', null, 'Niet in de map van een ander');
-select is(give_homework_with_tasks(array[(select id from ids where naam = 'kind')], '[]', 15, 5, '', current_date + 7,
+select isnt(give_homework(ensure_group((select id from ids where naam = 'kind')), 'deze', '[]', 15, 5, '',
   jsonb_build_array(jsonb_build_object('kind', 'stuk', 'title', 'Etude in G', 'sheet_path', (select id from ids where naam = 'marieke') || '/etude.pdf',
     'sheet_name', 'etude.pdf', 'recording', true),
-    jsonb_build_object('kind', 'stuk', 'title', 'Zonder opname'))), 1, 'Huiswerk met bladmuziek en een gevraagde opname');
-select throws_ok($$ select give_homework_with_tasks(array[(select id from ids where naam = 'kind')], '[]', 15, 5, '', current_date + 7,
-  jsonb_build_array(jsonb_build_object('kind', 'stuk', 'title', 'x', 'sheet_path', (select id from ids where naam = 'olaf') || '/x.pdf'))) $$,
+    jsonb_build_object('kind', 'stuk', 'title', 'Zonder opname')), '{}'), null, 'Huiswerk met bladmuziek en een gevraagde opname');
+select throws_ok($$ select give_homework(ensure_group((select id from ids where naam = 'kind')), 'deze', '[]', 15, 5, '',
+  jsonb_build_array(jsonb_build_object('kind', 'stuk', 'title', 'x', 'sheet_path', (select id from ids where naam = 'olaf') || '/x.pdf')), '{}') $$,
   'P0001', 'ongeldige opdracht', 'Bladmuziek alleen uit de eigen map');
-insert into ids select 'taak', id from homework_tasks where title = 'Etude in G';
-insert into ids select 'zonder', id from homework_tasks where title = 'Zonder opname';
+insert into ids select 'taak', id from assignments where title = 'Etude in G';
+insert into ids select 'zonder', id from assignments where title = 'Zonder opname';
 
 select pg_temp.als((select id from ids where naam = 'lotte'));
 select is((select count(*)::int from storage.objects where bucket_id = 'bladmuziek'), 1, 'De leerling mag de bladmuziek van haar huiswerk openen');
@@ -52,7 +52,7 @@ select is((select count(*)::int from storage.objects where bucket_id = 'bladmuzi
 
 -- ── Toestemming ──────────────────────────────────────────────────────
 select pg_temp.als((select id from ids where naam = 'lotte'));
-select throws_ok($$ select submit_recording((select id from ids where naam = 'taak'),
+select throws_ok($$ select submit_recording((select id from ids where naam = 'taak'), (select id from ids where naam = 'kind'),
   (select id from ids where naam = 'kind') || '/' || (select id from ids where naam = 'taak') || '/1.webm') $$,
   'P0001', 'geen toestemming', 'Zonder toestemming van de ouder geen opname (kind onder 18)');
 select throws_ok($$ select set_recording_consent((select id from ids where naam = 'kind'), true) $$, 'P0001', 'geen toegang', 'Het kind geeft zelf geen toestemming');
@@ -67,9 +67,9 @@ select lives_ok($$ insert into storage.objects (bucket_id, name, owner) values (
   (select id from ids where naam = 'kind') || '/' || (select id from ids where naam = 'taak') || '/1.webm', auth.uid()) $$, 'De leerling zet haar opname in haar eigen map');
 select throws_ok($$ insert into storage.objects (bucket_id, name, owner) values ('opnames', gen_random_uuid() || '/x/1.webm', auth.uid()) $$,
   '42501', null, 'Niet in de map van een ander kind');
-select lives_ok($$ select submit_recording((select id from ids where naam = 'taak'),
+select lives_ok($$ select submit_recording((select id from ids where naam = 'taak'), (select id from ids where naam = 'kind'),
   (select id from ids where naam = 'kind') || '/' || (select id from ids where naam = 'taak') || '/1.webm') $$, 'De leerling stuurt de opname in');
-select throws_ok($$ select submit_recording((select id from ids where naam = 'zonder'),
+select throws_ok($$ select submit_recording((select id from ids where naam = 'zonder'), (select id from ids where naam = 'kind'),
   (select id from ids where naam = 'kind') || '/' || (select id from ids where naam = 'zonder') || '/1.webm') $$, 'P0001', 'geen opname gevraagd', 'Bij een stuk zonder opname kan het niet');
 
 select pg_temp.als((select id from ids where naam = 'marieke'));
@@ -79,15 +79,15 @@ select is((select count(*)::int from storage.objects where bucket_id = 'opnames'
 
 -- ── Reageren ─────────────────────────────────────────────────────────
 select pg_temp.als((select id from ids where naam = 'olaf'));
-select throws_ok($$ select react_to_task((select id from ids where naam = 'taak'), '👍', 'Mooi!') $$, 'P0001', 'geen toegang', 'Alleen wie het huiswerk gaf reageert');
+select throws_ok($$ select react_to_recording((select id from recordings limit 1), '👍', 'Mooi!') $$, 'P0001', 'geen toegang', 'Alleen de docent van de groep reageert');
 select pg_temp.als((select id from ids where naam = 'marieke'));
-select lives_ok($$ select react_to_task((select id from ids where naam = 'taak'), '⭐', 'Mooi gespeeld!') $$, 'De leraar reageert');
+select lives_ok($$ select react_to_recording((select id from recordings limit 1), '⭐', 'Mooi gespeeld!') $$, 'De leraar reageert');
 
 -- ── Verlopen opnames (4 weken na de einddatum) ───────────────────────
 reset role;
-update homework set due_date = current_date - 30;
+update lessons set date = current_date - 36;
 select is((select count(*)::int from expired_recordings()), 1, 'Een opname van 30 dagen na de einddatum is verlopen');
-update homework set due_date = current_date - 10;
+update lessons set date = current_date - 16;
 select is((select count(*)::int from expired_recordings()), 0, 'Na 10 dagen nog niet');
 
 select * from finish();

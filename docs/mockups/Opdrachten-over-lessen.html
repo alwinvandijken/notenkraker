@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Opdrachten over lessen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* AC-124 mock-up: een opdracht loopt over meer lessen. Basislook A; de schermen zijn de app zelf, het verhaal eromheen is de review. */
+:root{
+  --bg:#E4EAF2; --surface:#FFFFFF; --ink:#172440; --muted:#4A5873; --line:#CCD6E3; --accent:#C2531A; --good:#1F7A4D;
+  --a-bg:#EDF2F7; --a-card:#FFFFFF; --a-ink:#172440; --a-muted:#4A5873; --a-line:#DCE3EC; --a-blue:#2459C9; --a-blue-soft:#DCE6FA;
+  --a-orange:#F4A261; --a-orange-soft:#FDEBDD; --a-accent:#C2531A; --a-ok:#1F7A4D; --a-ok-soft:#DDF2E5; --a-navy:#172440;
+  --font:"Lexend", ui-rounded, system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0F1729;--surface:#18233B;--ink:#E8EEF8;--muted:#A9B6CF;--line:#2B3A5C;--accent:#F4A261;--good:#3FAE74;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0F1729;--surface:#18233B;--ink:#E8EEF8;--muted:#A9B6CF;--line:#2B3A5C;--accent:#F4A261;--good:#3FAE74;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.55;margin:0}
+.wrap{max-width:1240px;margin:0 auto;padding:40px 20px 80px}
+h1,h2,h3{line-height:1.15;margin:0;text-wrap:balance}
+h1{font-size:clamp(30px,5vw,48px);font-weight:800}
+h2{font-size:clamp(22px,3vw,30px);font-weight:700;margin-top:56px}
+h3{font-size:18px;font-weight:700}
+p{margin:0;max-width:70ch}
+.lead{font-size:18px;color:var(--muted);margin-top:10px}
+.note{color:var(--muted);font-size:15px;margin-top:8px}
+.panel{background:var(--surface);border-radius:20px;padding:20px;margin-top:16px}
+ul.clean{margin:8px 0 0;padding-left:20px} ul.clean li{margin:4px 0}
+.frames{display:flex;gap:22px;overflow-x:auto;padding:6px 2px 14px;margin-top:16px}
+.cap{font-size:13px;color:var(--muted);margin-top:8px;max-width:640px}
+.laptop{flex:none;width:880px;height:520px;border-radius:14px;background:#101827;padding:10px 10px 18px}
+.ipad{flex:none;width:600px;height:417px;border-radius:26px;background:#101827;padding:11px}
+.scr{width:100%;height:100%;border-radius:10px;background:var(--a-bg);color:var(--a-ink);font-size:10px;line-height:1.35;overflow:hidden;display:flex;flex-direction:column}
+.ipad .scr{border-radius:16px}
+.row{display:flex;align-items:center;gap:6px}.grow{flex:1;min-width:0}
+.bar{display:flex;align-items:center;gap:8px;padding:10px 14px}
+.ttl{font-weight:800;font-size:17px}
+.muted{color:var(--a-muted)}
+.card{background:var(--a-card);border-radius:12px;padding:10px}
+.cap2{font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--a-muted)}
+.av{width:22px;height:22px;border-radius:50%;background:var(--a-blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10px;flex:none}
+.btn{background:var(--a-accent);color:#fff;border-radius:999px;padding:7px 14px;font-weight:700;text-align:center}
+.btn.line{background:var(--a-card);color:var(--a-ink);border:1.5px solid var(--a-line)}
+.seg{display:inline-flex;background:var(--a-bg);border-radius:999px;padding:2px;gap:2px}
+.seg span{padding:3px 9px;border-radius:999px;color:var(--a-muted)}.seg span.on{background:var(--a-navy);color:#fff;font-weight:600}
+.task{border:1.5px solid var(--a-line);border-radius:10px;padding:7px 8px;display:flex;align-items:center;gap:7px;margin-top:6px}
+.task.on{border-color:var(--a-ok);background:var(--a-ok-soft)}
+.task i{font-style:normal;font-size:13px}
+.box{width:13px;height:13px;border-radius:4px;border:1.5px solid var(--a-line);flex:none;background:var(--a-card)}
+.box.on{background:var(--a-ok);border-color:var(--a-ok)}
+.wk{border-radius:999px;padding:1px 7px;font-weight:700;background:var(--a-orange-soft);color:var(--a-accent);font-size:8.5px;white-space:nowrap}
+.rec{background:var(--a-bg);border-radius:9px;padding:6px 8px;margin-top:5px}
+.tabbar{margin-top:auto;display:flex;justify-content:space-around;background:var(--a-card);border-top:1px solid var(--a-line);padding:6px 0 8px}
+.tabbar div{display:flex;flex-direction:column;align-items:center;gap:1px;color:var(--a-muted);font-size:8.5px}.tabbar div.on{color:var(--a-accent);font-weight:700}
+.tabbar i{font-style:normal;font-size:14px}
+ol.decide{list-style:none;padding:0;margin:16px 0 0;display:flex;flex-direction:column;gap:12px;counter-reset:d}
+ol.decide li{background:var(--surface);border-radius:16px;padding:16px 18px 16px 58px;position:relative;counter-increment:d}
+ol.decide li::before{content:counter(d);position:absolute;left:18px;top:15px;width:28px;height:28px;border-radius:50%;background:var(--ink);color:var(--bg);font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+ol.decide p{color:var(--muted);font-size:15px;margin-top:4px}
+.ok{color:var(--good);font-weight:600}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <h1>Opdrachten over meer lessen</h1>
+  <p class="lead">AC-124. Een opdracht bestaat op zichzelf; een les zegt welke opdrachten er die week bij horen. Is een opdracht te moeilijk voor één week, dan gaat hij mee naar de volgende les, met al zijn opnames en reacties. Dit is ook de basis voor het jaarprogramma.</p>
+
+  <div class="panel">
+    <h3>Wat Alwin besloot (12-10-2026)</h3>
+    <ul class="clean">
+      <li><b>Meegaan kies je bij de volgende les.</b> Bij huiswerk geven voor de volgende les staan de opdrachten die nog lopen bovenaan, elk met "gaat mee".</li>
+      <li><b>Het blijft één opdracht, met zijn geschiedenis.</b> Hij krijgt het label "2e week", en de opnames en reacties van alle weken staan erbij. Het vinkje begint elke week opnieuw.</li>
+      <li><b>De beste oplossing, niet de kleinste.</b> Het is nog een proefconcept: de opdracht wordt los van de les, met een koppeling les ↔ opdracht. Op die koppeling komen ook de minuten per dag (AC-122).</li>
+    </ul>
+  </div>
+
+  <h2>1. Huiswerk geven voor de volgende les (laptop)</h2>
+  <p class="note">Bovenaan staat "Loopt nog": de opdrachten van deze les, met wat het kind ervan deed. Vink aan wat meegaat. Nieuwe opdrachten voeg je eronder toe, zoals nu.</p>
+  <div class="frames">
+    <div>
+      <div class="laptop"><div class="scr">
+        <div class="bar"><span class="muted">← Annabel</span></div>
+        <div style="padding:0 14px"><span class="ttl" style="font-size:20px">Huiswerk voor Annabel</span></div>
+        <div class="row" style="padding:10px 14px;gap:10px;align-items:flex-start;flex:1">
+          <div style="flex:1.3;display:flex;flex-direction:column;gap:8px">
+            <div class="card"><div class="cap2">Voor welke les</div><div style="margin-top:5px" class="seg"><span>Deze les</span><span class="on">Volgende les · di 20 – ma 26 okt</span></div></div>
+            <div class="card">
+              <div class="row"><span class="cap2 grow">Loopt nog · gaat mee naar de volgende les?</span><span style="color:var(--a-blue);font-weight:700">alles mee</span></div>
+              <div class="task on"><span class="box on"></span><i>🎵</i><span class="grow"><b>Lang zal ze leven</b> <span class="wk">wordt 2e week</span><br><span class="muted">🎙️ 2 opnames · jouw reactie: 💪 "nog wat stroef"</span></span></div>
+              <div class="task on"><span class="box on"></span><i>🎵</i><span class="grow"><b>Vader Jacob</b> <span class="wk">wordt 2e week</span><br><span class="muted">nog niet opgenomen</span></span></div>
+              <div class="task"><span class="box"></span><i>✓</i><span class="grow"><b>Noten alfabet achteruit zeggen</b><br><span class="muted">deze les afgevinkt ✓</span></span></div>
+              <div class="task"><span class="box"></span><i>🎵</i><span class="grow"><b>Achtste noten 1-2-3</b><br><span class="muted">deze week 4 dagen geoefend</span></span></div>
+            </div>
+            <div class="card">
+              <div class="cap2">Nieuwe opdrachten</div>
+              <div class="task"><i>🎵</i><span class="grow"><b>Toonladder D groot</b><br><span class="muted">uit de bibliotheek</span></span><span class="muted">✕</span></div>
+              <div class="row" style="margin-top:7px;gap:6px"><span class="btn line" style="flex:1">+ Nieuwe opdracht</span></div>
+            </div>
+          </div>
+          <div style="flex:.8" class="card">
+            <div class="cap2">Uit de bibliotheek</div>
+            <div class="task"><i>🎵</i><span class="grow">Toonladder D groot</span><span style="color:var(--a-ok);font-weight:700">✓ erin</span></div>
+            <div class="task"><i>🎵</i><span class="grow">Etude in G</span><span style="color:var(--a-blue);font-weight:700">+</span></div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+            <div class="card">
+              <div class="cap2">Volgende les</div>
+              <div class="task"><i>🎵</i><span class="grow">Lang zal ze leven <span class="wk">2e week</span></span></div>
+              <div class="task"><i>🎵</i><span class="grow">Vader Jacob <span class="wk">2e week</span></span></div>
+              <div class="task"><i>🎵</i><span class="grow">Toonladder D groot</span></div>
+              <div class="row" style="margin-top:8px"><span class="grow muted">15 min per dag · 5 dagen</span></div>
+            </div>
+            <div class="btn" style="margin-top:auto">Opslaan en naar Annabel sturen</div>
+          </div>
+        </div>
+      </div></div>
+      <p class="cap">Wat meegaat, staat rechts al in de volgende les, met "2e week". Wat je niet aanvinkt, blijft bij deze les: niets verdwijnt.</p>
+    </div>
+  </div>
+
+  <h2>2. De leerling: dezelfde opdracht, met zijn geschiedenis</h2>
+  <p class="note">Op Vandaag staat "2e week" bij de opdracht. Op de taakpagina staan de opnames per week, met de reacties. Zo hoort het kind dat het beter gaat.</p>
+  <div class="frames">
+    <div>
+      <div class="ipad"><div class="scr">
+        <div class="bar"><span class="muted">← Vandaag</span><span class="grow"></span><span class="av">A</span></div>
+        <div class="row" style="padding:0 14px 12px;gap:10px;align-items:stretch;flex:1">
+          <div class="card" style="flex:1"><span class="ttl" style="font-size:16px">Lang zal ze leven</span> <span class="wk">2e week</span><br><span class="muted">tot ma 26 okt</span>
+            <div class="card" style="background:var(--a-bg);margin-top:10px"><b>Papa:</b> "Nog een week, let op de lange noten."</div></div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+            <div class="card" style="text-align:center"><b>🎙️ Opnemen</b><br><span class="muted">Tik en speel · hooguit 5 minuten</span><div class="btn" style="margin:6px auto 0;width:60%">●</div></div>
+            <div class="card">
+              <b>Jouw opnames</b>
+              <div class="cap2" style="margin-top:6px">Deze week</div>
+              <div class="rec muted">nog geen opname</div>
+              <div class="cap2" style="margin-top:6px">Vorige week · di 13 – ma 19 okt</div>
+              <div class="rec"><b>Opname 2</b> · zaterdag ▶ <span style="float:right">💪 "nog wat stroef"</span></div>
+              <div class="rec"><b>Opname 1</b> · woensdag ▶</div>
+            </div>
+          </div>
+        </div>
+      </div></div>
+      <p class="cap">De oude opnames blijven luisterbaar tot 4 weken na de laatste les waarin de opdracht zat.</p>
+    </div>
+  </div>
+
+  <h2>3. Hoe het onder de motorkap werkt</h2>
+  <div class="panel">
+    <ul class="clean">
+      <li><b>Huiswerk</b> (van een gever, per les): leerling, start en eind, dagen per week, opmerking.</li>
+      <li><b>Opdracht</b> (nieuw, los van de les): leerling, gever, soort, titel, boek, bladmuziek, voorbeeld, opnemen. Optioneel uit de bibliotheek.</li>
+      <li><b>Huiswerk ↔ opdracht</b> (nieuw): volgorde en het vinkje van die les. Later komen hier ook de minuten per dag (AC-122).</li>
+      <li><b>Opnames en reacties</b> horen bij de opdracht; per week groeperen gaat op datum.</li>
+      <li><b>Meegaan</b> is een extra koppeling van dezelfde opdracht aan het huiswerk van de volgende les.</li>
+    </ul>
+  </div>
+
+  <h2>Nog te kiezen</h2>
+  <ol class="decide">
+    <li><b>Standaard aangevinkt bij "Loopt nog"?</b><p>Alles uit, of wat nog niet af is staat al aan? <span class="ok">Advies: alles uit, met "alles mee" bovenaan. Jij beslist bewust wat langer duurt.</span></p></li>
+    <li><b>Meenemen naar "deze les"</b><p>Kan een opdracht van een eerdere, al afgelopen les ook weer terugkomen, bijvoorbeeld na de vakantie? <span class="ok">Advies: later, via het jaarprogramma en de bibliotheek; nu alleen van deze naar de volgende les.</span></p></li>
+  </ol>
+</main>
+</body>
+</html>

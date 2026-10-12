@@ -5,11 +5,11 @@ import { ageProfile, instrumentNotes } from "@notenkraker/core";
 import { getInstrument } from "@notenkraker/instruments";
 import { client } from "@/lib/client";
 import { useApp } from "@/lib/store";
-import { namesLabel, planVandaag, suggestion, type VandaagRow } from "@/lib/vandaag";
+import { namesLabel, planVandaag, recordingsThisLesson, suggestion, type VandaagRow } from "@/lib/vandaag";
 import { GiverAvatar, mayRecord as mayRecordFor, useNoteLabels } from "@/components/Huiswerk";
 import { loadToday, type TodayData } from "@/lib/vandaagData";
 import { Donut } from "@/components/Donut";
-import { Chip } from "@/components/ui";
+import { Chip, Week } from "@/components/ui";
 
 export type Mode = "learn" | "game" | "vrij";
 
@@ -49,7 +49,7 @@ export function Vandaag({ student, withHomework = true, onPlay, onOpenTask, foot
   const tick = async (t: HomeworkTask) => {
     const next = !t.doneAt;
     setTicked((d) => ({ ...d, [t.id]: next }));
-    try { await client.homework.setTaskDone(t.id, next); } catch { setTicked((d) => ({ ...d, [t.id]: !next })); }
+    try { await client.homework.setTaskDone(t.homeworkItemId, student.id, next); } catch { setTicked((d) => ({ ...d, [t.id]: !next })); }
   };
   const profile = ageProfile(student.ageBand);
   const known = instrumentNotes(getInstrument(student.instrumentId)).filter((n) => statuses[n] === "kent").length;
@@ -127,9 +127,10 @@ function Row({ row: r, labels, onTick, onOpen }: {
   row: VandaagRow; labels: Record<string, string>; onTick(t: HomeworkTask): void; onOpen?(t: HomeworkTask): void;
 }) {
   const line = "flex items-center gap-3 py-3 border-t border-line first:border-t-0 min-w-0";
+  const week = r.kind !== "minuten" && r.task && r.task.week > 1 ? <> <Week n={r.task.week} /></> : null;
   const text = (title: string, sub: string, done = false) => (
     <span className="flex-1 min-w-0">
-      <b className={clsx("block", done && "line-through text-muted")}>{title}</b>
+      <b className={clsx("block", done && "line-through text-muted")}>{title}{week}</b>
       {sub && <span className="text-sm text-muted block">{sub}</span>}
     </span>
   );
@@ -151,7 +152,9 @@ function Row({ row: r, labels, onTick, onOpen }: {
     return <li className={line}><Box done={r.done} onClick={() => onTick(r.task)} label={`${r.task.title} ${r.done ? "gedaan" : "nog niet gedaan"}`} />{open(r.task, text(r.task.title, taskReference(r.task), r.done))}</li>;
   }
   if (r.kind === "opname") {
-    const n = r.task.recordings.length;
+    // deze les; een stuk dat meeging heeft ook opnames van vorige weken (op de taakpagina per week)
+    const deze = recordingsThisLesson(r.task);
+    const n = deze.length;
     const reacted = r.task.recordings.filter((x) => x.reactedAt).at(-1);
     const sub = n ? [`${n} ${n === 1 ? "opname" : "opnames"} ingestuurd`, reacted && `reactie ${reacted.reactionEmoji || "✓"}`].filter(Boolean).join(" · ") : taskReference(r.task);
     return <li className={line}>{open(r.task, <><span aria-hidden="true" className="w-6 text-center text-xl shrink-0">🎙️</span>{text(`${r.task.title} opnemen`, sub)}{r.done && <Box done />}</>)}</li>;
