@@ -55,8 +55,6 @@ export interface Student {
   onboardedAt?: string | null;
   /** de ouder staat toe dat het kind opnames instuurt (AC-118) */
   recordingConsent?: boolean;
-  /** vaste lesdag, 0 = zondag … 6 = zaterdag (0013); null = geen vaste lesdag */
-  lessonWeekday?: number | null;
 }
 
 export interface Guardian { studentId: string; name: string; role: "ouder" | "leraar" }
@@ -244,7 +242,7 @@ export interface AuthApi {
 export interface StudentsApi {
   list(): Promise<Student[]>;
   create(input: { name: string; instrumentId: string; naming?: "nl" | "en" }): Promise<Student>;
-  update(id: string, patch: Partial<Pick<Student, "name" | "instrumentId" | "naming" | "ageBand" | "experience" | "onboardedAt" | "lessonWeekday">>): Promise<Student>;
+  update(id: string, patch: Partial<Pick<Student, "name" | "instrumentId" | "naming" | "ageBand" | "experience" | "onboardedAt">>): Promise<Student>;
   remove(id: string): Promise<void>;
   /** leraar koppelt een leerling via uitnodigingscode */
   linkByCode(code: string): Promise<Student>;

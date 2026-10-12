@@ -10,7 +10,7 @@ const day = (offset: number) => { const d = new Date(2026, 9, 10 + offset); retu
 function hw(opts: Partial<Homework> = {}): Homework {
   return {
     id: "h1", studentId: "s1", givenBy: "marieke", givenByRole: "leraar", givenByName: "Marieke",
-    createdAt: at(1, 17), startDate: day(-1), dueDate: day(6), minutesPerDay: 20, daysPerWeek: 5,
+    groupId: "g1", status: "gegeven", createdAt: at(1, 17), startDate: day(-1), dueDate: day(6), minutesPerDay: 20, daysPerWeek: 5,
     notes: ["d4"], piece: "Toonladder G", pieceNote: "", remark: "", tasks: [], ...opts,
   };
 }
@@ -33,6 +33,11 @@ describe("currentHomework", () => {
   it("toont huiswerk van leraar en ouder naast elkaar", () => {
     const ouder = hw({ id: "ouder", givenBy: "olaf", givenByRole: "ouder", givenByName: "Olaf" });
     expect(currentHomework([hw(), ouder], now).map((h) => h.id).sort()).toEqual(["h1", "ouder"]);
+  });
+
+  it("een afgezegde (gestopte) les telt niet", () => {
+    expect(currentHomework([hw({ status: "afgezegd" })], now)).toEqual([]);
+    expect(upcomingHomework([hw({ status: "afgezegd", startDate: day(3), dueDate: day(9) })], now)).toEqual([]);
   });
 
   it("huiswerk voor de volgende les telt pas vanaf de startdatum", () => {
