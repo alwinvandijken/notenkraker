@@ -55,7 +55,7 @@ export function Taak({ studentId, taskId }: { studentId: string; taskId: string 
             <span className="text-sm whitespace-pre-line"><b>{h.givenByName}:</b> “{h.remark}”</span>
           </div>
         )}
-        {t.kind === "opdracht" && <Afvinken task={t} />}
+        {t.kind === "opdracht" && <Afvinken task={t} studentId={studentId} />}
       </section>
 
       {t.recording && (
@@ -73,11 +73,11 @@ export function Taak({ studentId, taskId }: { studentId: string; taskId: string 
   );
 }
 
-function Afvinken({ task }: { task: HomeworkTask }) {
+function Afvinken({ task, studentId }: { task: HomeworkTask; studentId: string }) {
   const [done, setDone] = useState(!!task.doneAt);
   const tick = async () => {
     const next = !done; setDone(next);
-    try { await client.homework.setTaskDone(task.id, next); } catch { setDone(!next); }
+    try { await client.homework.setTaskDone(task.homeworkItemId, studentId, next); } catch { setDone(!next); }
   };
   return (
     <button type="button" aria-pressed={done} onClick={() => void tick()}
@@ -140,7 +140,7 @@ function Recorder({ studentId, task, onSent }: { studentId: string; task: Homewo
     setFase("insturen"); setError("");
     try {
       const path = await client.files.uploadRecording(studentId, task.id, blob, type.current.ext);
-      await client.homework.submitRecording(task.id, path, seconds);
+      await client.homework.submitRecording(task.id, studentId, path, seconds);
       await onSent();
       setBlob(null); setSeconds(0); setFase("klaar"); setSent(true);
     } catch {

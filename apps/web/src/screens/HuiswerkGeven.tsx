@@ -29,7 +29,7 @@ const WEEKDAGEN = ["zondag", "maandag", "dinsdag", "woensdag", "donderdag", "vri
 const kort = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" });
 
 export function HuiswerkGeven({ studentIds, homeworkId, onDone }: { studentIds: string[]; homeworkId?: string; onDone(): void }) {
-  const { profile, students, loadStudents } = useApp();
+  const { profile, students } = useApp();
   const chosen = students.filter((s) => studentIds.includes(s.id));
   const student = chosen[0];
   const studentId = studentIds.length === 1 ? studentIds[0]! : null;
@@ -46,7 +46,8 @@ export function HuiswerkGeven({ studentIds, homeworkId, onDone }: { studentIds: 
   const [bank, setBank] = useState<BankTask[]>([]);
   const [remark, setRemark] = useState("");
   const [start, setStart] = useState("");
-  const [due, setDue] = useState("");
+  /** de lesdag van mijn groep met deze leerling (rooster, 0014) */
+  const [weekday, setWeekday] = useState<number | null>(null);
   const [picking, setPicking] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,13 +64,14 @@ export function HuiswerkGeven({ studentIds, homeworkId, onDone }: { studentIds: 
   }, []);
   useEffect(() => {
     if (!studentId) return;
+    void client.homework.schedule(studentId).then(setWeekday).catch(() => setWeekday(null));
     void client.notes.list(studentId).then((ns) => setStatuses(Object.fromEntries(ns.map((n) => [n.noteId, n.status]))));
     void Promise.all([client.homework.list(studentId, 50), client.books.list().catch(() => [] as Book[])]).then(([all, myBooks]) => {
       setList(all);
       // aanpassen: dat ene huiswerk, met de bestaande opdrachten (die houden hun vinkje en opnames)
       const h = homeworkId ? all.find((x) => x.id === homeworkId) : undefined;
       if (!h) return;
-      setNotes(h.notes); setMinutes(h.minutesPerDay); setDays(h.daysPerWeek); setRemark(h.remark); setStart(h.startDate); setDue(h.dueDate);
+      setNotes(h.notes); setMinutes(h.minutesPerDay); setDays(h.daysPerWeek); setRemark(h.remark); setStart(h.startDate);
       setTasks(h.tasks.map((t) => draftFromTask(t, myBooks, true)));
     }).catch(() => { /* niets om in te vullen */ });
   }, [studentId, homeworkId]);
@@ -79,7 +81,7 @@ export function HuiswerkGeven({ studentIds, homeworkId, onDone }: { studentIds: 
   if (homeworkId && !editing) return <p className="text-muted">Laden…</p>;
   const who = studentId ? student.name : `${chosen.length} leerlingen`;
   const today = dateKey(new Date());
-  const period = lessonPeriod(student.lessonWeekday, lesson);
+  const period = lessonPeriod(weekday, lesson);
   /** al huiswerk van mij voor de gekozen les: dan komen de opdrachten erbij */
   const existing = !editing && studentId
     ? list.find((h) => h.givenBy === profile?.id && h.dueDate >= today && (lesson === "deze" ? h.startDate <= today : h.startDate > today))
@@ -101,8 +103,8 @@ export function HuiswerkGeven({ studentIds, homeworkId, onDone }: { studentIds: 
       const withBank = await Promise.all(filled.map(async (t) => (t.toBank && !t.bankId
         ? { ...t, bankId: (await client.bank.save({ ...toInput(t), categories: t.categories })).id } : t)));
       const input = { notes, minutesPerDay: minutes, daysPerWeek: days, remark: remark.trim() };
-      if (editing) await client.homework.update(editing.id, { ...input, startDate: start, dueDate: due }, withBank.map(toInput));
-      else await client.homework.giveForLesson(studentIds, lesson, input, withBank.map(toInput));
+      if (editing) await client.homework.update(editing.id, { ...input, startDate: start }, withBank.map(toInput));
+      else await client.homework.give(studentIds, lesson, input, withBank.map(toInput));
       if (asTemplate) {
         const name = templateName.trim() || `${filled[0]?.title.trim() || "Huiswerk"}, ${minutes} min`;
         await client.homework.saveTemplate({ name, notes, minutesPerDay: minutes, daysPerWeek: days, piece: "", pieceNote: "", remark: input.remark, tasks: withBank.map((t) => ({ ...toInput(t), id: undefined })) });
@@ -124,10 +126,10 @@ export function HuiswerkGeven({ studentIds, homeworkId, onDone }: { studentIds: 
     <section aria-label="Voor welke les" className="rounded-3xl bg-surface p-4 flex flex-col gap-2.5">
       <Caption>Voor welke les</Caption>
       <Segmented value={lesson} onChange={setLesson} label="Les" options={(["deze", "volgende"] as Lesson[]).map((l) => {
-        const p = lessonPeriod(student.lessonWeekday, l);
+        const p = lessonPeriod(weekday, l);
         return [l, `${l === "deze" ? "Deze les" : "Volgende les"}${studentId ? ` · ${kort(p.start)} – ${kort(p.due)}` : ""}`] as [Lesson, string];
       })} />
-      {studentId && <Lesdag studentId={studentId} name={student.name} weekday={student.lessonWeekday ?? null} onSaved={() => void loadStudents()} />}
+      {studentId && <Lesdag key={String(weekday)} studentId={studentId} name={student.name} weekday={weekday} onSaved={setWeekday} />}
       {existing
         ? <p className="text-sm m-0 rounded-xl bg-ok/10 px-3 py-2">Je hebt voor deze les al huiswerk gegeven. Wat je hier toevoegt, komt erbij; het doel, de vinkjes en de opnames blijven zoals ze zijn.</p>
         : lesson === "volgende" && <p className="text-sm text-muted m-0">{studentId ? student.name : "De leerling"} ziet dit huiswerk vanaf {studentId ? kort(period.start) : "de volgende lesdag"}.</p>}
@@ -202,8 +204,8 @@ export function HuiswerkGeven({ studentIds, homeworkId, onDone }: { studentIds: 
       <section className="rounded-3xl bg-surface p-4 flex flex-col gap-2">
         {editing ? (
           <>
-            <Datum id="start" label="Begint op" value={start} onChange={setStart} />
-            <Datum id="due" label="Loopt tot" value={due} min={today} onChange={setDue} />
+            <Datum id="start" label="Lesdatum" value={start} onChange={setStart} />
+            <span className="text-xs text-muted">Het huiswerk loopt tot de dag vóór de volgende les{editing ? ` (nu tot ${dueLabel(editing.dueDate)})` : ""}.</span>
           </>
         ) : (
           <span className="text-sm">Loopt van <b>{studentId ? kort(period.start) : "de lesdag"}</b> tot en met <b>{studentId ? kort(period.due) : "de dag voor de volgende les"}</b></span>
@@ -218,7 +220,7 @@ export function HuiswerkGeven({ studentIds, homeworkId, onDone }: { studentIds: 
         <Caption>Overzicht</Caption>
         {notes.length > 0 && <div className="flex flex-wrap gap-1.5">{notes.map((n) => <span key={n} className="rounded-xl px-2.5 py-1 font-bold bg-les text-fg text-sm">{labels[n]}</span>)}</div>}
         {filled.map((t) => <span key={t.key} className="text-sm">{t.kind === "stuk" ? "🎵" : "✓"} <b>{t.title.trim()}</b>{t.recording ? " · 🎙️ opnemen" : ""}</span>)}
-        {!existing && <span className="text-sm text-muted">{minutes} min per dag, {days} {days === 1 ? "dag" : "dagen"} per week{editing ? ` · tot ${dueLabel(due)}` : ` · ${lesson === "deze" ? "deze les" : "volgende les"}`}</span>}
+        {!existing && <span className="text-sm text-muted">{minutes} min per dag, {days} {days === 1 ? "dag" : "dagen"} per week{editing ? ` · tot ${dueLabel(editing.dueDate)}` : ` · ${lesson === "deze" ? "deze les" : "volgende les"}`}</span>}
         {notes.length === 0 && filled.length === 0 && <span className="text-sm text-muted">Nog geen noten of opdrachten.</span>}
       </section>
       {!existing && (
@@ -297,13 +299,13 @@ export function HuiswerkGeven({ studentIds, homeworkId, onDone }: { studentIds: 
 }
 
 /** de vaste lesdag van de leerling; daaruit volgen de data van deze en de volgende les */
-function Lesdag({ studentId, name, weekday, onSaved }: { studentId: string; name: string; weekday: number | null; onSaved(): void }) {
+function Lesdag({ studentId, name, weekday, onSaved }: { studentId: string; name: string; weekday: number | null; onSaved(v: number | null): void }) {
   const [value, setValue] = useState(weekday);
   return (
     <label className="flex flex-wrap items-center gap-2 text-sm">
       <span>Lesdag van {name}:</span>
       <select value={value ?? ""} aria-label={`Lesdag van ${name}`} className={clsx(field, "w-auto py-1.5")}
-        onChange={(e) => { const v = e.target.value === "" ? null : Number(e.target.value); setValue(v); void client.students.update(studentId, { lessonWeekday: v }).then(onSaved).catch(() => setValue(weekday)); }}>
+        onChange={(e) => { const v = e.target.value === "" ? null : Number(e.target.value); setValue(v); void client.homework.setSchedule(studentId, v).then(() => onSaved(v)).catch(() => setValue(weekday)); }}>
         <option value="">geen vaste lesdag</option>
         {WEEKDAGEN.map((d, i) => <option key={d} value={i}>{d}</option>)}
       </select>

@@ -49,7 +49,7 @@ export function Vandaag({ student, withHomework = true, onPlay, onOpenTask, foot
   const tick = async (t: HomeworkTask) => {
     const next = !t.doneAt;
     setTicked((d) => ({ ...d, [t.id]: next }));
-    try { await client.homework.setTaskDone(t.id, next); } catch { setTicked((d) => ({ ...d, [t.id]: !next })); }
+    try { await client.homework.setTaskDone(t.homeworkItemId, student.id, next); } catch { setTicked((d) => ({ ...d, [t.id]: !next })); }
   };
   const profile = ageProfile(student.ageBand);
   const known = instrumentNotes(getInstrument(student.instrumentId)).filter((n) => statuses[n] === "kent").length;

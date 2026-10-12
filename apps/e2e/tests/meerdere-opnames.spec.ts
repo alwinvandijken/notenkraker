@@ -20,15 +20,16 @@ test("twee opnames van hetzelfde stuk, elk met een eigen reactie", async ({ page
   await expect(page.getByRole("heading", { name: "Huiswerk", exact: true })).toBeVisible();
 
   // twee ingestuurde opnames: maandag en vandaag (opnemen zelf kan niet in een browser zonder microfoon)
-  const { data: taak } = await admin.from("homework_tasks").select("id, homework!inner(student_id)").eq("homework.student_id", kind).single();
+  const { data: lid } = await admin.from("group_members").select("group_id").eq("student_id", kind).single();
+  const { data: taak } = await admin.from("assignments").select("id").eq("group_id", lid!.group_id).eq("title", "Lang zal ze leven").single();
   const pad = (n: string) => `${kind}/${taak!.id}/${n}.webm`;
   for (const n of ["maandag", "zaterdag"]) {
     const { error } = await admin.storage.from("opnames").upload(pad(n), new Blob(["x"], { type: "audio/webm" }));
     expect(error).toBeNull();
   }
-  const { error } = await admin.from("task_recordings").insert([
-    { task_id: taak!.id, path: pad("maandag"), submitted_at: new Date(Date.now() - 5 * 864e5).toISOString() },
-    { task_id: taak!.id, path: pad("zaterdag"), submitted_at: new Date().toISOString() },
+  const { error } = await admin.from("recordings").insert([
+    { assignment_id: taak!.id, student_id: kind, path: pad("maandag"), submitted_at: new Date(Date.now() - 5 * 864e5).toISOString() },
+    { assignment_id: taak!.id, student_id: kind, path: pad("zaterdag"), submitted_at: new Date().toISOString() },
   ]);
   expect(error).toBeNull();
 
@@ -40,7 +41,7 @@ test("twee opnames van hetzelfde stuk, elk met een eigen reactie", async ({ page
   await page.getByRole("group", { name: "Reactie op opname 1" }).getByRole("button", { name: "💪" }).click();
   await page.getByRole("group", { name: "Reactie op opname 2" }).getByRole("button", { name: "⭐" }).click();
   await expect(page.getByRole("group", { name: "Reactie op opname 2" }).getByRole("button", { name: "⭐" })).toHaveAttribute("aria-pressed", "true");
-  await expect.poll(async () => (await admin.from("task_recordings").select("reaction_emoji").eq("task_id", taak!.id).order("submitted_at")).data?.map((r) => r.reaction_emoji))
+  await expect.poll(async () => (await admin.from("recordings").select("reaction_emoji").eq("assignment_id", taak!.id).order("submitted_at")).data?.map((r) => r.reaction_emoji))
     .toEqual(["💪", "⭐"]);
 
   // het kind ziet beide opnames met hun reactie, en gooit er een weg

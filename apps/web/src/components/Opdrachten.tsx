@@ -211,15 +211,16 @@ const REACTIONS = ["👍", "⭐", "🎉", "💪"];
  * opdrachten in de huiswerkkaart. `viewer`: "pupil" vinkt af en neemt op, "giver" (wie het huiswerk
  * gaf) luistert en reageert, "other" (ouder, andere leraar) luistert mee.
  */
-export function OpdrachtenLijst({ tasks, viewer = "other", mayRecord, onRecord, dueDate }: {
-  tasks: HomeworkTask[]; viewer?: "pupil" | "giver" | "other"; mayRecord?: boolean; onRecord?(task: HomeworkTask): void; dueDate: string;
+export function OpdrachtenLijst({ tasks, studentId, viewer = "other", mayRecord, onRecord, dueDate }: {
+  /** de leerling van wie het vinkje is (in een groepsles vinkt ieder kind zelf af) */
+  tasks: HomeworkTask[]; studentId: string; viewer?: "pupil" | "giver" | "other"; mayRecord?: boolean; onRecord?(task: HomeworkTask): void; dueDate: string;
 }) {
   const [done, setDone] = useState<Record<string, boolean>>(() => Object.fromEntries(tasks.map((t) => [t.id, !!t.doneAt])));
   if (tasks.length === 0) return null;
   const tick = async (t: HomeworkTask) => {
     const next = !done[t.id];
     setDone((d) => ({ ...d, [t.id]: next }));
-    try { await client.homework.setTaskDone(t.id, next); } catch { setDone((d) => ({ ...d, [t.id]: !next })); }
+    try { await client.homework.setTaskDone(t.homeworkItemId, studentId, next); } catch { setDone((d) => ({ ...d, [t.id]: !next })); }
   };
   return (
     <ul className="m-0 p-0 list-none flex flex-col gap-2.5">

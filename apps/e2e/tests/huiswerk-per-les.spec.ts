@@ -63,12 +63,15 @@ test("toevoegen aan deze les houdt vinkjes; volgende les ziet het kind nog niet"
   await page.getByRole("button", { name: "Noor: details" }).click();
   await page.getByRole("button", { name: "Aanpassen →" }).first().click();
   await expect(page.getByRole("heading", { name: /Huiswerk aanpassen/ })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Titel van de opdracht" }).first()).toBeVisible();
   const volgende = page.getByRole("button", { name: "Volgende: doel" });
   if (await volgende.isVisible()) await volgende.click();
   await page.getByRole("button", { name: "Minuten per dag meer" }).click();
   const naarVersturen = page.getByRole("button", { name: "Volgende: versturen" });
   if (await naarVersturen.isVisible()) await naarVersturen.click();
   await page.getByRole("button", { name: "Wijzigingen opslaan" }).click();
+  // na het opslaan terug op de pagina van Noor (pas dan verder, anders haalt "terug" ons later in)
+  await expect(page.getByRole("heading", { name: "Noor", exact: true })).toBeVisible();
   await expect(page.getByText("20 min per dag", { exact: false }).first()).toBeVisible();
   await kiesInMenu(page, "Zelf oefenen");
   await expect(page.getByRole("list", { name: "Huiswerk" }).getByRole("button", { name: "Notenalfabet achteruit gedaan" })).toBeVisible();
