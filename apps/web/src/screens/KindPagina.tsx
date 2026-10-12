@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { getInstrument } from "@notenkraker/instruments";
-import { dateKey } from "@notenkraker/client";
+import { dateKey, homeworkProgress, upcomingHomework } from "@notenkraker/client";
 import { client, hasBackend } from "@/lib/client";
 import { useApp } from "@/lib/store";
 import { KindUitnodigen } from "@/components/KindUitnodigen";
@@ -20,7 +20,9 @@ const tabFromHistory = (): Tab => (TABS.some(([t]) => t === window.history.state
  * notenspel; tik op een dag of sessie voor de dagpagina. Noten: wat het kind kent, in de les heeft en
  * nog lastig vindt.
  */
-export function KindPagina({ studentId, onPractice, onOpenDay, onGiveHomework }: { studentId: string; onPractice(): void; onOpenDay(date: string): void; onGiveHomework(): void }) {
+export function KindPagina({ studentId, onPractice, onOpenDay, onGiveHomework, onEditHomework }: {
+  studentId: string; onPractice(): void; onOpenDay(date: string): void; onGiveHomework(): void; onEditHomework(homeworkId: string): void;
+}) {
   const { profile, loadStudents } = useApp();
   const row = useChildRows()?.find((r) => r.student.id === studentId);
   const [invite, setInvite] = useState<string | null>(null);
@@ -37,6 +39,8 @@ export function KindPagina({ studentId, onPractice, onOpenDay, onGiveHomework }:
   const isOuder = profile?.role === "ouder";
   const canGive = profile?.role === "ouder" || profile?.role === "leraar";
   const mine = row.homework.find((x) => x.h.givenBy === profile?.id);
+  /** huiswerk voor de volgende les; alleen wie het gaf krijgt het van de database (0013) */
+  const upcoming = upcomingHomework(row.homeworkAll);
 
   return (
     <div className="flex flex-col gap-4 min-w-0">
@@ -68,12 +72,27 @@ export function KindPagina({ studentId, onPractice, onOpenDay, onGiveHomework }:
       <div><Segmented value={tab} onChange={setTab} label="Tabbladen" options={TABS} /></div>
 
       {tab === "huiswerk" && (
-      <div className="grid gap-4 lg:grid-cols-2 min-w-0 items-start">
-        {row.homework.map((x) => (
-          <HuiswerkKaart key={x.h.id} item={x} instrumentId={student.instrumentId} mine={x.h.givenBy === profile?.id} onEdit={onGiveHomework} />
-        ))}
-        {row.homework.length === 0 && (
-          <p className="text-muted m-0">{canGive && !mine ? `Nog geen huiswerk. Met "Huiswerk geven" geef je ${student.name} noten, opdrachten en een doel per dag.` : "Nog geen huiswerk."}</p>
+      <div className="flex flex-col gap-4 min-w-0">
+        <Label>Deze les</Label>
+        <div className="grid gap-4 lg:grid-cols-2 min-w-0 items-start -mt-2">
+          {row.homework.map((x) => (
+            // aanpassen verandert dit huiswerk zelf: vinkjes, opnames en voortgang blijven (0013)
+            <HuiswerkKaart key={x.h.id} item={x} instrumentId={student.instrumentId} mine={x.h.givenBy === profile?.id} onEdit={() => onEditHomework(x.h.id)} />
+          ))}
+          {row.homework.length === 0 && (
+            <p className="text-muted m-0">{canGive && !mine ? `Nog geen huiswerk. Met "Huiswerk geven" geef je ${student.name} noten, opdrachten en een doel per dag.` : "Nog geen huiswerk."}</p>
+          )}
+        </div>
+        {upcoming.length > 0 && (
+          <>
+            <Label>Volgende les</Label>
+            <div className="grid gap-4 lg:grid-cols-2 min-w-0 items-start -mt-2">
+              {upcoming.map((h) => (
+                <HuiswerkKaart key={h.id} item={{ h, p: homeworkProgress(h, { rounds: row.rounds, sessions: row.sessions }) }} instrumentId={student.instrumentId}
+                  mine={h.givenBy === profile?.id} onEdit={() => onEditHomework(h.id)} />
+              ))}
+            </div>
+          </>
         )}
       </div>
       )}

@@ -1,5 +1,5 @@
 import { dateKey } from "./dashboard.js";
-import type { Homework, PracticeSession, Round } from "./types.js";
+import type { Homework, Lesson, PracticeSession, Round } from "./types.js";
 
 /**
  * Hoe gaat het met het huiswerk (AC-113)? Een dag telt als gehaald als het notenspel en vrij
@@ -33,15 +33,29 @@ const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDat
 const daysBetween = (from: Date, to: Date) => Math.round((startOfDay(to).getTime() - startOfDay(from).getTime()) / 86_400_000);
 const toMinutes = (ms: number) => (ms > 0 ? Math.max(1, Math.round(ms / 60_000)) : 0);
 
-/** per gever het nieuwste huiswerk dat nog loopt (einddatum vandaag of later), nieuwste eerst */
+/** al het huiswerk dat nog loopt (einddatum vandaag of later), nieuwste eerst */
 export function currentHomework(list: Homework[], now = new Date()): Homework[] {
   const today = dateKey(now);
-  const newest = new Map<string, Homework>();
-  for (const h of list) {
-    const seen = newest.get(h.givenBy);
-    if (!seen || h.createdAt > seen.createdAt) newest.set(h.givenBy, h);
-  }
-  return [...newest.values()].filter((h) => h.dueDate >= today).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  // de lopende les(sen); huiswerk voor de volgende les telt pas vanaf de startdatum (0013)
+  return list.filter((h) => (h.startDate ?? "") <= today && h.dueDate >= today).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+/** huiswerk dat nog moet beginnen (de volgende les); alleen wie het gaf krijgt het van de database */
+export function upcomingHomework(list: Homework[], now = new Date()): Homework[] {
+  const today = dateKey(now);
+  return list.filter((h) => (h.startDate ?? "") > today).sort((a, b) => a.startDate.localeCompare(b.startDate));
+}
+
+/**
+ * Start en eind van deze of de volgende les, zoals lesson_period in de database (0013). Met een vaste lesdag
+ * loopt een les van lesdag tot de dag vóór de volgende; zonder lesdag begint deze les vandaag.
+ */
+export function lessonPeriod(weekday: number | null | undefined, which: Lesson, now = new Date()): { start: string; due: string } {
+  const day = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const back = weekday === null || weekday === undefined ? 0 : (day.getDay() - weekday + 7) % 7;
+  const start = new Date(day.getFullYear(), day.getMonth(), day.getDate() - back + (which === "volgende" ? 7 : 0));
+  const due = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
+  return { start: dateKey(start), due: dateKey(due) };
 }
 
 /** geoefende minuten per dag (jjjj-mm-dd): notenspel en vrij oefenen, elk afgerond zoals op het dashboard */
