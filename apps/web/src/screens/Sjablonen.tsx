@@ -29,7 +29,7 @@ export function Sjablonen() {
             <b className="font-display text-lg">{t.name}</b>
             <span className="text-sm text-muted">{t.minutesPerDay} min per dag, {t.daysPerWeek} {t.daysPerWeek === 1 ? "dag" : "dagen"} per week{t.piece ? ` · 🎵 ${t.piece}` : ""}</span>
             {t.notes.length > 0 && <div className="flex flex-wrap gap-1">{t.notes.map((n) => <span key={n} className="rounded-lg px-2 py-0.5 text-sm font-bold bg-les">{labels[n] ?? n}</span>)}</div>}
-            {t.remark && <span className="text-sm">💬 “{t.remark}”</span>}
+            {t.remark && <span className="text-sm whitespace-pre-line">💬 “{t.remark}”</span>}
           </div>
           <button type="button" onClick={() => void remove(t)} className="text-sm font-semibold text-wrong bg-transparent cursor-pointer shrink-0">Weghalen</button>
         </section>
