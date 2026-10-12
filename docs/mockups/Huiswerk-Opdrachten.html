@@ -120,7 +120,7 @@ h2.t{margin:0;font-size:26px;line-height:1.05}
   <p class="who">Leraar · iPhone staand</p>
   <div class="row">
     <div class="step">
-      <div class="label"><div class="num">1</div><div><b>Huiswerk geven: opdrachten</b><span>Onder noten en oefendoel staan de opdrachten. “+ Opdracht” kiest de soort. Per stuk: waar de noten staan (boek of eigen upload) en of de leerling een opname maakt.</span></div></div>
+      <div class="label"><div class="num">1</div><div><b>Huiswerk geven: opdrachten</b><span>Onder noten en oefendoel staan de opdrachten. “+ Opdracht” kiest de soort. Per stuk: het boek uit je eigen boekenlijst (stap 7) met bladzijde, hoofdstuk, nummer en/of track, of een eigen upload; en of de leerling een opname maakt.</span></div></div>
       <div class="phone" style="height:auto">
         <div class="back">← Lotte</div>
         <h2 class="t">Huiswerk voor Lotte</h2>
@@ -131,7 +131,14 @@ h2.t{margin:0;font-size:26px;line-height:1.05}
             <div class="hd"><span class="kind">Stuk spelen</span><span class="grow"></span><span class="xs muted">✕</span></div>
             <div class="field">🎵 Lang zal ze leven</div>
             <div class="seg"><span class="on">Uit een boek</span><span>Eigen bladmuziek</span></div>
-            <div style="display:flex;gap:6px"><div class="field grow">📖 Saxofoon Methode 1</div><div class="field" style="width:84px">blz. 23</div></div>
+            <div class="field" style="display:flex;justify-content:space-between">📖 Saxofoon Methode 1 <span class="muted">▾</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+              <div class="field small"><span class="xs muted">Bladzijde</span><br>23</div>
+              <div class="field small"><span class="xs muted">Hoofdstuk</span><br>4</div>
+              <div class="field small"><span class="xs muted">Nummer</span><br>12</div>
+              <div class="field small"><span class="xs muted">Track</span><br>17</div>
+            </div>
+            <div class="xs muted">Alleen invullen wat nodig is. Boek kiezen uit je eigen boekenlijst.</div>
             <div class="pdf">🎧 Voorbeeldopname toevoegen <span class="xs">(mag)</span></div>
             <div class="check"><span class="box on">✓</span> Lotte neemt het op en stuurt het in</div>
           </div>
@@ -172,7 +179,7 @@ h2.t{margin:0;font-size:26px;line-height:1.05}
           <div class="small"><b>Vandaag 10 van 20 min</b> · 4 van 5 dagen</div>
           <div class="task">
             <div class="hd"><span class="kind">Stuk</span>Lang zal ze leven</div>
-            <div class="xs muted">📖 Saxofoon Methode 1, blz. 23</div>
+            <div class="xs muted">📖 Saxofoon Methode 1 · hoofdstuk 4 · blz. 23 · nr. 12 · track 17</div>
             <div class="btn" style="margin:0;height:40px;font-size:14px">🎙️ Opnemen en insturen</div>
           </div>
           <div class="task">
@@ -255,6 +262,35 @@ h2.t{margin:0;font-size:26px;line-height:1.05}
     </div>
   </div>
 
+  <p class="who">Leraar · iPhone staand en desktop</p>
+  <div class="row">
+    <div class="step">
+      <div class="label"><div class="num">7</div><div><b>Mijn boeken</b><span>Een eigen pagina in het menu van de leraar. Hier zet je de boeken die je gebruikt, één keer. Bij het huiswerk kies je er dan een uit de lijst.</span></div></div>
+      <div class="phone" style="height:auto">
+        <h2 class="t">Mijn boeken</h2>
+        <div class="card" style="padding:4px 14px">
+          <div class="lrow"><span style="font-size:22px">📘</span><div class="grow"><div class="name">Saxofoon Methode 1</div><div class="xs muted">De Haske · met audio-tracks</div></div><span class="chev">›</span></div>
+          <div class="lrow"><span style="font-size:22px">📗</span><div class="grow"><div class="name">Saxofoon Methode 2</div><div class="xs muted">De Haske · met audio-tracks</div></div><span class="chev">›</span></div>
+          <div class="lrow"><span style="font-size:22px">📙</span><div class="grow"><div class="name">Etudes voor beginners</div><div class="xs muted">eigen bundel</div></div><span class="chev">›</span></div>
+        </div>
+        <div class="btn" style="margin-top:4px">+ Boek toevoegen</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="label"><div class="num">7b</div><div><b>Boek toevoegen</b><span>Titel, en eventueel uitgever of schrijver. Een vinkje of het boek audio-tracks heeft (cd of download), dan vraagt het huiswerk om een tracknummer.</span></div></div>
+      <div class="phone" style="height:auto">
+        <div class="back">← Mijn boeken</div>
+        <h2 class="t">Boek toevoegen</h2>
+        <div class="card" style="display:flex;flex-direction:column;gap:8px">
+          <span class="cap">Titel</span><div class="field">Saxofoon Methode 1</div>
+          <span class="cap">Uitgever of schrijver (mag)</span><div class="field">De Haske</div>
+          <div class="check"><span class="box on">✓</span> Met audio-tracks (cd of download)</div>
+        </div>
+        <div class="btn">Opslaan</div>
+      </div>
+    </div>
+  </div>
+
   <div class="rules">
     <h2>Keuzes in dit ontwerp</h2>
     <h3>Opdrachten</h3>
@@ -262,6 +298,7 @@ h2.t{margin:0;font-size:26px;line-height:1.05}
       <li>Huiswerk houdt noten, oefendoel, einddatum en opmerking (bestaat). Daaronder nul of meer opdrachten.</li>
       <li><b>Stuk spelen:</b> titel; bron is een boek (naam + pagina/nummer) óf eigen bladmuziek (pdf of foto, door de leraar geüpload); eventueel een voorbeeldopname van de leraar; vinkje “neemt het op en stuurt het in”.</li>
       <li><b>Opdracht:</b> vrije tekst; de leerling vinkt af.</li>
+      <li><b>Boeken:</b> elke leraar (en ouder) heeft een eigen boekenlijst (“Mijn boeken”). Bij een stuk kies je een boek en vul je in wat nodig is: bladzijde, hoofdstuk, nummer en/of track (track alleen bij boeken met audio).</li>
       <li>Het oude veld “Stuk of oefening” wordt een opdracht “Stuk spelen” zonder opname.</li>
       <li>Sjablonen (AC-117) bewaren de opdrachten mee, zonder de bestanden.</li>
     </ul>
@@ -279,7 +316,7 @@ h2.t{margin:0;font-size:26px;line-height:1.05}
     </ul>
     <h3>Techniek (voor later)</h3>
     <ul>
-      <li>Tabel <code>homework_tasks</code> (huiswerk, soort, titel, boek, pagina, bestand, voorbeeld, opname gevraagd) en <code>task_submissions</code> (leerling, afgevinkt, opname, ingestuurd, reactie, verwijderd op).</li>
+      <li>Tabel <code>books</code> (eigenaar, titel, uitgever, met audio). Tabel <code>homework_tasks</code> (huiswerk, soort, titel, boek, bladzijde, hoofdstuk, nummer, track, bestand, voorbeeld, opname gevraagd) en <code>task_submissions</code> (leerling, afgevinkt, opname, ingestuurd, reactie, verwijderd op).</li>
       <li>Privé Storage-buckets <code>bladmuziek</code> en <code>opnames</code>, met regels die dezelfde toegang volgen als het huiswerk.</li>
       <li>Opruimen: <code>pg_cron</code> (of een geplande Edge Function) verwijdert elke nacht verlopen opnames uit Storage.</li>
     </ul>
