@@ -121,7 +121,7 @@ export function AnoniemApp() {
           </div>} />
       )}
       {screen === "spel" && <Game onDone={() => go("start")} />}
-      {screen === "vrij" && <VrijOefenen after={nudge("Wil je dat je ouder of leraar dit ziet? Met een gratis account bewaar je je oefentijd en kijken zij mee.")} />}
+      {screen === "vrij" && <VrijOefenen onDone={() => go("start")} after={nudge("Wil je dat je ouder of leraar dit ziet? Met een gratis account bewaar je je oefentijd en kijken zij mee.")} />}
       {tabBalk}
     </div>
   );
