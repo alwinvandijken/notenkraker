@@ -2,7 +2,7 @@
 -- Draaien: supabase start && supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(18);
+select plan(19);
 
 delete from auth.users;
 create function pg_temp.als(uid uuid) returns void language plpgsql as $$
@@ -51,33 +51,35 @@ select is((select count(*)::int from task_bank), 0, 'Een ander ziet haar bank ni
 
 -- ── Huiswerk met opdrachten ──────────────────────────────────────────
 select pg_temp.als((select id from ids where naam = 'marieke'));
-select is(give_homework_with_tasks(array[(select id from ids where naam = 'sem'), (select id from ids where naam = 'noor')],
-  '["g4"]', 15, 5, 'Succes!', current_date + 7,
-  jsonb_build_array(
+create function pg_temp.taken() returns jsonb language sql as $$ select jsonb_build_array(
     jsonb_build_object('kind', 'stuk', 'title', 'Lang zal ze leven', 'book_id', (select id from ids where naam = 'boek'), 'page', '23', 'chapter', '4', 'number', '12', 'track', '17'),
-    jsonb_build_object('kind', 'opdracht', 'title', 'Alfabet achteruit'))), 2, 'Huiswerk met twee opdrachten voor twee leerlingen');
-select is((select count(*)::int from homework_tasks), 4, 'Elke leerling krijgt eigen opdrachten');
-select is((select book_title || ' ' || page || ' ' || track from homework_tasks where kind = 'stuk' limit 1), 'Saxofoon Methode 1 23 17',
+    jsonb_build_object('kind', 'opdracht', 'title', 'Alfabet achteruit')) $$;
+grant execute on all functions in schema pg_temp to authenticated;
+select isnt(give_homework(ensure_group((select id from ids where naam = 'sem')), 'deze', '["g4"]', 15, 5, 'Succes!', pg_temp.taken(), '{}'), null, 'Huiswerk met twee opdrachten voor Sem');
+select isnt(give_homework(ensure_group((select id from ids where naam = 'noor')), 'deze', '["g4"]', 15, 5, 'Succes!', pg_temp.taken(), '{}'), null, 'en voor Noor');
+select is((select count(*)::int from assignments), 4, 'Elke leerling krijgt eigen opdrachten (in zijn eigen privégroep)');
+select is((select book_title || ' ' || page || ' ' || track from assignments where kind = 'stuk' limit 1), 'Saxofoon Methode 1 23 17',
   'De boektitel wordt meegegeven (de leerling mag de boekenlijst niet lezen)');
-select throws_ok($$ select give_homework_with_tasks(array[(select id from ids where naam = 'sem')], '[]', 15, 5, '', current_date + 7,
-  '[{"kind":"stuk","title":""}]') $$, 'P0001', 'ongeldige opdracht', 'Een opdracht zonder titel wordt geweigerd');
-select is((select count(*)::int from homework), 2, 'Bij een fout wordt niets opgeslagen');
+select throws_ok($$ select give_homework(ensure_group((select id from ids where naam = 'sem')), 'deze', '[]', 15, 5, '', '[{"kind":"stuk","title":""}]', '{}') $$,
+  'P0001', 'ongeldige opdracht', 'Een opdracht zonder titel wordt geweigerd');
+select is((select count(*)::int from assignments), 4, 'Bij een fout wordt niets opgeslagen');
 
 -- ── Leerling ziet en vinkt af ────────────────────────────────────────
 select pg_temp.als((select id from ids where naam = 'lotte'));
-select is((select count(*)::int from homework_tasks), 2, 'De leerling ziet alleen haar eigen opdrachten');
-select lives_ok($$ select set_task_done((select id from homework_tasks where kind = 'opdracht'), true) $$, 'De leerling vinkt een opdracht af');
-select isnt((select done_at from homework_tasks where kind = 'opdracht'), null, 'Afgevinkt');
-select throws_ok($$ update homework_tasks set title = 'anders' $$, '42501', null, 'De leerling verandert de opdracht niet');
+select is((select count(*)::int from assignments), 2, 'De leerling ziet alleen haar eigen opdrachten');
+select lives_ok($$ select set_done((select h.id from homework h join assignments a on a.id = h.assignment_id where a.kind = 'opdracht'), (select id from ids where naam = 'sem'), true) $$,
+  'De leerling vinkt een opdracht af');
+select is((select count(*)::int from homework_done), 1, 'Afgevinkt');
+select throws_ok($$ update assignments set title = 'anders' $$, '42501', null, 'De leerling verandert de opdracht niet');
 select pg_temp.als((select id from ids where naam = 'olaf'));
-select throws_ok($$ select set_task_done((select id from homework_tasks limit 1), true) $$, 'P0001', 'geen toegang', 'Een vreemde vinkt niets af');
+select throws_ok($$ select set_done((select h.id from homework h limit 1), (select id from ids where naam = 'sem'), true) $$, 'P0001', 'geen toegang', 'Een vreemde vinkt niets af');
 
 -- ── Toewijzen vanuit de bank ─────────────────────────────────────────
 select pg_temp.als((select id from ids where naam = 'marieke'));
 select is(assign_tasks(array[(select id from ids where naam = 'sem')], array[(select id from ids where naam = 'bank2')], current_date + 7), 1,
   'Opdracht uit de bank toegewezen aan Sem');
-select is((select count(*)::int from homework_tasks t join homework h on h.id = t.homework_id where h.student_id = (select id from ids where naam = 'sem')), 3,
-  'Hij komt bij het lopende huiswerk van de leraar (geen nieuw huiswerk)');
+select is((select count(*)::int from homework h join lessons l on l.id = h.lesson_id join group_members m on m.group_id = l.group_id where m.student_id = (select id from ids where naam = 'sem')), 3,
+  'Hij komt bij de lopende les van de leraar (geen nieuwe les)');
 
 select * from finish();
 rollback;
