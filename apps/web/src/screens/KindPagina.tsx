@@ -14,9 +14,11 @@ import { activityOf, ActivityRow, Avatar, Label, PracticeChart, SessionRow, Stre
  * iPad in twee kolommen. Tik op een dag of sessie voor de dagpagina met de details.
  */
 export function KindPagina({ studentId, onPractice, onOpenDay, onGiveHomework }: { studentId: string; onPractice(): void; onOpenDay(date: string): void; onGiveHomework(): void }) {
-  const { profile } = useApp();
+  const { profile, loadStudents } = useApp();
   const row = useChildRows()?.find((r) => r.student.id === studentId);
   const [invite, setInvite] = useState<string | null>(null);
+  /** direct tonen wat je aanklikt; daarna komt het via loadStudents uit de database */
+  const [consent, setConsent] = useState<boolean | null>(null);
   const labels = useNoteLabels(row?.student.instrumentId ?? "altsax");
 
   if (!row) return <p className="text-muted">Laden…</p>;
@@ -43,6 +45,14 @@ export function KindPagina({ studentId, onPractice, onOpenDay, onGiveHomework }:
             <Chip onClick={() => void client.students.inviteCode(student.id, "kind").then(setInvite)}>Laten inloggen</Chip>
           )}
         </div>
+        {hasBackend && student.ownerId === profile?.id && student.ageBand !== "18+" && (
+          <label className="flex items-start gap-2 text-sm cursor-pointer">
+            <input type="checkbox" checked={consent ?? !!student.recordingConsent} className="w-5 h-5 mt-0.5 accent-[var(--color-ok)] shrink-0"
+              onChange={(e) => { const on = e.target.checked; setConsent(on); void client.students.setRecordingConsent(student.id, on).then(loadStudents).catch(() => setConsent(!on)); }} />
+            <span>{student.name} mag opnames insturen
+              <span className="block text-xs text-muted">Bij huiswerk waarin om een opname wordt gevraagd. Alleen {student.name}, jij en de leraren kunnen ze beluisteren; ze worden 4 weken na de einddatum verwijderd.</span></span>
+          </label>
+        )}
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2 min-w-0">

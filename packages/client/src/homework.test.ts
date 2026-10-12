@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { allCategories, currentHomework, dueLabel, homeworkProgress, taskReference, worstStatus } from "./homework.js";
+import { allCategories, recordingKeptUntil, currentHomework, dueLabel, homeworkProgress, taskReference, worstStatus } from "./homework.js";
 import type { Homework, PracticeSession, Round } from "./types.js";
 
 // Zaterdag 10 oktober 2026, 16:00 lokale tijd
@@ -119,5 +119,12 @@ describe("allCategories", () => {
   it("begint met de vaste lijst en voegt eigen categorieën toe, zonder dubbele", () => {
     expect(allCategories([["Toonladders", "Kerst"], ["kerst", "Duetten"]]))
       .toEqual(["Toonladders", "Etudes", "Liedjes", "Theorie", "Techniek", "Kerst", "Duetten"]);
+  });
+});
+
+describe("recordingKeptUntil", () => {
+  it("bewaart een opname tot 4 weken na de einddatum", () => {
+    expect(recordingKeptUntil("2026-10-16")).toBe("2026-11-13");
+    expect(recordingKeptUntil("2026-12-20")).toBe("2027-01-17");
   });
 });

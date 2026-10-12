@@ -1,7 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { promotionCandidates, scoreRound } from "@notenkraker/core";
 import type {
-  AdminApi, AdminUser, AuthApi, BankApi, BankTask, Book, BooksApi, HomeworkTask, TaskInput, Guardian, Feedback, FeedbackApi, Homework, HomeworkApi, HomeworkTemplate, InvitePurpose, NotenkrakerClient, NotesApi, PracticeApi, PracticeSession, Profile, Progress, Role, Round, RoundsApi, RoundSubmission,
+  AdminApi, AdminUser, AuthApi, BankApi, FilesApi, BankTask, Book, BooksApi, HomeworkTask, TaskInput, Guardian, Feedback, FeedbackApi, Homework, HomeworkApi, HomeworkTemplate, InvitePurpose, NotenkrakerClient, NotesApi, PracticeApi, PracticeSession, Profile, Progress, Role, Round, RoundsApi, RoundSubmission,
   SelfRole, Song, SongsApi, Student, StudentNote, StudentsApi,
 } from "./types.js";
 
@@ -59,9 +59,9 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
 
   const rowToStudent = (r: Record<string, unknown>): Student => ({
     id: r.id as string, name: r.name as string, instrumentId: r.instrument_id as string,
-    naming: (r.naming as "nl" | "en") ?? "nl", userId: (r.user_id as string | null) ?? null, createdAt: r.created_at as string,
+    naming: (r.naming as "nl" | "en") ?? "nl", userId: (r.user_id as string | null) ?? null, ownerId: r.owner_id as string, createdAt: r.created_at as string,
     ageBand: (r.age_band as Student["ageBand"]) ?? null, experience: (r.experience as Student["experience"]) ?? null,
-    onboardedAt: (r.onboarded_at as string | null) ?? null,
+    onboardedAt: (r.onboarded_at as string | null) ?? null, recordingConsent: r.recording_consent === true,
   });
 
   const students: StudentsApi = {
@@ -102,6 +102,10 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
       const { data, error } = await sb.functions.invoke("invite-code", { body: { studentId, purpose } });
       if (error) throw error;
       return data.code as string;
+    },
+    async setRecordingConsent(studentId, allowed) {
+      const { error } = await sb.rpc("set_recording_consent", { p_student: studentId, p_allowed: allowed });
+      if (error) throw error;
     },
     async guardians() {
       const { data, error } = await sb.rpc("my_guardians");
@@ -219,10 +223,15 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
     title: r.title as string, bookTitle: (r.book_title as string) ?? "", bookAuthor: (r.book_author as string) ?? "",
     page: (r.page as string) ?? "", chapter: (r.chapter as string) ?? "", number: (r.number as string) ?? "", track: (r.track as string) ?? "",
     doneAt: (r.done_at as string | null) ?? null,
+    sheetPath: (r.sheet_path as string | null) ?? null, sheetName: (r.sheet_name as string) ?? "", examplePath: (r.example_path as string | null) ?? null,
+    recording: r.recording === true, recordingPath: (r.recording_path as string | null) ?? null, submittedAt: (r.submitted_at as string | null) ?? null,
+    recordingDeletedAt: (r.recording_deleted_at as string | null) ?? null, reactionEmoji: (r.reaction_emoji as string) ?? "",
+    reaction: (r.reaction as string) ?? "", reactedAt: (r.reacted_at as string | null) ?? null,
   });
   /** opdracht in de vorm die de databasefuncties verwachten */
   const taskToJson = (t: TaskInput) => ({
     kind: t.kind, title: t.title, book_id: t.bookId ?? null, page: t.page, chapter: t.chapter, number: t.number, track: t.track, bank_id: t.bankId ?? null,
+    sheet_path: t.sheetPath ?? null, sheet_name: t.sheetName ?? "", example_path: t.examplePath ?? null, recording: t.recording ?? false,
   });
 
   const rowToTemplate = (r: Record<string, unknown>): HomeworkTemplate => ({
@@ -283,6 +292,42 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
       const { error } = await sb.rpc("set_task_done", { p_task: taskId, p_done: done });
       if (error) throw error;
     },
+    async submitRecording(taskId, path) {
+      const { error } = await sb.rpc("submit_recording", { p_task: taskId, p_path: path });
+      if (error) throw error;
+    },
+    async react(taskId, emoji, text) {
+      const { error } = await sb.rpc("react_to_task", { p_task: taskId, p_emoji: emoji, p_text: text });
+      if (error) throw error;
+    },
+  };
+
+  /** bestandsnaam veilig maken voor Storage: letters, cijfers, punt, streepje */
+  const safe = (name: string) => name.normalize("NFKD").replace(/[^\w.-]+/g, "-").slice(-80) || "bestand";
+  const files: FilesApi = {
+    async uploadSheet(file, name) {
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) throw new Error("niet ingelogd");
+      const path = `${user.id}/${crypto.randomUUID()}-${safe(name)}`;
+      const { error } = await sb.storage.from("bladmuziek").upload(path, file, { contentType: file.type || undefined });
+      if (error) throw error;
+      return path;
+    },
+    async uploadRecording(studentId, taskId, audio, ext) {
+      const path = `${studentId}/${taskId}/${Date.now()}.${ext}`;
+      const { error } = await sb.storage.from("opnames").upload(path, audio, { contentType: audio.type || undefined });
+      if (error) throw error;
+      return path;
+    },
+    async removeRecording(path) {
+      const { error } = await sb.storage.from("opnames").remove([path]);
+      if (error) throw error;
+    },
+    async url(bucket, path) {
+      const { data, error } = await sb.storage.from(bucket).createSignedUrl(path, 60 * 60);
+      if (error) throw error;
+      return data.signedUrl;
+    },
   };
 
   const rowToBook = (r: Record<string, unknown>): Book => ({ id: r.id as string, title: r.title as string, author: (r.author as string) ?? "", hasAudio: r.has_audio === true });
@@ -305,6 +350,8 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
     id: r.id as string, kind: r.kind as BankTask["kind"], title: r.title as string, bookId: (r.book_id as string | null) ?? null,
     page: (r.page as string) ?? "", chapter: (r.chapter as string) ?? "", number: (r.number as string) ?? "", track: (r.track as string) ?? "",
     categories: (r.categories as string[]) ?? [],
+    sheetPath: (r.sheet_path as string | null) ?? null, sheetName: (r.sheet_name as string) ?? "", examplePath: (r.example_path as string | null) ?? null,
+    recording: r.recording === true,
   });
   const bank: BankApi = {
     async list() {
@@ -313,7 +360,8 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
       return (data ?? []).map(rowToBank);
     },
     async save(t) {
-      const row = { kind: t.kind, title: t.title, book_id: t.bookId ?? null, page: t.page, chapter: t.chapter, number: t.number, track: t.track, categories: t.categories };
+      const row = { kind: t.kind, title: t.title, book_id: t.bookId ?? null, page: t.page, chapter: t.chapter, number: t.number, track: t.track, categories: t.categories,
+        sheet_path: t.sheetPath ?? null, sheet_name: t.sheetName ?? "", example_path: t.examplePath ?? null, recording: t.recording ?? false };
       const { data, error } = t.id ? await sb.from("task_bank").update(row).eq("id", t.id).select().single() : await sb.from("task_bank").insert(row).select().single();
       if (error) throw error;
       return rowToBank(data);
@@ -399,7 +447,7 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
     async remove(id) { const { error } = await sb.from("songs").delete().eq("id", id); if (error) throw error; },
   };
 
-  return { auth, students, notes, rounds, practice, homework, books, bank, feedback, admin, songs };
+  return { auth, students, notes, rounds, practice, homework, books, files, bank, feedback, admin, songs };
 }
 
 /** Lokale scorefunctie, voor optimistische UI en voor de Edge Function (zelfde core). */

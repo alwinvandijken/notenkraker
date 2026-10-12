@@ -83,6 +83,12 @@ paths:
         "200": { description: Uitgenodigd, content: { application/json: { schema: { type: object, properties: { id: { type: string, format: uuid } } } } } }
         "400": { description: "Ongeldig, of { error: 'bestaat al' }" }
         "403": { description: Geen admin }
+  /purge-recordings:
+    post:
+      summary: Nachtelijke opruimtaak (cron) — verwijdert opnames 4 weken na de einddatum; header x-cron-secret
+      responses:
+        "200": { description: "{ removed: aantal }" }
+        "403": { description: Verkeerd geheim }
   /link-student:
     post:
       summary: Leraar koppelt zichzelf aan een leerling via code
@@ -110,6 +116,9 @@ x-rpc:
       [{kind: stuk|opdracht, title, book_id, page, chapter, number, track, bank_id}]; boektitel gaat mee (0010_opdrachten.sql).
     assign_tasks(p_students, p_bank_ids, p_due) → aantal — opdrachten uit de eigen bank bij het lopende huiswerk van mij, of nieuw huiswerk.
     set_task_done(p_task, p_done) — afvinken door wie bij de leerling mag.
+    set_recording_consent(p_student, p_allowed) — alleen de ouder (eigenaar); submit_recording(p_task, p_path) — leerling of ouder, opname
+      gevraagd, toestemming (of 18+/eigen profiel), pad <student>/<taak>/...; react_to_task(p_task, p_emoji, p_text) — alleen wie het huiswerk gaf
+      (0011_opnames.sql). Storage: bucket bladmuziek (<uid>/...) en opnames (<student>/<taak>/...), privé.
     my_guardians() → [{student_id, name, role: 'ouder'|'leraar'}] — voor een leerling met eigen login: wie meekijken (0008_meekijkers.sql).
     set_role(p_user, p_role: 'leerling'|'ouder'|'leraar') — alleen admin, niet de eigen rol; leerling krijgt een eigen leerlingprofiel (0007_rol_beheer.sql).
   roles: |
