@@ -250,7 +250,7 @@ export function HuiswerkGeven({ studentIds, homeworkId, onDone }: { studentIds: 
         {meegaand.map((t) => <span key={t.id} className="text-sm">{t.kind === "stuk" ? "🎵" : "✓"} <b>{t.title}</b> <Week n={t.week + 1} /></span>)}
         {filled.map((t) => <span key={t.key} className="text-sm">{t.kind === "stuk" ? "🎵" : "✓"} <b>{t.title.trim()}</b>{t.recording ? " · 🎙️ opnemen" : ""}</span>)}
         {!existing && <span className="text-sm text-muted">{minutes} min per dag, {days} {days === 1 ? "dag" : "dagen"} per week{editing ? ` · tot ${dueLabel(editing.dueDate)}` : ` · ${lesson === "deze" ? "deze les" : "volgende les"}`}</span>}
-        {notes.length === 0 && filled.length === 0 && <span className="text-sm text-muted">Nog geen noten of opdrachten.</span>}
+        {notes.length === 0 && filled.length === 0 && meegaand.length === 0 && <span className="text-sm text-muted">Nog geen noten of opdrachten.</span>}
       </section>
       {!existing && (
         <section className="rounded-3xl bg-surface p-4 flex flex-col gap-2.5">

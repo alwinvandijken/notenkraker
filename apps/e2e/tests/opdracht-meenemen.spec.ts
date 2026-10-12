@@ -24,6 +24,8 @@ test("een stuk gaat mee naar de volgende les, met de opname van vorige week", as
   await page.getByRole("group", { name: "Les" }).getByRole("button", { name: /^Volgende les/ }).click();
   const looptNog = page.getByRole("region", { name: "Loopt nog" });
   await looptNog.getByRole("checkbox", { name: /Lang zal ze leven/ }).check();
+  for (const k of ["Volgende: doel", "Volgende: versturen"]) { const v = page.getByRole("button", { name: k }); if (await v.isVisible()) await v.click(); }
+  await expect(page.getByRole("region", { name: "Overzicht" })).not.toContainText("Nog geen noten of opdrachten");
   for (const k of ["Volgende: doel", "Volgende: versturen"]) { const b = page.getByRole("button", { name: k }); if (await b.isVisible()) await b.click(); }
   await page.getByRole("button", { name: /naar Noor sturen/ }).click();
   await expect(page.getByRole("heading", { name: "Noor", exact: true })).toBeVisible();
