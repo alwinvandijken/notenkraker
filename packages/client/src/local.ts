@@ -1,5 +1,5 @@
 import { ageProfile, scoreRound, type StatusMap } from "@notenkraker/core";
-import type { Homework, HomeworkTemplate, NotenkrakerClient, PracticeSession, Profile, Round, Song, Student, StudentNote } from "./types.js";
+import type { BankTask, Book, Homework, HomeworkTask, HomeworkTemplate, NotenkrakerClient, PracticeSession, Profile, Round, Song, Student, StudentNote } from "./types.js";
 
 /**
  * In-memory/localStorage-implementatie van hetzelfde contract. Voor
@@ -8,7 +8,7 @@ import type { Homework, HomeworkTemplate, NotenkrakerClient, PracticeSession, Pr
  * (standaard "ouder": kinderen onder één login), geen echte auth.
  */
 export function createLocalNotenkraker(storageKey = "notenkraker-local", opts: { role?: Profile["role"]; displayName?: string } = {}): NotenkrakerClient {
-  type State = { students: Student[]; notes: StudentNote[]; rounds: Round[]; practice?: PracticeSession[]; homework?: Homework[]; templates?: HomeworkTemplate[]; songs: Array<Song & { studentId: string }> };
+  type State = { students: Student[]; notes: StudentNote[]; rounds: Round[]; practice?: PracticeSession[]; homework?: Homework[]; templates?: HomeworkTemplate[]; books?: Book[]; bank?: BankTask[]; songs: Array<Song & { studentId: string }> };
   const load = (): State => {
     try { const raw = globalThis.localStorage?.getItem(storageKey); if (raw) return JSON.parse(raw) as State; } catch { /* geen storage */ }
     return { students: [], notes: [], rounds: [], songs: [] };
@@ -88,7 +88,7 @@ export function createLocalNotenkraker(storageKey = "notenkraker-local", opts: {
     homework: {
       async list(sid, limit = 20) { return (state.homework ?? []).filter((h) => h.studentId === sid).slice(0, limit); },
       async give(input) {
-        const h: Homework = { ...input, id: uid(), givenBy: profile.id, givenByRole: profile.role === "leraar" ? "leraar" : "ouder", givenByName: profile.displayName, createdAt: now() };
+        const h: Homework = { ...input, id: uid(), givenBy: profile.id, givenByRole: profile.role === "leraar" ? "leraar" : "ouder", givenByName: profile.displayName, createdAt: now(), tasks: [] };
         (state.homework ??= []).unshift(h);
         for (const n of input.notes) {
           if (!state.notes.some((x) => x.studentId === input.studentId && x.noteId === n && x.status === "kent")) {
@@ -105,6 +105,32 @@ export function createLocalNotenkraker(storageKey = "notenkraker-local", opts: {
       async templates() { return [...(state.templates ?? [])].sort((a, b) => a.name.localeCompare(b.name)); },
       async saveTemplate(t) { const x = { ...t, id: uid() }; (state.templates ??= []).push(x); save(); return x; },
       async removeTemplate(id) { state.templates = (state.templates ?? []).filter((t) => t.id !== id); save(); },
+      async giveWithTasks(ids, input, tasks) {
+        for (const sid of ids) {
+          const h = await this.give({ ...input, studentId: sid, piece: "", pieceNote: "" });
+          h.tasks = tasks.map((t, i): HomeworkTask => {
+            const b = state.books?.find((x) => x.id === t.bookId);
+            return { id: uid(), homeworkId: h.id, position: i, kind: t.kind, title: t.title, bookTitle: b?.title ?? "", bookAuthor: b?.author ?? "",
+              page: t.page, chapter: t.chapter, number: t.number, track: t.track, doneAt: null };
+          });
+        }
+        save(); return ids.length;
+      },
+      async setTaskDone(taskId, done) {
+        for (const h of state.homework ?? []) for (const t of h.tasks ?? []) if (t.id === taskId) t.doneAt = done ? now() : null;
+        save();
+      },
+    },
+    books: {
+      async list() { return [...(state.books ?? [])].sort((a, b) => a.title.localeCompare(b.title)); },
+      async save(b) { const x = { ...b, id: b.id ?? uid() }; state.books = [...(state.books ?? []).filter((y) => y.id !== x.id), x]; save(); return x; },
+      async remove(id) { state.books = (state.books ?? []).filter((b) => b.id !== id); save(); },
+    },
+    bank: {
+      async list() { return [...(state.bank ?? [])].sort((a, b) => a.title.localeCompare(b.title)); },
+      async save(t) { const x = { ...t, id: t.id ?? uid() }; state.bank = [...(state.bank ?? []).filter((y) => y.id !== x.id), x]; save(); return x; },
+      async remove(id) { state.bank = (state.bank ?? []).filter((b) => b.id !== id); save(); },
+      async assign() { throw new Error("niet beschikbaar zonder backend"); },
     },
     // zonder account geen feedback en geen beheer
     feedback: {

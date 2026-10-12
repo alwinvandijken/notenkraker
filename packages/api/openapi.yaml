@@ -106,6 +106,10 @@ x-rpc:
     give_feedback(p_kind, p_message, p_screen, p_url, p_device, p_version) — alleen als profiles.can_give_feedback (0006_feedback.sql).
     set_feedback_allowed(p_user, p_allowed), admin_users() → [{id, display_name, email, role, can_give_feedback}] — alleen admin.
     give_homework_many(p_students uuid[], …zelfde als give_homework) → aantal — dezelfde opgave voor meerdere leerlingen, alles of niets (0009_huiswerk_sjablonen.sql).
+    give_homework_with_tasks(p_students, p_notes, p_minutes, p_days, p_remark, p_due, p_tasks jsonb) → aantal — huiswerk met opdrachten
+      [{kind: stuk|opdracht, title, book_id, page, chapter, number, track, bank_id}]; boektitel gaat mee (0010_opdrachten.sql).
+    assign_tasks(p_students, p_bank_ids, p_due) → aantal — opdrachten uit de eigen bank bij het lopende huiswerk van mij, of nieuw huiswerk.
+    set_task_done(p_task, p_done) — afvinken door wie bij de leerling mag.
     my_guardians() → [{student_id, name, role: 'ouder'|'leraar'}] — voor een leerling met eigen login: wie meekijken (0008_meekijkers.sql).
     set_role(p_user, p_role: 'leerling'|'ouder'|'leraar') — alleen admin, niet de eigen rol; leerling krijgt een eigen leerlingprofiel (0007_rol_beheer.sql).
   roles: |
@@ -115,7 +119,7 @@ x-postgrest:
   description: |
     Tabellen die rechtstreeks via PostgREST (met RLS) gelezen/geschreven worden:
     students (select/insert/update/delete), student_notes (select/upsert/delete),
-    rounds (select), practice_sessions (select), homework (select), homework_templates (select/insert/update/delete, alleen eigen), feedback (select/update status, alleen admin), songs (select/insert/delete), attempts (select/insert).
+    rounds (select), practice_sessions (select), homework (select), homework_templates, books, task_bank (select/insert/update/delete, alleen eigen), homework_tasks (select), feedback (select/update status, alleen admin), songs (select/insert/delete), attempts (select/insert).
     Instrumentdefinities zijn geen API-data maar versiebeheerde content
     (packages/instruments); een niet-TypeScript frontend leest de JSON-bestanden
     uit de repo of een gepubliceerde kopie.
