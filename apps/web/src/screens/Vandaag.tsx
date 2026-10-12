@@ -1,12 +1,13 @@
 import { useEffect, useState, type ReactNode } from "react";
 import clsx from "clsx";
-import { childSummary, dueLabel, taskReference, type HomeworkTask, type Student } from "@notenkraker/client";
+import { dueLabel, taskReference, type HomeworkTask, type Student } from "@notenkraker/client";
 import { ageProfile, instrumentNotes } from "@notenkraker/core";
 import { getInstrument } from "@notenkraker/instruments";
 import { client } from "@/lib/client";
 import { useApp } from "@/lib/store";
 import { namesLabel, planVandaag, suggestion, type VandaagRow } from "@/lib/vandaag";
-import { HuiswerkKaart, mayRecord as mayRecordFor, useNoteLabels, withProgress, type CurrentHomework } from "@/components/Huiswerk";
+import { HuiswerkKaart, mayRecord as mayRecordFor, useNoteLabels, type CurrentHomework } from "@/components/Huiswerk";
+import { loadToday, type TodayData } from "@/lib/vandaagData";
 import { Donut } from "@/components/Donut";
 import { Chip } from "@/components/ui";
 
@@ -28,22 +29,16 @@ export function Vandaag({ student, withHomework = true, onPlay, onRecord, footer
 }) {
   const { statuses } = useApp();
   const labels = useNoteLabels(student.instrumentId);
-  const [data, setData] = useState<{ items: CurrentHomework[]; today: number; streak: number } | null>(null);
+  const [data, setData] = useState<TodayData | null>(null);
   /** afgevinkte opdrachten, meteen zichtbaar; de database volgt */
   const [ticked, setTicked] = useState<Record<string, boolean>>({});
 
+  const dailyGoal = ageProfile(student.ageBand).dailyGoal;
   useEffect(() => {
     let stale = false;
-    void Promise.all([
-      withHomework ? client.homework.list(student.id).catch(() => []) : Promise.resolve([]),
-      client.rounds.recent(student.id, 200), client.practice.recent(student.id, 50),
-    ]).then(([list, rounds, sessions]) => {
-      if (stale) return;
-      const summary = childSummary({ rounds, sessions, statuses: {}, noteIds: [] });
-      setData({ items: withProgress(list, rounds, sessions), today: summary.days[6]!.minutes, streak: summary.streak });
-    });
+    void loadToday(student.id, { withHomework, dailyGoal }).then((d) => { if (!stale) setData(d); });
     return () => { stale = true; };
-  }, [student.id, withHomework]);
+  }, [student.id, withHomework, dailyGoal]);
 
   if (!data) return <p className="text-muted">Laden…</p>;
 
@@ -78,7 +73,7 @@ export function Vandaag({ student, withHomework = true, onPlay, onRecord, footer
       </>
     );
   } else {
-    const goal = profile.dailyGoal;
+    const goal = data.goal;
     const idea = suggestion(statuses, labels);
     card = (
       <>

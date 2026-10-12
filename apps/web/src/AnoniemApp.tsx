@@ -120,7 +120,7 @@ export function AnoniemApp() {
             <button type="button" onClick={() => toAccount("/app?nieuw")} className="self-start font-semibold text-accent bg-transparent cursor-pointer p-0">Account maken →</button>
           </div>} />
       )}
-      {screen === "spel" && <Game />}
+      {screen === "spel" && <Game onDone={() => go("start")} />}
       {screen === "vrij" && <VrijOefenen after={nudge("Wil je dat je ouder of leraar dit ziet? Met een gratis account bewaar je je oefentijd en kijken zij mee.")} />}
       {tabBalk}
     </div>

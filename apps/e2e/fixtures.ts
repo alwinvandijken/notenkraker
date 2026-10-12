@@ -65,17 +65,24 @@ export async function kiesTab(page: Page, label: string) {
 }
 
 /**
- * Eén ronde notenspel met de knoppen: steeds de eerste naamknop tikken tot "▶ Spelen" terugkomt
- * (ronde vol of levens op). Goed of fout maakt niet uit; de noten zijn willekeurig.
+ * Eén ronde notenspel met de knoppen: steeds de eerste naamknop tikken tot het resultaat komt
+ * (ronde vol of levens op), en dan terug naar Vandaag. Goed of fout maakt niet uit; de noten zijn willekeurig.
  */
 export async function speelRonde(page: Page) {
-  const spelen = page.getByRole("button", { name: "▶ Spelen" });
   await page.getByRole("button", { name: "Knoppen" }).click();
-  await spelen.click();
-  const naam = page.getByRole("button", { name: /^[A-G][a-z]{0,2}$/ }).first();
+  await page.getByRole("button", { name: "▶ Spelen" }).click();
+  const focus = page.getByRole("region", { name: "Spelen" });
+  // in focus: geen tabbalk en geen avatar
+  await expect(page.getByRole("navigation", { name: "Tabbalk" })).toBeHidden();
+  const opnieuw = focus.getByRole("button", { name: "Nog een keer" });
+  const naam = focus.getByRole("button", { name: /^[A-G][a-z]{0,2}$/ }).first();
   for (let i = 0; i < 40; i++) {
-    await expect(spelen.or(naam)).toBeVisible();
-    if (await spelen.isVisible()) return;
+    await expect(opnieuw.or(naam)).toBeVisible();
+    if (await opnieuw.isVisible()) {
+      await expect(focus.getByText(/voor vandaag/)).toBeVisible();
+      await focus.getByRole("button", { name: "Naar Vandaag" }).click();
+      return;
+    }
     await naam.click();
   }
   throw new Error("ronde notenspel eindigde niet na 40 antwoorden");

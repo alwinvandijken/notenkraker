@@ -77,3 +77,9 @@ export function suggestion(statuses: StatusMap, labels: Record<string, string>):
   if (kent) return { text: `Speel 5 minuten het notenspel met de ${kent} ${kent === 1 ? "noot" : "noten"} die je kent.`, mode: "game" };
   return { text: "Kijk bij Grepen welke kleppen bij een noot horen.", mode: "learn" };
 }
+
+/** minuten van vandaag en het doel: met huiswerk die van het huiswerk, anders het dagdoel van de leeftijd */
+export function todayGoal(items: CurrentHomework[], { summaryToday, dailyGoal }: { summaryToday: number; dailyGoal: number }): { today: number; goal: number } {
+  if (items.length === 0) return { today: summaryToday, goal: dailyGoal };
+  return { today: Math.max(...items.map((x) => x.p.todayMinutes)), goal: Math.max(...items.map((x) => x.h.minutesPerDay)) };
+}
