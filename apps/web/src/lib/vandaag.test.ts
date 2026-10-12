@@ -46,6 +46,14 @@ describe("planVandaag", () => {
     expect(plan.started).toBe(true);
   });
 
+  it("een stuk dat meeging: alleen opnames van deze les tellen", () => {
+    const weeks = [{ lessonId: "vorige", start: "2026-10-03", end: "2026-10-09" }, { lessonId: "h", start: "2026-10-10", end: "2026-10-16" }];
+    const op = task({ id: "op", homeworkId: "h", kind: "stuk", recording: true, week: 2, weeks, recordings: [rec("2026-10-05T09:00:00Z")] });
+    const plan = planVandaag([{ h: hw({ tasks: [op] }), p: progress(0) }], { mayRecord: true })!;
+    expect(plan.rows[1]).toMatchObject({ kind: "opname", done: false });
+    expect(plan.next).toEqual({ kind: "opname", task: op });
+  });
+
   it("opnemen zonder toestemming slaat de knop over", () => {
     const plan = planVandaag([{ h: hw({ tasks: [task({ kind: "stuk", recording: true })] }), p: progress(0) }], { mayRecord: false })!;
     expect(plan.next).toEqual({ kind: "spelen" });

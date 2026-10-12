@@ -22,6 +22,9 @@ test("twee opnames van hetzelfde stuk, elk met een eigen reactie", async ({ page
   // twee ingestuurde opnames: maandag en vandaag (opnemen zelf kan niet in een browser zonder microfoon)
   const { data: lid } = await admin.from("group_members").select("group_id").eq("student_id", kind).single();
   const { data: taak } = await admin.from("assignments").select("id").eq("group_id", lid!.group_id).eq("title", "Lang zal ze leven").single();
+  // de les begon zes dagen geleden, zodat ook de opname van maandag (vijf dagen terug) in deze les valt
+  const zesDagen = new Date(Date.now() - 6 * 864e5);
+  await admin.from("lessons").update({ date: `${zesDagen.getFullYear()}-${String(zesDagen.getMonth() + 1).padStart(2, "0")}-${String(zesDagen.getDate()).padStart(2, "0")}` }).eq("group_id", lid!.group_id);
   const pad = (n: string) => `${kind}/${taak!.id}/${n}.webm`;
   for (const n of ["maandag", "zaterdag"]) {
     const { error } = await admin.storage.from("opnames").upload(pad(n), new Blob(["x"], { type: "audio/webm" }));

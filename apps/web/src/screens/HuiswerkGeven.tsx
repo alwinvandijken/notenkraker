@@ -6,7 +6,7 @@ import { dateKey, dueLabel, lessonPeriod, type BankTask, type Book, type Homewor
 import { client } from "@/lib/client";
 import { useApp } from "@/lib/store";
 import { useWide } from "@/lib/useWide";
-import { Chip, Segmented } from "@/components/ui";
+import { Chip, Segmented, Week } from "@/components/ui";
 import { useNoteLabels } from "@/components/Huiswerk";
 import { BankLijst, draftFromBank, draftFromTask, newDraft, OpdrachtenEditor, toInput, type TaskDraft } from "@/components/Opdrachten";
 
@@ -56,6 +56,8 @@ export function HuiswerkGeven({ studentIds, homeworkId, onDone }: { studentIds: 
   const [templateName, setTemplateName] = useState("");
   const [stap, setStap] = useState<Stap>(1);
   const [sure, setSure] = useState(false);
+  /** opdrachten van de lopende les die meegaan naar de volgende (AC-124) */
+  const [carry, setCarry] = useState<string[]>([]);
 
   useEffect(() => {
     void client.homework.templates().then(setTemplates).catch(() => setTemplates([]));
@@ -83,6 +85,10 @@ export function HuiswerkGeven({ studentIds, homeworkId, onDone }: { studentIds: 
   const today = dateKey(new Date());
   const period = lessonPeriod(weekday, lesson);
   /** al huiswerk van mij voor de gekozen les: dan komen de opdrachten erbij */
+  /** mijn lopende les met deze leerling: daaruit kun je opdrachten meenemen naar de volgende les */
+  const lopend = !editing && studentId && lesson === "volgende"
+    ? list.find((h) => h.givenBy === profile?.id && h.status !== "afgezegd" && h.startDate <= today && h.dueDate >= today) : undefined;
+  const meegaand = lopend ? lopend.tasks.filter((t) => carry.includes(t.id)) : [];
   const existing = !editing && studentId
     ? list.find((h) => h.givenBy === profile?.id && h.dueDate >= today && (lesson === "deze" ? h.startDate <= today : h.startDate > today))
     : undefined;
@@ -104,7 +110,7 @@ export function HuiswerkGeven({ studentIds, homeworkId, onDone }: { studentIds: 
         ? { ...t, bankId: (await client.bank.save({ ...toInput(t), categories: t.categories })).id } : t)));
       const input = { notes, minutesPerDay: minutes, daysPerWeek: days, remark: remark.trim() };
       if (editing) await client.homework.update(editing.id, { ...input, startDate: start }, withBank.map(toInput));
-      else await client.homework.give(studentIds, lesson, input, withBank.map(toInput));
+      else await client.homework.give(studentIds, lesson, input, withBank.map(toInput), studentId ? { [studentId]: meegaand.map((t) => t.id) } : {});
       if (asTemplate) {
         const name = templateName.trim() || `${filled[0]?.title.trim() || "Huiswerk"}, ${minutes} min`;
         await client.homework.saveTemplate({ name, notes, minutesPerDay: minutes, daysPerWeek: days, piece: "", pieceNote: "", remark: input.remark, tasks: withBank.map((t) => ({ ...toInput(t), id: undefined })) });
@@ -133,6 +139,28 @@ export function HuiswerkGeven({ studentIds, homeworkId, onDone }: { studentIds: 
       {existing
         ? <p className="text-sm m-0 rounded-xl bg-ok/10 px-3 py-2">Je hebt voor deze les al huiswerk gegeven. Wat je hier toevoegt, komt erbij; het doel, de vinkjes en de opnames blijven zoals ze zijn.</p>
         : lesson === "volgende" && <p className="text-sm text-muted m-0">{studentId ? student.name : "De leerling"} ziet dit huiswerk vanaf {studentId ? kort(period.start) : "de volgende lesdag"}.</p>}
+    </section>
+  );
+
+  // Loopt nog: opdrachten van de lopende les meenemen naar de volgende (dezelfde opdracht, met zijn opnames)
+  const looptNog = lopend && lopend.tasks.length > 0 && (
+    <section aria-label="Loopt nog" className="rounded-3xl bg-surface p-4 flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <Caption>Loopt nog · gaat mee naar de volgende les?</Caption>
+        <button type="button" onClick={() => setCarry(lopend.tasks.map((t) => t.id))} className="ml-auto text-sm font-semibold text-kent bg-transparent cursor-pointer p-0">alles mee</button>
+      </div>
+      {lopend.tasks.map((t) => {
+        const on = carry.includes(t.id);
+        const stand = [t.recordings.length ? `🎙️ ${t.recordings.length} ${t.recordings.length === 1 ? "opname" : "opnames"}` : "", t.doneAt ? "deze les afgevinkt ✓" : ""].filter(Boolean).join(" · ");
+        return (
+          <label key={t.id} className={clsx("flex items-center gap-3 rounded-2xl border-2 p-3 cursor-pointer", on ? "border-ok bg-ok/10" : "border-line")}>
+            <input type="checkbox" checked={on} onChange={() => setCarry((c) => (on ? c.filter((x) => x !== t.id) : [...c, t.id]))}
+              className="w-5 h-5 accent-[var(--color-ok)]" aria-label={`${t.title} gaat mee`} />
+            <span className="flex-1 min-w-0"><b>{t.title}</b>{on && <> <Week n={t.week + 1} prefix="wordt " /></>}
+              {stand && <span className="block text-sm text-muted">{stand}</span>}</span>
+          </label>
+        );
+      })}
     </section>
   );
 
@@ -219,6 +247,7 @@ export function HuiswerkGeven({ studentIds, homeworkId, onDone }: { studentIds: 
       <section aria-label="Overzicht" className="rounded-3xl bg-surface p-4 flex flex-col gap-2">
         <Caption>Overzicht</Caption>
         {notes.length > 0 && <div className="flex flex-wrap gap-1.5">{notes.map((n) => <span key={n} className="rounded-xl px-2.5 py-1 font-bold bg-les text-fg text-sm">{labels[n]}</span>)}</div>}
+        {meegaand.map((t) => <span key={t.id} className="text-sm">{t.kind === "stuk" ? "🎵" : "✓"} <b>{t.title}</b> <Week n={t.week + 1} /></span>)}
         {filled.map((t) => <span key={t.key} className="text-sm">{t.kind === "stuk" ? "🎵" : "✓"} <b>{t.title.trim()}</b>{t.recording ? " · 🎙️ opnemen" : ""}</span>)}
         {!existing && <span className="text-sm text-muted">{minutes} min per dag, {days} {days === 1 ? "dag" : "dagen"} per week{editing ? ` · tot ${dueLabel(editing.dueDate)}` : ` · ${lesson === "deze" ? "deze les" : "volgende les"}`}</span>}
         {notes.length === 0 && filled.length === 0 && <span className="text-sm text-muted">Nog geen noten of opdrachten.</span>}
@@ -239,7 +268,7 @@ export function HuiswerkGeven({ studentIds, homeworkId, onDone }: { studentIds: 
           placeholder={`${tasks[0]?.title.trim() || "Huiswerk"}, ${minutes} min`} className={field} />}
       </section>
       {error && <p className="text-sm text-wrong m-0">{error}</p>}
-      <Chip primary disabled={busy || (!!existing && filled.length === 0 && notes.length === 0)} onClick={() => void save()} className="py-3 text-lg">
+      <Chip primary disabled={busy || (!!existing && filled.length === 0 && notes.length === 0 && meegaand.length === 0)} onClick={() => void save()} className="py-3 text-lg">
         {busy ? "Opslaan…" : editing ? "Wijzigingen opslaan" : existing ? "Toevoegen aan deze les" : `Opslaan en naar ${who} sturen`}
       </Chip>
       {editing && (sure
@@ -261,7 +290,7 @@ export function HuiswerkGeven({ studentIds, homeworkId, onDone }: { studentIds: 
   if (wide) {
     return (
       <div className="grid gap-4 items-start lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_340px_380px]">
-        <div className="flex flex-col gap-4 min-w-0">{lesKeuze}{wat}</div>
+        <div className="flex flex-col gap-4 min-w-0">{lesKeuze}{looptNog}{wat}</div>
         {bibliotheek}
         <div className="flex flex-col gap-4 min-w-0">{doel}{versturen}</div>
       </div>
@@ -284,7 +313,7 @@ export function HuiswerkGeven({ studentIds, homeworkId, onDone }: { studentIds: 
         ))}
       </ol>
       {!studentId && <p className="m-0 text-muted">Voor {chosen.map((c) => c.name).join(", ")}. Iedereen krijgt een eigen kopie.</p>}
-      {stap === 1 && <>{lesKeuze}{wat}<Chip primary onClick={() => naar(2)} className="py-3 text-lg">Volgende: doel</Chip></>}
+      {stap === 1 && <>{lesKeuze}{looptNog}{wat}<Chip primary onClick={() => naar(2)} className="py-3 text-lg">Volgende: doel</Chip></>}
       {stap === 2 && (
         <>{doel}
           <div className="flex gap-2">

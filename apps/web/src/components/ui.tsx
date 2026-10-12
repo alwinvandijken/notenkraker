@@ -34,3 +34,8 @@ export function Card({ children, className }: { children: ReactNode; className?:
 export function Label({ children }: { children: ReactNode }) {
   return <div className="font-display font-semibold text-lg mt-5 mb-2 flex flex-wrap items-center gap-x-3 gap-y-2">{children}</div>;
 }
+
+/** "2e week": een opdracht die meeging naar een volgende les (AC-124) */
+export function Week({ n, prefix = "" }: { n: number; prefix?: string }) {
+  return <span className="rounded-full bg-accent-soft text-accent text-xs font-semibold px-2 py-0.5 whitespace-nowrap">{prefix}{n}e week</span>;
+}

@@ -1,4 +1,4 @@
-import type { HomeworkTask } from "@notenkraker/client";
+import { dateKey, type HomeworkTask } from "@notenkraker/client";
 import type { NoteId, StatusMap } from "@notenkraker/core";
 import type { CurrentHomework } from "@/components/Huiswerk";
 
@@ -46,7 +46,7 @@ export function planVandaag(items: CurrentHomework[], { mayRecord }: { mayRecord
   for (const { h } of items) {
     if (h.piece) rows.push({ kind: "stuk", key: `${h.id}-stuk`, title: h.piece, detail: h.pieceNote });
     for (const t of h.tasks) {
-      if (t.recording) rows.push({ kind: "opname", key: t.id, task: t, done: t.recordings.length > 0 });
+      if (t.recording) rows.push({ kind: "opname", key: t.id, task: t, done: recordedThisLesson(t) });
       else if (t.kind === "opdracht") rows.push({ kind: "opdracht", key: t.id, task: t, done: !!t.doneAt });
       else rows.push({ kind: "stuk", key: t.id, title: t.title, detail: "", task: t });
     }
@@ -63,6 +63,14 @@ export function planVandaag(items: CurrentHomework[], { mayRecord }: { mayRecord
     allDone: rows.every((r) => r.kind === "stuk" || r.done),
   };
 }
+
+/** opgenomen in déze les: een stuk dat meeging (AC-124) telt de opnames van vorige weken niet */
+export function recordingsThisLesson(t: HomeworkTask) {
+  const span = t.weeks.find((w) => w.lessonId === t.homeworkId);
+  if (!span) return t.recordings;
+  return t.recordings.filter((r) => { const d = dateKey(new Date(r.submittedAt)); return span.start <= d && d <= span.end; });
+}
+export const recordedThisLesson = (t: HomeworkTask) => recordingsThisLesson(t).length > 0;
 
 /** "Marieke", "Marieke en papa", "Marieke, papa en Joost" */
 export function namesLabel(names: string[]): string {

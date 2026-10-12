@@ -7,8 +7,9 @@
  */
 import { useState } from "react";
 import clsx from "clsx";
-import { allCategories, recordingKeptUntil, taskReference, whenLabel, type BankTask, type Book, type HomeworkTask, type TaskInput, type TaskKind, type TaskRecording } from "@notenkraker/client";
+import { allCategories, dateKey, recordingKeptUntil, recordingsPerWeek, taskReference, whenLabel, type BankTask, type Book, type HomeworkTask, type LessonSpan, type TaskInput, type TaskKind, type TaskRecording } from "@notenkraker/client";
 import { client } from "@/lib/client";
+import { Week } from "@/components/ui";
 
 export interface TaskDraft extends TaskInput {
   key: string;
@@ -186,6 +187,8 @@ function Upload({ label, accept, name, onUploaded, onClear }: { label: string; a
   );
 }
 
+const kort = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" });
+
 /** bladmuziek in een nieuw venster; eerst een leeg venster openen (anders blokkeert Safari het), dan de tijdelijke link erin zetten */
 export function openSheet(path: string) {
   const w = window.open("", "_blank");
@@ -233,7 +236,7 @@ export function OpdrachtenLijst({ tasks, studentId, viewer = "other", mayRecord,
           ) : <span aria-hidden="true" className="w-5 text-center shrink-0">🎵</span>}
           <span className="min-w-0 flex-1 flex flex-col gap-1.5">
             <span>
-              <b className={clsx(t.kind === "opdracht" && done[t.id] && "line-through text-muted")}>{t.title}</b>
+              <b className={clsx(t.kind === "opdracht" && done[t.id] && "line-through text-muted")}>{t.title}</b>{t.week > 1 && <> <Week n={t.week} /></>}
               {taskReference(t) && <span className="block text-xs text-muted">📖 {taskReference(t)}</span>}
             </span>
             {(t.sheetPath || t.examplePath) && (
@@ -242,6 +245,7 @@ export function OpdrachtenLijst({ tasks, studentId, viewer = "other", mayRecord,
                 {t.examplePath && <Play bucket="bladmuziek" path={t.examplePath} label="Voorbeeld" />}
               </span>
             )}
+            {viewer === "giver" && <Voortgang task={t} studentId={studentId} />}
             {t.recording && <Opname task={t} viewer={viewer} mayRecord={mayRecord} onRecord={onRecord} dueDate={dueDate} />}
           </span>
         </li>
@@ -250,12 +254,35 @@ export function OpdrachtenLijst({ tasks, studentId, viewer = "other", mayRecord,
   );
 }
 
+/** voortgang per opdracht per leerling (VOORTGANG, AC-124): status en een cijfer; alleen de gever */
+function Voortgang({ task: t, studentId }: { task: HomeworkTask; studentId: string }) {
+  const [status, setStatus] = useState<"bezig" | "klaar">(t.progress?.status ?? "bezig");
+  const [grade, setGrade] = useState(t.progress?.grade?.toString() ?? "");
+  const [saved, setSaved] = useState(!!t.progress);
+  const save = async (st = status) => {
+    const g = grade.trim() === "" ? null : Number(grade.replace(",", "."));
+    try { await client.homework.setProgress(t.id, studentId, st, g !== null && g >= 1 && g <= 10 ? g : null); setSaved(true); } catch { setSaved(false); }
+  };
+  return (
+    <span className="flex flex-wrap items-center gap-1.5 text-sm" role="group" aria-label={`Voortgang van ${t.title}`}>
+      {(["bezig", "klaar"] as const).map((v) => (
+        <button key={v} type="button" aria-pressed={status === v} onClick={() => { setStatus(v); setSaved(false); }}
+          className={clsx("rounded-full border-2 px-2.5 py-0.5 cursor-pointer", status === v ? "border-kent bg-kent-soft font-semibold" : "border-line bg-surface")}>{v}</button>
+      ))}
+      <input type="number" min={1} max={10} step={0.5} value={grade} aria-label="Cijfer" placeholder="cijfer"
+        onChange={(e) => { setGrade(e.target.value); setSaved(false); }} className="w-20 rounded-xl border-2 border-line bg-surface px-2 py-0.5" />
+      <button type="button" onClick={() => void save()} className="rounded-full border-2 border-line bg-surface px-3 py-0.5 font-semibold cursor-pointer">
+        {saved ? "✓" : "Opslaan"}</button>
+    </span>
+  );
+}
+
 function Opname({ task: t, viewer, mayRecord, onRecord, dueDate }: {
   task: HomeworkTask; viewer: "pupil" | "giver" | "other"; mayRecord?: boolean; onRecord?(task: HomeworkTask): void; dueDate: string;
 }) {
   return (
     <span className="flex flex-col gap-1.5 rounded-xl bg-bg p-2.5">
-      <OpnameLijst recordings={t.recordings} viewer={viewer} dueDate={dueDate} />
+      <OpnameLijst recordings={t.recordings} viewer={viewer} dueDate={dueDate} weeks={t.weeks} />
       {viewer === "pupil" && (mayRecord
         ? <button type="button" onClick={() => onRecord?.(t)} className="self-start rounded-full bg-accent text-white px-4 py-1.5 font-semibold cursor-pointer">
             🎙️ {t.recordings.length ? "Nog een opname" : "Opnemen en insturen"}</button>
@@ -268,16 +295,33 @@ function Opname({ task: t, viewer, mayRecord, onRecord, dueDate }: {
  * De ingestuurde opnames van een opdracht, nieuwste bovenaan, elk met een eigen reactie (AC-121).
  * `giver` reageert, `pupil` kan met `onDelete` een opname weggooien.
  */
-export function OpnameLijst({ recordings, viewer, dueDate, onDelete }: {
+export function OpnameLijst({ recordings, viewer, dueDate, onDelete, weeks }: {
   recordings: TaskRecording[]; viewer: "pupil" | "giver" | "other"; dueDate: string; onDelete?(r: TaskRecording): void;
+  /** de lessen van de opdracht (AC-124): dan per week gegroepeerd, met "Deze week" en "Vorige week" */
+  weeks?: LessonSpan[];
 }) {
-  const kept = recordingKeptUntil(dueDate).split("-").reverse().join("-");
+  // bewaard tot 4 weken na de laatste les van de opdracht
+  const kept = recordingKeptUntil(weeks?.length ? weeks.at(-1)!.end : dueDate).split("-").reverse().join("-");
   if (recordings.length === 0) return <span className="text-xs text-muted">🎙️ Nog geen opname ingestuurd.</span>;
-  const newest = [...recordings].reverse();
+  // nummering per opdracht over alle weken, oudste = Opname 1
+  const nummer = new Map([...recordings].sort((a, b) => a.submittedAt.localeCompare(b.submittedAt)).map((r, i) => [r.id, i + 1]));
+  const label = (r: TaskRecording) => (recordings.length > 1 ? `Opname ${nummer.get(r.id)}` : "Opname");
+  const perWeek = !!weeks && weeks.length > 1;
+  const today = dateKey(new Date());
+  const current = weeks?.find((w) => w.start <= today && today <= w.end);
+  const groups: Array<{ span: LessonSpan | null; recordings: TaskRecording[] }> = perWeek ? recordingsPerWeek(recordings, weeks!) : [{ span: null, recordings: [...recordings].reverse() }];
+  // deze week bovenaan, ook als er nog niets is opgenomen
+  if (perWeek && current && !groups.some((g) => g.span === current)) groups.unshift({ span: current, recordings: [] });
+  const previous = current && weeks ? [...weeks].filter((w) => w.start < current.start).sort((a, b) => b.start.localeCompare(a.start))[0] : undefined;
+  const kop = (span: LessonSpan | null) => !span ? "Eerder" : span === current ? "Deze week" : span === previous ? `Vorige week · ${kort(span.start)} – ${kort(span.end)}` : `Week van ${kort(span.start)} – ${kort(span.end)}`;
   return (
     <span className="flex flex-col gap-2">
       <ul className="m-0 p-0 list-none flex flex-col gap-2" aria-label="Opnames">
-        {newest.map((r, i) => <OpnameRegel key={r.id} recording={r} viewer={viewer} label={newest.length > 1 ? `Opname ${newest.length - i}` : "Opname"} onDelete={onDelete} />)}
+        {groups.map((g) => [
+          perWeek && <li key={`kop-${g.span?.lessonId ?? "eerder"}`} role="presentation" className="text-xs font-semibold uppercase tracking-wider text-muted mt-1">{kop(g.span)}</li>,
+          perWeek && g.recordings.length === 0 && <li key={`leeg-${g.span?.lessonId}`} role="presentation" className="text-sm text-muted">Nog geen opname deze week.</li>,
+          ...g.recordings.map((r) => <OpnameRegel key={r.id} recording={r} viewer={viewer} label={label(r)} onDelete={onDelete} />),
+        ])}
       </ul>
       {recordings.some((r) => r.path) && <span className="text-xs text-muted">Opnames worden verwijderd op {kept}.</span>}
     </span>

@@ -6,7 +6,7 @@ import { useApp } from "@/lib/store";
 import { MAX_SECONDS, pickAudioType, timeLabel } from "@/lib/opname";
 import { GiverAvatar, mayRecord as mayRecordFor } from "@/components/Huiswerk";
 import { OpnameLijst, openSheet, Play } from "@/components/Opdrachten";
-import { Chip } from "@/components/ui";
+import { Chip, Week } from "@/components/ui";
 
 /**
  * Een taak openen (AC-120 PR 5, mock-up docs/ux-review/vandaag.html "Een taak"): één pagina met alles
@@ -41,6 +41,7 @@ export function Taak({ studentId, taskId }: { studentId: string; taskId: string 
       <section aria-label="Wat je speelt" className="rounded-3xl bg-surface p-5 flex flex-col gap-4 min-w-0">
         <div>
           <h1 className="font-display font-extrabold text-3xl leading-tight m-0">{t.title}</h1>
+          {t.week > 1 && <div className="mt-1"><Week n={t.week} /></div>}
           <p className="text-muted m-0 mt-1">{[taskReference(t), `tot ${dueLabel(h.dueDate)}`].filter(Boolean).join(" · ")}</p>
         </div>
         {(t.sheetPath || t.examplePath) && (
@@ -65,7 +66,7 @@ export function Taak({ studentId, taskId }: { studentId: string; taskId: string 
             : <p className="rounded-3xl bg-surface p-5 m-0 text-muted">Vraag je ouder om opnames toe te staan (op jouw pagina bij je ouder).</p>}
           <div className="rounded-3xl bg-surface p-5 flex flex-col gap-3">
             <h2 className="font-display font-bold text-xl m-0">Jouw opnames</h2>
-            <OpnameLijst recordings={t.recordings} viewer="pupil" dueDate={h.dueDate} onDelete={(r) => void remove(r)} />
+            <OpnameLijst recordings={t.recordings} viewer="pupil" dueDate={h.dueDate} weeks={t.weeks} onDelete={(r) => void remove(r)} />
           </div>
         </section>
       )}
