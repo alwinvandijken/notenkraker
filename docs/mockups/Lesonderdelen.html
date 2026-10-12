@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesonderdelen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* AC-122 mock-up: minuten per opdracht. Basislook A; de schermen zijn de app zelf, het verhaal eromheen is de review. */
+:root{
+  --bg:#E4EAF2; --surface:#FFFFFF; --ink:#172440; --muted:#4A5873; --line:#CCD6E3; --accent:#C2531A; --good:#1F7A4D;
+  --a-bg:#EDF2F7; --a-card:#FFFFFF; --a-ink:#172440; --a-muted:#4A5873; --a-line:#DCE3EC; --a-blue:#2459C9; --a-blue-soft:#DCE6FA;
+  --a-orange:#F4A261; --a-orange-soft:#FDEBDD; --a-accent:#C2531A; --a-ok:#1F7A4D; --a-ok-soft:#DDF2E5; --a-navy:#172440;
+  --font:"Lexend", ui-rounded, system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0F1729;--surface:#18233B;--ink:#E8EEF8;--muted:#A9B6CF;--line:#2B3A5C;--accent:#F4A261;--good:#3FAE74;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0F1729;--surface:#18233B;--ink:#E8EEF8;--muted:#A9B6CF;--line:#2B3A5C;--accent:#F4A261;--good:#3FAE74;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.55;margin:0}
+.wrap{max-width:1240px;margin:0 auto;padding:40px 20px 80px}
+h1,h2,h3{line-height:1.15;margin:0;text-wrap:balance}
+h1{font-size:clamp(30px,5vw,48px);font-weight:800}
+h2{font-size:clamp(22px,3vw,30px);font-weight:700;margin-top:56px}
+h3{font-size:18px;font-weight:700}
+p{margin:0;max-width:70ch}
+.lead{font-size:18px;color:var(--muted);margin-top:10px}
+.note{color:var(--muted);font-size:15px;margin-top:8px}
+.panel{background:var(--surface);border-radius:20px;padding:20px;margin-top:16px}
+ul.clean{margin:8px 0 0;padding-left:20px} ul.clean li{margin:4px 0}
+.frames{display:flex;gap:22px;overflow-x:auto;padding:6px 2px 14px;margin-top:16px}
+.cap{font-size:13px;color:var(--muted);margin-top:8px;max-width:640px}
+/* apparaten */
+.laptop{flex:none;width:880px;height:560px;border-radius:14px;background:#101827;padding:10px 10px 18px}
+.ipad{flex:none;width:600px;height:417px;border-radius:26px;background:#101827;padding:11px}
+.phone{flex:none;width:236px;height:500px;border-radius:34px;background:#101827;padding:9px}
+.scr{width:100%;height:100%;border-radius:10px;background:var(--a-bg);color:var(--a-ink);font-size:10px;line-height:1.35;overflow:hidden;display:flex;flex-direction:column;position:relative}
+.ipad .scr{border-radius:16px}.phone .scr{border-radius:26px;font-size:9.5px}
+.row{display:flex;align-items:center;gap:6px}.grow{flex:1;min-width:0}
+.bar{display:flex;align-items:center;gap:8px;padding:10px 14px}
+.ttl{font-weight:800;font-size:17px}
+.muted{color:var(--a-muted)}
+.card{background:var(--a-card);border-radius:12px;padding:10px}
+.cap2{font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--a-muted)}
+.av{width:22px;height:22px;border-radius:50%;background:var(--a-blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10px;flex:none}
+.btn{background:var(--a-accent);color:#fff;border-radius:999px;padding:7px 14px;font-weight:700;text-align:center}
+.btn.line{background:var(--a-card);color:var(--a-ink);border:1.5px solid var(--a-line)}
+.seg{display:inline-flex;background:var(--a-bg);border-radius:999px;padding:2px;gap:2px}
+.seg span{padding:3px 9px;border-radius:999px;color:var(--a-muted)}.seg span.on{background:var(--a-navy);color:#fff;font-weight:600}
+.chip{border-radius:7px;padding:2px 7px;font-weight:700;background:var(--a-orange)}
+.task{border:1.5px solid var(--a-line);border-radius:10px;padding:7px 8px;display:flex;align-items:center;gap:7px;margin-top:6px}
+.task i{font-style:normal;font-size:13px}
+.step{display:inline-flex;align-items:center;gap:4px;border:1.5px solid var(--a-line);border-radius:999px;padding:1px 3px;font-weight:700;background:var(--a-card)}
+.step b{width:16px;height:16px;border-radius:50%;background:var(--a-bg);display:inline-flex;align-items:center;justify-content:center;font-weight:700}
+.sum{background:var(--a-ok-soft);color:var(--a-ok);border-radius:10px;padding:8px 10px;font-weight:600}
+.meter{height:6px;border-radius:999px;background:var(--a-line);overflow:hidden;margin-top:4px}.meter i{display:block;height:100%;background:var(--a-ok);border-radius:999px}
+.ring{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none}
+.ring b{width:36px;height:36px;border-radius:50%;background:var(--a-card);display:flex;align-items:center;justify-content:center;font-size:9px}
+.tabbar{margin-top:auto;display:flex;justify-content:space-around;background:var(--a-card);border-top:1px solid var(--a-line);padding:6px 0 8px}
+.tabbar div{display:flex;flex-direction:column;align-items:center;gap:1px;color:var(--a-muted);font-size:8.5px}.tabbar div.on{color:var(--a-accent);font-weight:700}
+.tabbar i{font-style:normal;font-size:14px}
+.cell{width:16px;height:16px;border-radius:4px;background:var(--a-line);display:inline-block}
+.cell.ok{background:var(--a-ok)}.cell.half{background:#9FD3B6}
+table.mini{border-collapse:collapse;width:100%}table.mini td,table.mini th{padding:5px 4px;border-top:1px solid var(--a-line);text-align:left;font-weight:500}
+table.mini th{font-size:8px;text-transform:uppercase;letter-spacing:.06em;color:var(--a-muted);border-top:0}
+.check{width:12px;height:12px;border-radius:3px;border:1.5px solid var(--a-ok);background:var(--a-ok);display:inline-block;flex:none}
+ol.decide{list-style:none;padding:0;margin:16px 0 0;display:flex;flex-direction:column;gap:12px;counter-reset:d}
+ol.decide li{background:var(--surface);border-radius:16px;padding:16px 18px 16px 58px;position:relative;counter-increment:d}
+ol.decide li::before{content:counter(d);position:absolute;left:18px;top:15px;width:28px;height:28px;border-radius:50%;background:var(--ink);color:var(--bg);font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+ol.decide p{color:var(--muted);font-size:15px;margin-top:4px}
+.rec{color:var(--good);font-weight:600}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <h1>Lesonderdelen</h1>
+  <p class="lead">AC-122. Elke opdracht in het huiswerk krijgt eigen minuten per oefendag. Opgeteld vormen ze het dagdoel. Het kind oefent een opdracht, en de app telt de tijd bij die opdracht. Per les kies je of vrij spelen ook meetelt.</p>
+
+  <div class="panel">
+    <h3>Wat Alwin besloot (12-10-2026)</h3>
+    <ul class="clean">
+      <li><b>Onderdelen zijn opdrachten.</b> Ook het notenspel is een opdracht, met eigen minuten.</li>
+      <li><b>Minuten per oefendag, opgeteld.</b> Bijvoorbeeld Toonladder 5 + Lang zal ze leven 10 + Notenspel 5 = 20 min per dag. "Dagen per week" blijft apart.</li>
+      <li><b>Wat meetelt, kies je per les.</b> Met het vinkje "Vrij spelen telt ook mee" tellen minuten buiten de opdrachten mee voor het dagtotaal.</li>
+    </ul>
+  </div>
+
+  <h2>1. Huiswerk geven (laptop)</h2>
+  <p class="note">Elke opdracht krijgt een kleine minutenteller. Een opdracht zonder minuten, zoals "notenalfabet opzeggen", blijft een vinkje. Rechts telt het dagdoel zich vanzelf op.</p>
+  <div class="frames">
+    <div>
+      <div class="laptop"><div class="scr">
+        <div class="bar"><span class="muted">← Lotte</span></div>
+        <div style="padding:0 14px"><span class="ttl" style="font-size:20px">Huiswerk voor Lotte</span></div>
+        <div class="row" style="padding:10px 14px;gap:10px;align-items:flex-start;flex:1">
+          <div style="flex:1.25;display:flex;flex-direction:column;gap:8px">
+            <div class="card"><div class="cap2">Voor welke les</div><div style="margin-top:5px" class="seg"><span class="on">Deze les · di 13 – ma 19 okt</span><span>Volgende les</span></div></div>
+            <div class="card">
+              <div class="cap2">Opdrachten · minuten per oefendag</div>
+              <div class="task"><i>🎵</i><span class="grow"><b>Toonladder G groot</b><br><span class="muted">Methode 1 · blz. 12</span></span><span class="step"><b>−</b>5 min<b>+</b></span></div>
+              <div class="task"><i>🎵</i><span class="grow"><b>Lang zal ze leven</b><br><span class="muted">blz. 23 · 🎙️ opnemen</span></span><span class="step"><b>−</b>10 min<b>+</b></span></div>
+              <div class="task"><i>🎮</i><span class="grow"><b>Notenspel</b><br><span class="muted">met G A B C · nieuw: D</span></span><span class="step"><b>−</b>5 min<b>+</b></span></div>
+              <div class="task"><i>✓</i><span class="grow"><b>Notenalfabet achteruit opzeggen</b><br><span class="muted">afvinken</span></span><span class="step"><b>−</b>— <b>+</b></span></div>
+              <div class="row" style="margin-top:7px;gap:6px"><span class="btn line" style="flex:1">+ Stuk</span><span class="btn line" style="flex:1">+ Notenspel</span><span class="btn line" style="flex:1">+ Opdracht</span></div>
+            </div>
+          </div>
+          <div style="flex:.8" class="card">
+            <div class="cap2">Uit de bibliotheek</div>
+            <div class="task"><i>🎵</i><span class="grow">Etude in G</span><span style="color:var(--a-blue);font-weight:700">+</span></div>
+            <div class="task"><i>🎵</i><span class="grow">Toonladder D groot</span><span style="color:var(--a-blue);font-weight:700">+</span></div>
+            <div class="task"><i>🎵</i><span class="grow">Ode an die Freude</span><span style="color:var(--a-blue);font-weight:700">+</span></div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+            <div class="card">
+              <div class="cap2">Dagdoel</div>
+              <div class="row" style="margin-top:6px"><span class="grow">Toonladder G groot</span><b>5</b></div>
+              <div class="row"><span class="grow">Lang zal ze leven</span><b>10</b></div>
+              <div class="row"><span class="grow">Notenspel</span><b>5</b></div>
+              <div class="row" style="border-top:1px solid var(--a-line);margin-top:5px;padding-top:5px"><b class="grow">Per oefendag</b><b>20 min</b></div>
+              <div class="row" style="margin-top:7px"><span class="grow">Dagen per week</span><span class="step"><b>−</b>5<b>+</b></span></div>
+            </div>
+            <div class="card"><div class="row"><span class="check"></span><span><b>Vrij spelen telt ook mee</b><br><span class="muted">minuten buiten de opdrachten tellen voor het dagtotaal</span></span></div></div>
+            <div class="sum">20 min per dag, 5 dagen · tot ma 19 okt</div>
+            <div class="btn" style="margin-top:auto">Opslaan en naar Lotte sturen</div>
+          </div>
+        </div>
+      </div></div>
+      <p class="cap">Het dagdoel is de som van de opdrachten, en niet langer een eigen getal. "+ Notenspel" maakt het notenspel een opdracht met de noten van deze les.</p>
+    </div>
+  </div>
+
+  <h2>2. Vandaag (leerling, iPad)</h2>
+  <p class="note">De ring telt alle minuten van vandaag. Bij elke opdracht staat een balkje met hoeveel minuten er van die opdracht al gedaan zijn. De oranje knop start de eerste opdracht die nog niet af is.</p>
+  <div class="frames">
+    <div>
+      <div class="ipad"><div class="scr">
+        <div class="bar"><span class="ttl">Hoi Lotte</span><span class="muted">maandag 13 oktober</span><span class="grow"></span><span class="av">L</span></div>
+        <div style="padding:0 14px;flex:1"><div class="card" style="display:flex;flex-direction:column;gap:6px">
+          <div class="row" style="gap:10px"><div class="ring" style="background:conic-gradient(var(--a-ok) 0 40%, var(--a-line) 40% 100%)"><b>8/20</b></div><div><b style="font-size:13px">Nog 12 minuten</b><br><span class="muted">huiswerk van Marieke · tot ma 19 okt</span></div></div>
+          <div class="task"><i>🎵</i><span class="grow"><b>Toonladder G groot</b><div class="meter"><i style="width:100%"></i></div></span><span style="color:var(--a-ok);font-weight:700">5/5 ✓</span></div>
+          <div class="task"><i>🎵</i><span class="grow"><b>Lang zal ze leven</b> <span class="muted">· 🎙️</span><div class="meter"><i style="width:30%"></i></div></span><span class="muted">3/10 ›</span></div>
+          <div class="task"><i>🎮</i><span class="grow"><b>Notenspel</b><div class="meter"><i style="width:0%"></i></div></span><span class="muted">0/5 ›</span></div>
+          <div class="task"><span class="cell" style="width:12px;height:12px;border:1.5px solid var(--a-line);background:var(--a-card)"></span><span class="grow"><b>Notenalfabet achteruit</b></span></div>
+          <div class="btn" style="margin-top:4px">Verder: Lang zal ze leven</div>
+        </div></div>
+        <div class="tabbar"><div class="on"><i>☀️</i>Vandaag</div><div><i>🎮</i>Spelen</div><div><i>🎷</i>Grepen</div><div><i>🎙️</i>Vrij spelen</div></div>
+      </div></div>
+      <p class="cap">De knop zegt wat er komt: "Verder: Lang zal ze leven". Is alles af, dan wordt het "Klaar voor vandaag 🎉" en kun je vrij verder spelen.</p>
+    </div>
+  </div>
+
+  <h2>3. Een opdracht oefenen</h2>
+  <p class="note">Tik op een opdracht. De taakpagina krijgt een knop "Oefen dit stuk": hetzelfde focusscherm als Vrij spelen, maar de minuten gaan naar deze opdracht. Een opname telt ook mee.</p>
+  <div class="frames">
+    <div>
+      <div class="ipad"><div class="scr">
+        <div class="bar"><span class="muted">← Vandaag</span><span class="grow"></span><span class="av">L</span></div>
+        <div class="row" style="padding:0 14px;gap:10px;align-items:stretch;flex:1;padding-bottom:12px">
+          <div class="card" style="flex:1"><span class="ttl" style="font-size:16px">Lang zal ze leven</span><br><span class="muted">blz. 23 · 10 min per dag</span>
+            <div class="meter" style="margin-top:8px"><i style="width:30%"></i></div><span class="muted">vandaag 3 van 10 min</span>
+            <div class="row" style="margin-top:10px;gap:6px"><span class="btn line">📄 Bladmuziek</span><span class="btn line">▶ Voorbeeld</span></div>
+            <div class="card" style="background:var(--a-bg);margin-top:10px"><b>Marieke:</b> "Let op je adem bij de lange noten."</div></div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+            <div class="card" style="text-align:center"><div style="font-size:26px">🎷</div><b style="font-size:12px">Oefen dit stuk</b><br><span class="muted">ik luister mee en tel de minuten bij deze opdracht</span><div class="btn" style="margin-top:8px">Begin met oefenen</div></div>
+            <div class="card" style="text-align:center"><b>🎙️ Opnemen</b><br><span class="muted">telt ook mee · 2 opnames ingestuurd</span></div>
+          </div>
+        </div>
+      </div></div>
+      <p class="cap">"Oefen dit stuk" opent het focusscherm met de tijd groot en "Klaar". Het resultaat zegt: "+4 minuten voor Lang zal ze leven · nog 3".</p>
+    </div>
+    <div>
+      <div class="phone"><div class="scr">
+        <div class="bar" style="padding-top:16px"><span class="muted">Lang zal ze leven</span></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:0 14px">
+          <div style="font-size:40px;font-weight:800">4:12</div>
+          <div class="muted">gespeeld · voor deze opdracht</div>
+          <div class="sum" style="width:100%">● Ik hoor je altsaxofoon · G</div>
+          <div class="meter" style="width:100%"><i style="width:72%"></i></div><span class="muted">7 van 10 min vandaag</span>
+        </div>
+        <div style="padding:0 14px 16px"><div class="btn">Klaar</div></div>
+      </div></div>
+      <p class="cap">In focus, op de iPhone.</p>
+    </div>
+  </div>
+
+  <h2>4. Leraar: per opdracht deze week</h2>
+  <p class="note">Op de pagina van de leerling, onder Huiswerk: per opdracht de minuten per dag. Zo zie je of Lotte vooral het notenspel deed en het stuk liet liggen.</p>
+  <div class="frames">
+    <div>
+      <div class="laptop" style="height:340px"><div class="scr">
+        <div class="bar"><span class="ttl">Lotte</span><span class="muted">· deze les di 13 – ma 19 okt · 20 min per dag, 5 dagen</span></div>
+        <div style="padding:0 14px"><div class="card">
+          <table class="mini">
+            <tr><th>Opdracht</th><th>doel</th><th>di</th><th>wo</th><th>do</th><th>vr</th><th>za</th><th>zo</th><th>ma</th><th>samen</th></tr>
+            <tr><td>🎵 Toonladder G groot</td><td>5</td><td><span class="cell ok"></span></td><td><span class="cell ok"></span></td><td><span class="cell"></span></td><td><span class="cell ok"></span></td><td><span class="cell"></span></td><td><span class="cell"></span></td><td><span class="cell"></span></td><td>15 min</td></tr>
+            <tr><td>🎵 Lang zal ze leven · 🎙️ 2</td><td>10</td><td><span class="cell half"></span></td><td><span class="cell ok"></span></td><td><span class="cell"></span></td><td><span class="cell half"></span></td><td><span class="cell"></span></td><td><span class="cell"></span></td><td><span class="cell"></span></td><td>19 min</td></tr>
+            <tr><td>🎮 Notenspel</td><td>5</td><td><span class="cell ok"></span></td><td><span class="cell ok"></span></td><td><span class="cell ok"></span></td><td><span class="cell ok"></span></td><td><span class="cell"></span></td><td><span class="cell"></span></td><td><span class="cell"></span></td><td>24 min</td></tr>
+            <tr><td>🎙️ Vrij spelen (telt mee)</td><td>–</td><td></td><td>3</td><td></td><td></td><td></td><td></td><td></td><td>3 min</td></tr>
+            <tr><td><b>Per dag</b></td><td><b>20</b></td><td>16</td><td>23</td><td>6</td><td>17</td><td></td><td></td><td></td><td><b>2 van 5 dagen gehaald</b></td></tr>
+          </table>
+        </div></div>
+      </div></div>
+      <p class="cap">Groen: het doel van die opdracht is gehaald die dag. Lichtgroen: de helft of meer. Een dag telt als gehaald als het dagdoel van 20 min gehaald is.</p>
+    </div>
+  </div>
+
+  <h2>Hoe het onder de motorkap werkt</h2>
+  <div class="panel">
+    <ul class="clean">
+      <li><b>Opdracht:</b> een veld <code>minutes_per_day</code> (leeg betekent afvinken). Een nieuwe soort opdracht, "notenspel", met de noten van de les.</li>
+      <li><b>Huiswerk:</b> het dagdoel wordt de som van de opdrachten. Daarnaast komt er een vinkje "vrij spelen telt mee". Ouder huiswerk zonder minuten per opdracht houdt zijn eigen dagdoel.</li>
+      <li><b>Oefentijd koppelen:</b> een sessie vrij spelen, een opname of een ronde notenspel kan aan een opdracht hangen (<code>task_id</code>). Bij een opdracht starten gaat die koppeling vanzelf mee.</li>
+      <li><b>Achterwaarts:</b> de app op productie blijft het dagdoel en alle minuten zien, zoals nu.</li>
+    </ul>
+  </div>
+
+  <h2>Jouw beslissingen</h2>
+  <ol class="decide">
+    <li><b>Notenspel via de tab Spelen</b><p>Telt een ronde via de tab Spelen (niet via de opdracht) mee voor de opdracht "Notenspel"? <span class="rec">Advies: ja, het notenspel is hetzelfde spel met dezelfde noten.</span></p></li>
+    <li><b>Meer doen dan het doel</b><p>Speelt Lotte 15 min aan het stuk terwijl het doel 10 is: telt de rest mee voor het dagtotaal? <span class="rec">Advies: ja, voor het dagtotaal wel; de opdracht staat dan op 10/10 ✓.</span></p></li>
+    <li><b>Wanneer is een dag gehaald</b><p>Als het dagtotaal is gehaald (20 min, hoe ook verdeeld), of pas als élke opdracht zijn minuten heeft? <span class="rec">Advies: het dagtotaal; per opdracht zie je de verdeling in het overzicht.</span></p></li>
+    <li><b>Knop op Vandaag</b><p>"Verder: &lt;opdracht&gt;" start de eerste opdracht die die dag nog niet af is. <span class="rec">Advies: ja; opnemen dat nog openstaat gaat voor.</span></p></li>
+    <li><b>Ouder huiswerk</b><p>Werkt dit ook voor huiswerk van een ouder? <span class="rec">Advies: ja, hetzelfde formulier.</span></p></li>
+  </ol>
+</main>
+</body>
+</html>
