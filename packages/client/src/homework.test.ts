@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { currentHomework, dueLabel, homeworkProgress, worstStatus } from "./homework.js";
+import { allCategories, recordingKeptUntil, currentHomework, dueLabel, homeworkProgress, taskReference, worstStatus } from "./homework.js";
 import type { Homework, PracticeSession, Round } from "./types.js";
 
 // Zaterdag 10 oktober 2026, 16:00 lokale tijd
@@ -11,7 +11,7 @@ function hw(opts: Partial<Homework> = {}): Homework {
   return {
     id: "h1", studentId: "s1", givenBy: "marieke", givenByRole: "leraar", givenByName: "Marieke",
     createdAt: at(1, 17), dueDate: day(6), minutesPerDay: 20, daysPerWeek: 5,
-    notes: ["d4"], piece: "Toonladder G", pieceNote: "", remark: "", ...opts,
+    notes: ["d4"], piece: "Toonladder G", pieceNote: "", remark: "", tasks: [], ...opts,
   };
 }
 const round = (daysAgo: number, minutes: number): Round => ({
@@ -103,5 +103,28 @@ describe("worstStatus", () => {
     expect(worstStatus(["goed", "achter", "opletten"])).toBe("achter");
     expect(worstStatus(["goed", "opletten"])).toBe("opletten");
     expect(worstStatus([])).toBe("geen");
+  });
+});
+
+describe("taskReference", () => {
+  it("noemt boek, hoofdstuk, bladzijde, nummer en track, alleen wat er is", () => {
+    expect(taskReference({ bookTitle: "Saxofoon Methode 1", chapter: "4", page: "23", number: "12", track: "17" }))
+      .toBe("Saxofoon Methode 1 · hoofdstuk 4 · blz. 23 · nr. 12 · track 17");
+    expect(taskReference({ bookTitle: "Methode 2", chapter: "", page: "8", number: "", track: "" })).toBe("Methode 2 · blz. 8");
+    expect(taskReference({ bookTitle: "", chapter: "", page: "", number: "", track: "" })).toBe("");
+  });
+});
+
+describe("allCategories", () => {
+  it("begint met de vaste lijst en voegt eigen categorieën toe, zonder dubbele", () => {
+    expect(allCategories([["Toonladders", "Kerst"], ["kerst", "Duetten"]]))
+      .toEqual(["Toonladders", "Etudes", "Liedjes", "Theorie", "Techniek", "Kerst", "Duetten"]);
+  });
+});
+
+describe("recordingKeptUntil", () => {
+  it("bewaart een opname tot 4 weken na de einddatum", () => {
+    expect(recordingKeptUntil("2026-10-16")).toBe("2026-11-13");
+    expect(recordingKeptUntil("2026-12-20")).toBe("2027-01-17");
   });
 });

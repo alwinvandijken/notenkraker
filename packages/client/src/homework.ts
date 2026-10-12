@@ -96,3 +96,30 @@ export function worstStatus(statuses: HomeworkStatus[]): HomeworkStatus | "geen"
   if (statuses.includes("opletten")) return "opletten";
   return "goed";
 }
+
+/** waar een stuk staat: "Saxofoon Methode 1 · hoofdstuk 4 · blz. 23 · nr. 12 · track 17" (AC-118) */
+export function taskReference(t: { bookTitle: string; chapter: string; page: string; number: string; track: string }): string {
+  return [t.bookTitle, t.chapter && `hoofdstuk ${t.chapter}`, t.page && `blz. ${t.page}`, t.number && `nr. ${t.number}`, t.track && `track ${t.track}`]
+    .filter(Boolean).join(" · ");
+}
+
+/** vaste beginlijst van categorieën in de opdrachtenbank; een leraar kan er eigen bij typen */
+export const BASE_CATEGORIES = ["Toonladders", "Etudes", "Liedjes", "Theorie", "Techniek"];
+
+/** de vaste lijst plus de eigen categorieën uit de bank, zonder dubbele (hoofdletters tellen niet) */
+export function allCategories(perTask: string[][]): string[] {
+  const out = [...BASE_CATEGORIES];
+  for (const c of perTask.flat()) {
+    const name = c.trim();
+    if (name && !out.some((x) => x.toLocaleLowerCase("nl") === name.toLocaleLowerCase("nl"))) out.push(name);
+  }
+  return out;
+}
+
+/** opnames worden 4 weken na de einddatum van het huiswerk verwijderd (AC-118); jjjj-mm-dd */
+export const RECORDING_KEEP_DAYS = 28;
+export function recordingKeptUntil(dueDate: string): string {
+  const d = parseDate(dueDate);
+  d.setDate(d.getDate() + RECORDING_KEEP_DAYS);
+  return dateKey(d);
+}

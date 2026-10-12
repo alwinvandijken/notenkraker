@@ -48,10 +48,17 @@ export function LeerlingenTabel({ rows, onOpenChild, onGiveMany, onChanged }: {
   const repeat = async () => {
     const due = (() => { const d = new Date(); d.setDate(d.getDate() + 7); return dateKey(d); })();
     let done = 0, none = 0;
+    const myBooks = await client.books.list().catch(() => []);
     for (const id of picked) {
       const prev = rows.find((r) => r.student.id === id)?.homeworkAll.find((h) => h.givenBy === profile?.id);
       if (!prev) { none++; continue; }
-      await client.homework.give({ studentId: id, notes: prev.notes, minutesPerDay: prev.minutesPerDay, daysPerWeek: prev.daysPerWeek, piece: prev.piece, pieceNote: prev.pieceNote, remark: prev.remark, dueDate: due });
+      if (prev.tasks.length) {
+        // opdrachten mee; het boek vinden we terug op titel in de eigen boekenlijst
+        await client.homework.giveWithTasks([id], { notes: prev.notes, minutesPerDay: prev.minutesPerDay, daysPerWeek: prev.daysPerWeek, remark: prev.remark, dueDate: due },
+          prev.tasks.map((t) => ({ kind: t.kind, title: t.title, bookId: myBooks.find((b) => b.title === t.bookTitle)?.id ?? null, page: t.page, chapter: t.chapter, number: t.number, track: t.track })));
+      } else {
+        await client.homework.give({ studentId: id, notes: prev.notes, minutesPerDay: prev.minutesPerDay, daysPerWeek: prev.daysPerWeek, piece: prev.piece, pieceNote: prev.pieceNote, remark: prev.remark, dueDate: due });
+      }
       done++;
     }
     setNote(`${done} ${done === 1 ? "leerling heeft" : "leerlingen hebben"} het vorige huiswerk opnieuw gekregen${none ? `; ${none} had nog geen huiswerk van jou` : ""}.`);

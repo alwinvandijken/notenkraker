@@ -6,13 +6,14 @@ import { useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 import {
   currentHomework, dueLabel, homeworkProgress, STATUS_LABEL,
-  type Homework, type HomeworkProgress, type HomeworkStatus, type PracticeSession, type Round,
+  type Homework, type HomeworkProgress, type HomeworkTask, type HomeworkStatus, type PracticeSession, type Round,
 } from "@notenkraker/client";
 import { client } from "@/lib/client";
 import { instrumentNotes } from "@notenkraker/core";
 import { getInstrument } from "@notenkraker/instruments";
 import { distinctLabels } from "@/lib/noten";
 import { Donut } from "@/components/Donut";
+import { OpdrachtenLijst } from "@/components/Opdrachten";
 
 export interface CurrentHomework { h: Homework; p: HomeworkProgress }
 
@@ -86,8 +87,11 @@ export function useNoteLabels(instrumentId: string) {
   return useMemo(() => { const inst = getInstrument(instrumentId); return distinctLabels(instrumentNotes(inst), inst.starterNotes); }, [instrumentId]);
 }
 
-export function HuiswerkKaart({ item: { h, p }, instrumentId, mine, pupil, onEdit }:
-  { item: CurrentHomework; instrumentId: string; mine?: boolean; pupil?: boolean; onEdit?(): void }) {
+export function HuiswerkKaart({ item: { h, p }, instrumentId, mine, pupil, onEdit, mayRecord, onRecord }: {
+  item: CurrentHomework; instrumentId: string; mine?: boolean; pupil?: boolean; onEdit?(): void;
+  /** de leerling mag opnames insturen (18+, eigen profiel, of toestemming van de ouder) */
+  mayRecord?: boolean; onRecord?(task: HomeworkTask): void;
+}) {
   const labels = useNoteLabels(instrumentId);
   return (
     <section className={clsx("rounded-3xl bg-surface p-4 flex flex-col gap-3 min-w-0", pupil && "border-2 border-les")}
@@ -116,7 +120,8 @@ export function HuiswerkKaart({ item: { h, p }, instrumentId, mine, pupil, onEdi
         <div className="flex flex-wrap gap-1.5">{h.notes.map((n) => <span key={n} className="rounded-xl px-2.5 py-1 font-bold bg-les text-fg text-sm">{labels[n] ?? n}</span>)}</div>
       )}
       {h.piece && <div className="text-sm">🎵 <b>{h.piece}</b>{h.pieceNote ? `, ${h.pieceNote}` : ""}</div>}
-      {h.remark && <div className="text-sm rounded-xl bg-bg px-3 py-2">💬 “{h.remark}”</div>}
+      <OpdrachtenLijst tasks={h.tasks} viewer={pupil ? "pupil" : mine ? "giver" : "other"} mayRecord={mayRecord} onRecord={onRecord} dueDate={h.dueDate} />
+      {h.remark && <div className="text-sm rounded-xl bg-bg px-3 py-2 whitespace-pre-line">💬 “{h.remark}”</div>}
 
       {!pupil && (
         <div className="flex flex-col gap-1.5">

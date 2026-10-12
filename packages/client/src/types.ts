@@ -45,12 +45,16 @@ export interface Student {
   naming: "nl" | "en";
   /** auth user van de leerling zelf, als die een eigen login heeft */
   userId?: string | null;
+  /** wie het profiel maakte (ouder, leraar, of de leerling zelf) */
+  ownerId?: string;
   createdAt: string;
   /** uit de kennismaking (AC-115); null = niet ingevuld */
   ageBand?: AgeBand | null;
   experience?: Experience | null;
   /** kennismaking afgerond of overgeslagen; null = nog vragen */
   onboardedAt?: string | null;
+  /** de ouder staat toe dat het kind opnames instuurt (AC-118) */
+  recordingConsent?: boolean;
 }
 
 export interface Guardian { studentId: string; name: string; role: "ouder" | "leraar" }
@@ -107,7 +111,57 @@ export interface Homework {
   piece: string;
   pieceNote: string;
   remark: string;
+  /** opdrachten (AC-118); leeg bij ouder huiswerk */
+  tasks: HomeworkTask[];
 }
+
+/** opdracht in het huiswerk (AC-118): een stuk spelen (met verwijzing in een boek) of een opdracht om af te vinken */
+export type TaskKind = "stuk" | "opdracht";
+export interface TaskInput {
+  kind: TaskKind;
+  title: string;
+  /** boek uit de eigen boekenlijst; de titel gaat mee bij het geven */
+  bookId?: string | null;
+  page: string;
+  chapter: string;
+  number: string;
+  track: string;
+  /** uit de opdrachtenbank */
+  bankId?: string | null;
+  /** eigen bladmuziek en voorbeeldopname in de bucket "bladmuziek" (stap 1b) */
+  sheetPath?: string | null;
+  sheetName?: string;
+  examplePath?: string | null;
+  /** de leerling neemt het stuk op en stuurt het in */
+  recording?: boolean;
+}
+export interface HomeworkTask {
+  id: string;
+  homeworkId: string;
+  position: number;
+  kind: TaskKind;
+  title: string;
+  bookTitle: string;
+  bookAuthor: string;
+  page: string;
+  chapter: string;
+  number: string;
+  track: string;
+  doneAt: string | null;
+  sheetPath: string | null;
+  sheetName: string;
+  examplePath: string | null;
+  recording: boolean;
+  /** de ingestuurde opname (bucket "opnames"); null na verwijderen of nog niet ingestuurd */
+  recordingPath: string | null;
+  submittedAt: string | null;
+  recordingDeletedAt: string | null;
+  reactionEmoji: string;
+  reaction: string;
+  reactedAt: string | null;
+}
+export interface Book { id: string; title: string; author: string; hasAudio: boolean }
+export interface BankTask extends Omit<TaskInput, "bankId"> { id: string; categories: string[] }
 /** eigen opgave om te hergebruiken (AC-117); alleen de eigenaar ziet hem */
 export interface HomeworkTemplate {
   id: string;
@@ -118,6 +172,7 @@ export interface HomeworkTemplate {
   piece: string;
   pieceNote: string;
   remark: string;
+  tasks: TaskInput[];
 }
 export type HomeworkInput = Pick<Homework, "studentId" | "dueDate" | "minutesPerDay" | "daysPerWeek" | "notes" | "piece" | "pieceNote" | "remark">;
 
@@ -162,6 +217,8 @@ export interface StudentsApi {
   /** kind met eigen login koppelt zich aan het leerlingprofiel dat de ouder aanmaakte */
   claimByCode(code: string): Promise<Student>;
   inviteCode(studentId: string, purpose?: InvitePurpose): Promise<string>;
+  /** alleen de ouder (eigenaar): mag het kind opnames insturen */
+  setRecordingConsent(studentId: string, allowed: boolean): Promise<void>;
   /** voor een leerling met eigen login: wie zijn ouder en leraren zijn (alleen de naam) */
   guardians(): Promise<Guardian[]>;
 }
@@ -195,6 +252,40 @@ export interface HomeworkApi {
   templates(): Promise<HomeworkTemplate[]>;
   saveTemplate(t: Omit<HomeworkTemplate, "id">): Promise<HomeworkTemplate>;
   removeTemplate(id: string): Promise<void>;
+  /** huiswerk met opdrachten (AC-118) voor één of meer leerlingen; alles of niets */
+  giveWithTasks(studentIds: string[], input: Omit<HomeworkInput, "studentId" | "piece" | "pieceNote">, tasks: TaskInput[]): Promise<number>;
+  /** afvinken door de leerling (of ouder/leraar) */
+  setTaskDone(taskId: string, done: boolean): Promise<void>;
+  /** opname insturen (eerst uploaden met files.uploadRecording) */
+  submitRecording(taskId: string, path: string): Promise<void>;
+  /** reactie van wie het huiswerk gaf */
+  react(taskId: string, emoji: string, text: string): Promise<void>;
+}
+
+/** bestanden (AC-118 stap 1b): bladmuziek en voorbeelden van de leraar, opnames van de leerling */
+export interface FilesApi {
+  /** in de eigen map van de bucket "bladmuziek"; geeft het pad terug */
+  uploadSheet(file: Blob, name: string): Promise<string>;
+  uploadRecording(studentId: string, taskId: string, audio: Blob, ext: string): Promise<string>;
+  removeRecording(path: string): Promise<void>;
+  /** tijdelijke link om te openen of af te spelen */
+  url(bucket: "bladmuziek" | "opnames", path: string): Promise<string>;
+}
+
+/** eigen boekenlijst van een leraar of ouder (AC-118) */
+export interface BooksApi {
+  list(): Promise<Book[]>;
+  save(book: Omit<Book, "id"> & { id?: string }): Promise<Book>;
+  remove(id: string): Promise<void>;
+}
+
+/** eigen opdrachtenbank (AC-118) */
+export interface BankApi {
+  list(): Promise<BankTask[]>;
+  save(task: Omit<BankTask, "id"> & { id?: string }): Promise<BankTask>;
+  remove(id: string): Promise<void>;
+  /** opdrachten bij het lopende huiswerk van mij zetten, of nieuw huiswerk (tot dueDate) */
+  assign(studentIds: string[], bankIds: string[], dueDate: string): Promise<number>;
 }
 
 export interface FeedbackApi {
@@ -228,6 +319,9 @@ export interface NotenkrakerClient {
   rounds: RoundsApi;
   practice: PracticeApi;
   homework: HomeworkApi;
+  books: BooksApi;
+  files: FilesApi;
+  bank: BankApi;
   feedback: FeedbackApi;
   admin: AdminApi;
   songs: SongsApi;
