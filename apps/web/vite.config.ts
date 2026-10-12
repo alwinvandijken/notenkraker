@@ -8,7 +8,8 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: "autoUpdate",
+      // "prompt": bij een nieuwe versie vraagt een balkje of je wilt bijwerken (components/UpdateBalk.tsx)
+      registerType: "prompt",
       includeAssets: ["icon.svg"],
       manifest: {
         name: "Notenkraker",
