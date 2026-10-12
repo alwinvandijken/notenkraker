@@ -11,7 +11,9 @@ import { Chip } from "@/components/ui";
 export function HuiswerkKiezen({ onGive, onAdd }: { onGive(studentIds: string[]): void; onAdd(): void }) {
   const { profile, students } = useApp();
   const isOuder = profile?.role === "ouder";
-  const [chosen, setChosen] = useState<string[]>(() => (students.length === 1 ? [students[0]!.id] : []));
+  const [picked, setChosen] = useState<string[]>([]);
+  /** met één kind of leerling is die vanzelf gekozen, ook als de lijst later binnenkomt dan het scherm */
+  const chosen = students.length === 1 ? [students[0]!.id] : picked;
 
   if (students.length === 0) {
     return (

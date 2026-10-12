@@ -53,7 +53,7 @@ export async function inloggen(page: Page, g: { email: string; password: string 
   await expect(page.getByRole("button", { name: "Menu" })).toBeVisible();
 }
 
-/** hamburgermenu rechtsboven openen en een keuze maken */
+/** avatarmenu rechtsboven openen en een keuze maken */
 export async function kiesInMenu(page: Page, label: string | RegExp) {
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("navigation", { name: "Hoofdmenu" }).getByRole("button", { name: label }).click();

@@ -7,7 +7,7 @@ test("zonder account: grepen, notenspel en de status blijft na herladen", async 
 
   await expect(page.getByRole("heading", { name: "Hoe oud ben je?" })).toBeVisible();
   await page.getByRole("button", { name: "Overslaan" }).click();
-  await expect(page.getByRole("heading", { name: "Wat ga je doen?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hoi!" })).toBeVisible();
 
   await kiesTab(page, "Grepen");
   const kent = page.getByRole("group", { name: "Status" }).getByRole("button", { name: "Kent al" });
@@ -18,12 +18,12 @@ test("zonder account: grepen, notenspel en de status blijft na herladen", async 
   await speelRonde(page);
 
   await kiesTab(page, "Vandaag");
-  const noten = page.getByText(/die je kent/);
+  const noten = page.getByText(/die je kent$/);
   await expect(noten).not.toContainText(" 0 noten");
   const voor = await noten.textContent();
 
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Wat ga je doen?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hoi!" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Hoe oud ben je?" })).toHaveCount(0);
-  await expect(page.getByText(/die je kent/)).toHaveText(voor!);
+  await expect(page.getByText(/die je kent$/)).toHaveText(voor!);
 });

@@ -68,7 +68,7 @@ export function OpdrachtenEditor({ tasks, onChange, books, bank }: { tasks: Task
                   <option value="">Geen boek</option>
                   {books.map((b) => <option key={b.id} value={b.id}>📖 {b.title}</option>)}
                 </select>
-                {books.length === 0 && <span className="text-xs text-muted">Zet je boeken eerst in “Mijn boeken” (menu), dan kies je ze hier.</span>}
+                {books.length === 0 && <span className="text-xs text-muted">Zet je boeken eerst in de Bibliotheek (tabblad Boeken), dan kies je ze hier.</span>}
                 <Upload label="📄 Eigen bladmuziek (pdf of foto)" accept="application/pdf,image/*" name={t.sheetName || (t.sheetPath ? "bladmuziek" : "")}
                   onUploaded={(path, name) => set(t.key, { sheetPath: path, sheetName: name })} onClear={() => set(t.key, { sheetPath: null, sheetName: "" })} />
                 <Upload label="🎧 Voorbeeldopname (mag)" accept="audio/*" name={t.examplePath ? "voorbeeldopname" : ""}

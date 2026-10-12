@@ -1,6 +1,6 @@
 /** De volledige app met login (AC-63, AC-106), bereikbaar op /app zolang het proefconcept op / staat. */
 import { useEffect, useState, type ReactNode } from "react";
-import { rightsFor, type HomeworkTask, type Student } from "@notenkraker/client";
+import { rightsFor, type Student } from "@notenkraker/client";
 import { getInstrument } from "@notenkraker/instruments";
 import { client, hasBackend } from "@/lib/client";
 import { useApp } from "@/lib/store";
@@ -21,7 +21,8 @@ import { Sjablonen } from "@/screens/Sjablonen";
 import { Boeken } from "@/screens/Boeken";
 import { Opnemen } from "@/screens/Opnemen";
 import { NieuweBankOpdracht, Opdrachtenbank, Toewijzen } from "@/screens/Opdrachtenbank";
-import { HuiswerkKaart, HuiswerkRegel, useHomework } from "@/components/Huiswerk";
+import { HuiswerkRegel, useHomework } from "@/components/Huiswerk";
+import { Vandaag, type Mode } from "@/screens/Vandaag";
 import { Menu, type MenuItem } from "@/components/Menu";
 import { TabBalk, type Tab } from "@/components/TabBalk";
 import { KoppelMelding } from "@/components/KoppelMelding";
@@ -31,7 +32,6 @@ import { FeedbackGeven } from "@/screens/FeedbackGeven";
 import { Beheer, FeedbackDetail, type BeheerTab } from "@/screens/Beheer";
 
 type Screen = "vandaag" | "overzicht" | "kind" | "dag" | "huiswerk" | "geven" | "oefenen" | "kinderen" | "profiel" | "feedback" | "beheer" | "feedbackdetail" | "sjablonen" | "boeken" | "bank" | "banknieuw" | "toewijzen" | "opnemen";
-type Mode = "learn" | "game" | "vrij";
 interface NavState {
   screen: Screen; childId: string | null; day: { date: string; back: "overzicht" | "kind" } | null;
   /** feedback: de pagina waar je "Feedback geven" koos; huiswerk: de tab waar je vandaan kwam; beheer: tabblad en geopende feedback */
@@ -167,7 +167,7 @@ export function AppMetLogin() {
       <Grepentabel instrument={getInstrument(student.instrumentId)} title={student.name}
         student={{ statuses, setStatus: (n, st) => void setStatus(n, st) }}
         actions={studentPicker || undefined} menu={menu}
-        notice={<><KoppelMelding /><NotenOvernemen /><HuiswerkVoorLeerling student={student} compact /></>} />
+        notice={<><KoppelMelding /><NotenOvernemen /><HuiswerkRegels student={student} /></>} />
       {tabBalk}
       </>
     );
@@ -193,7 +193,7 @@ export function AppMetLogin() {
   const swap = (s: Screen) => { window.history.replaceState({ ...window.history.state, screen: s }, ""); setScreen(s); };
 
   return (
-    <div className={`${current === "overzicht" || current === "kind" || current === "dag" ? "max-w-[1240px]" : "max-w-[900px]"} mx-auto px-4 pt-6 pb-12`}>
+    <div className={`${current === "overzicht" || current === "kind" || current === "dag" || current === "vandaag" ? "max-w-[1240px]" : "max-w-[900px]"} mx-auto px-4 pt-6 pb-12`}>
       <header className="flex items-start justify-between gap-3 mb-4">
         <div className="min-w-0">
           {backTo && (
@@ -218,12 +218,9 @@ export function AppMetLogin() {
       {current === "vandaag" && (
         <>
           {!hasBackend && <p className="text-xs text-muted border border-line rounded-lg px-3 py-2 mb-2">Zonder backend: gegevens staan alleen in deze browser. Zet VITE_SUPABASE_URL en VITE_SUPABASE_ANON_KEY in .env voor de echte database.</p>}
-          {student ? (
-            <>
-              <HuiswerkVoorLeerling student={student} onRecord={(t) => go("opnemen", { taskId: t.id, studentIds: [student.id] })} />
-              <VerderOefenen onGo={practise} />
-            </>
-          ) : noStudent}
+          {student
+            ? <Vandaag key={student.id} student={student} onPlay={practise} onRecord={(t) => go("opnemen", { taskId: t.id, studentIds: [student.id] })} />
+            : noStudent}
         </>
       )}
       {current === "overzicht" && (
@@ -262,7 +259,6 @@ export function AppMetLogin() {
       {current === "oefenen" && (
         <>
           {!hasBackend && <p className="text-xs text-muted border border-line rounded-lg px-3 py-2 mb-2">Zonder backend: gegevens staan alleen in deze browser. Zet VITE_SUPABASE_URL en VITE_SUPABASE_ANON_KEY in .env voor de echte database.</p>}
-          {student && <HuiswerkVoorLeerling student={student} onRecord={(t) => go("opnemen", { taskId: t.id, studentIds: [student.id] })} />}
           {student ? (mode === "vrij" ? <VrijOefenen key={student.id} /> : <Game />) : noStudent}
         </>
       )}
@@ -271,41 +267,9 @@ export function AppMetLogin() {
   );
 }
 
-/** Vandaag, voorlopig (AC-120 PR 1): het huiswerk en de drie dingen die je altijd kunt doen. PR 2 maakt er het echte startscherm van. */
-function VerderOefenen({ onGo }: { onGo(m: Mode): void }) {
-  const tiles: Array<{ m: Mode; icon: string; text: string; tint: string }> = [
-    { m: "game", icon: "🎮", text: "Het notenspel", tint: "bg-kent-soft" },
-    { m: "learn", icon: "🎷", text: "Zoek op welke kleppen bij een noot horen", tint: "bg-kent-soft" },
-    { m: "vrij", icon: "🎙️", text: "De app luistert en telt mee", tint: "bg-accent-soft" },
-  ];
-  return (
-    <section aria-label="Verder oefenen" className="mt-2">
-      <h2 className="font-display font-bold text-xl mt-0 mb-2">Verder oefenen</h2>
-      <div className="grid gap-3 sm:grid-cols-3">
-        {tiles.map((t) => (
-          <button key={t.m} type="button" onClick={() => onGo(t.m)}
-            className="rounded-3xl bg-surface p-4 flex sm:flex-col items-center sm:items-start gap-3 text-left cursor-pointer border-2 border-transparent hover:border-line">
-            <span className={`w-14 h-14 rounded-2xl ${t.tint} flex items-center justify-center text-3xl shrink-0`} aria-hidden="true">{t.icon}</span>
-            <span><b className="font-display text-lg block">{MODE_TITLE[t.m]}</b><span className="text-sm text-muted">{t.text}</span></span>
-          </button>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-
-/** het lopende huiswerk bij het oefenen, zodat de leerling ziet wat er van hem verwacht wordt */
-function HuiswerkVoorLeerling({ student, compact, onRecord }: { student: Student; compact?: boolean; onRecord?(t: HomeworkTask): void }) {
-  const { id: studentId, instrumentId } = student;
-  const items = useHomework(studentId);
-  // zelfde regel als may_record in de database (0011_opnames.sql)
-  const mayRecord = student.ageBand === "18+" || !!student.recordingConsent || (!!student.userId && student.ownerId === student.userId);
+/** het lopende huiswerk als dunne regel op de grepentabel; de takenlijst staat op Vandaag */
+function HuiswerkRegels({ student }: { student: Student }) {
+  const items = useHomework(student.id);
   if (!items?.length) return null;
-  if (compact) return <div className="grid gap-2 md:grid-cols-2">{items.map((x) => <HuiswerkRegel key={x.h.id} item={x} instrumentId={instrumentId} />)}</div>;
-  return (
-    <div className="grid gap-3 md:grid-cols-2 mb-3">
-      {items.map((x) => <HuiswerkKaart key={x.h.id} item={x} instrumentId={instrumentId} pupil mayRecord={mayRecord} onRecord={onRecord} />)}
-    </div>
-  );
+  return <div className="grid gap-2 md:grid-cols-2">{items.map((x) => <HuiswerkRegel key={x.h.id} item={x} instrumentId={student.instrumentId} />)}</div>;
 }
