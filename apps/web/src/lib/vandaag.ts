@@ -46,7 +46,7 @@ export function planVandaag(items: CurrentHomework[], { mayRecord }: { mayRecord
   for (const { h } of items) {
     if (h.piece) rows.push({ kind: "stuk", key: `${h.id}-stuk`, title: h.piece, detail: h.pieceNote });
     for (const t of h.tasks) {
-      if (t.recording) rows.push({ kind: "opname", key: t.id, task: t, done: !!t.submittedAt });
+      if (t.recording) rows.push({ kind: "opname", key: t.id, task: t, done: t.recordings.length > 0 });
       else if (t.kind === "opdracht") rows.push({ kind: "opdracht", key: t.id, task: t, done: !!t.doneAt });
       else rows.push({ kind: "stuk", key: t.id, title: t.title, detail: "", task: t });
     }

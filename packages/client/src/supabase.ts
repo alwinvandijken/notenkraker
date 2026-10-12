@@ -1,7 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { promotionCandidates, scoreRound } from "@notenkraker/core";
 import type {
-  AdminApi, AdminUser, AuthApi, BankApi, FilesApi, BankTask, Book, BooksApi, HomeworkTask, TaskInput, Guardian, Feedback, FeedbackApi, Homework, HomeworkApi, HomeworkTemplate, InvitePurpose, NotenkrakerClient, NotesApi, PracticeApi, PracticeSession, Profile, Progress, Role, Round, RoundsApi, RoundSubmission,
+  AdminApi, AdminUser, AuthApi, BankApi, FilesApi, BankTask, Book, BooksApi, HomeworkTask, TaskInput, TaskRecording, Guardian, Feedback, FeedbackApi, Homework, HomeworkApi, HomeworkTemplate, InvitePurpose, NotenkrakerClient, NotesApi, PracticeApi, PracticeSession, Profile, Progress, Role, Round, RoundsApi, RoundSubmission,
   SelfRole, Song, SongsApi, Student, StudentNote, StudentsApi,
 } from "./types.js";
 
@@ -224,9 +224,13 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
     page: (r.page as string) ?? "", chapter: (r.chapter as string) ?? "", number: (r.number as string) ?? "", track: (r.track as string) ?? "",
     doneAt: (r.done_at as string | null) ?? null,
     sheetPath: (r.sheet_path as string | null) ?? null, sheetName: (r.sheet_name as string) ?? "", examplePath: (r.example_path as string | null) ?? null,
-    recording: r.recording === true, recordingPath: (r.recording_path as string | null) ?? null, submittedAt: (r.submitted_at as string | null) ?? null,
-    recordingDeletedAt: (r.recording_deleted_at as string | null) ?? null, reactionEmoji: (r.reaction_emoji as string) ?? "",
-    reaction: (r.reaction as string) ?? "", reactedAt: (r.reacted_at as string | null) ?? null,
+    recording: r.recording === true,
+    recordings: ((r.task_recordings as Array<Record<string, unknown>>) ?? []).map(rowToRecording).sort((a, b) => a.submittedAt.localeCompare(b.submittedAt)),
+  });
+  const rowToRecording = (r: Record<string, unknown>): TaskRecording => ({
+    id: r.id as string, taskId: r.task_id as string, path: (r.path as string | null) ?? null, submittedAt: r.submitted_at as string,
+    deletedAt: (r.deleted_at as string | null) ?? null, reactionEmoji: (r.reaction_emoji as string) ?? "", reaction: (r.reaction as string) ?? "",
+    reactedAt: (r.reacted_at as string | null) ?? null,
   });
   /** opdracht in de vorm die de databasefuncties verwachten */
   const taskToJson = (t: TaskInput) => ({
@@ -243,7 +247,7 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
   // geven is een databasefunctie: die controleert wie het mag en zet de noten op "in de les"
   const homework: HomeworkApi = {
     async list(studentId, limit = 20) {
-      const { data, error } = await sb.from("homework").select("*, homework_tasks(*)").eq("student_id", studentId).order("created_at", { ascending: false }).limit(limit);
+      const { data, error } = await sb.from("homework").select("*, homework_tasks(*, task_recordings(*))").eq("student_id", studentId).order("created_at", { ascending: false }).limit(limit);
       if (error) throw error;
       return (data ?? []).map(rowToHomework);
     },
@@ -296,8 +300,13 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
       const { error } = await sb.rpc("submit_recording", { p_task: taskId, p_path: path });
       if (error) throw error;
     },
-    async react(taskId, emoji, text) {
-      const { error } = await sb.rpc("react_to_task", { p_task: taskId, p_emoji: emoji, p_text: text });
+    async deleteRecording(recordingId) {
+      const { data, error } = await sb.rpc("delete_recording", { p_recording: recordingId });
+      if (error) throw error;
+      return (data as string | null) ?? null;
+    },
+    async reactToRecording(recordingId, emoji, text) {
+      const { error } = await sb.rpc("react_to_recording", { p_recording: recordingId, p_emoji: emoji, p_text: text });
       if (error) throw error;
     },
   };
