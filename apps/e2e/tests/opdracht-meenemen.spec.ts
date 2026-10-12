@@ -36,6 +36,13 @@ test("een stuk gaat mee naar de volgende les, met de opname van vorige week", as
   await voortgang.getByRole("spinbutton", { name: "Cijfer" }).fill("8");
   await voortgang.getByRole("button", { name: "Opslaan" }).click();
   await expect.poll(async () => (await admin.from("progress").select("status, grade").eq("student_id", kind)).data).toEqual([{ status: "klaar", grade: 8 }]);
+  // vóór de volgende les: de taakpagina hoort bij déze les (niet bij de volgende, die de ouder al ziet)
+  await kiesInMenu(page, "Zelf oefenen");
+  await page.getByRole("button", { name: /Lang zal ze leven opnemen/ }).click();
+  await expect(page.getByRole("heading", { name: "Lang zal ze leven" })).toBeVisible();
+  await expect(page.getByText("2e week")).toHaveCount(0);
+  await page.getByRole("button", { name: "← Vandaag" }).click();
+  await kiesInMenu(page, "Terug naar Mijn kinderen");
   // tijdreis: de volgende les begint vandaag, de vorige was een week geleden
   const dag = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
   await admin.from("lessons").update({ date: dag(-7) }).eq("group_id", a!.group_id).lte("date", dag(0));

@@ -3,7 +3,7 @@
 -- Draaien: supabase start && supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(35);
+select plan(40);
 
 delete from auth.users;
 create function pg_temp.als(uid uuid) returns void language plpgsql as $$
@@ -116,6 +116,30 @@ select throws_ok($$ select set_progress(pg_temp.id('stuk'), pg_temp.id('lotte'),
 reset role;
 update lessons set date = date - 60 where id = pg_temp.id('deze');
 select is((select count(*)::int from expired_recordings()), 0, 'Niet verlopen zolang de opdracht nog in een latere les staat');
+
+-- ── Review: stoppen en dezelfde dag opnieuw geven ────────────────────
+reset role;
+delete from schedule_rules;
+select pg_temp.als(pg_temp.id('marieke'));
+insert into ids select 'groep_sem', ensure_group(pg_temp.id('sem'));
+select give_homework(pg_temp.id('groep_sem'), 'deze', '[]', 15, 5, 'Oud', jsonb_build_array(jsonb_build_object('kind', 'opdracht', 'title', 'Oude opdracht')), '{}');
+select end_lesson((select id from lessons where group_id = pg_temp.id('groep_sem') and date = current_date));
+select give_homework(pg_temp.id('groep_sem'), 'deze', '[]', 30, 3, 'Nieuw', jsonb_build_array(jsonb_build_object('kind', 'opdracht', 'title', 'Nieuwe opdracht')), '{}');
+select results_eq($$ select a.title from homework h join assignments a on a.id = h.assignment_id join lessons l on l.id = h.lesson_id
+  where l.group_id = pg_temp.id('groep_sem') and l.status <> 'afgezegd' $$, $$ values ('Nieuwe opdracht') $$, 'Na stoppen: de oude opdracht komt niet terug');
+select is((select minutes_per_day || ' ' || remark from lessons where group_id = pg_temp.id('groep_sem') and status <> 'afgezegd'), '30 Nieuw', 'en het nieuwe doel geldt');
+
+-- ── Review: opnames die in geen les meer staan, verlopen ook ─────────
+reset role;
+insert into assignments (id, group_id, created_by, kind, title, recording) values (gen_random_uuid(), pg_temp.id('groep'), pg_temp.id('marieke'), 'stuk', 'Los stuk', true);
+insert into recordings (assignment_id, student_id, path, submitted_at) select id, pg_temp.id('lotte'), 'los/1.webm', now() - interval '40 days' from assignments where title = 'Los stuk';
+select is((select count(*)::int from expired_recordings() where path = 'los/1.webm'), 1, 'Een opname zonder les verloopt 4 weken na het insturen');
+
+-- ── Review: ontkoppelde leraar raakt de toegang kwijt ────────────────
+delete from teacher_students where teacher_id = pg_temp.id('marieke') and student_id = pg_temp.id('lotte');
+select pg_temp.als(pg_temp.id('marieke'));
+select is((select count(*)::int from recordings where student_id = pg_temp.id('lotte')), 0, 'Na ontkoppelen ziet de leraar de opnames van Lotte niet meer');
+select throws_ok($$ select give_homework(pg_temp.id('groep'), 'deze', '[]', 15, 5, '', '[]', '{}') $$, 'P0001', 'geen toegang', 'en geeft ze geen huiswerk meer');
 
 select * from finish();
 rollback;

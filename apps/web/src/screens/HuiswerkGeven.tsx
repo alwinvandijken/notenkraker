@@ -90,7 +90,7 @@ export function HuiswerkGeven({ studentIds, homeworkId, onDone }: { studentIds: 
     ? list.find((h) => h.givenBy === profile?.id && h.status !== "afgezegd" && h.startDate <= today && h.dueDate >= today) : undefined;
   const meegaand = lopend ? lopend.tasks.filter((t) => carry.includes(t.id)) : [];
   const existing = !editing && studentId
-    ? list.find((h) => h.givenBy === profile?.id && h.dueDate >= today && (lesson === "deze" ? h.startDate <= today : h.startDate > today))
+    ? list.find((h) => h.givenBy === profile?.id && h.status !== "afgezegd" && h.dueDate >= today && (lesson === "deze" ? h.startDate <= today : h.startDate > today))
     : undefined;
   const previous = list.find((h) => h.givenBy === profile?.id);
   const instrument = getInstrument(student.instrumentId);

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import clsx from "clsx";
-import { dueLabel, taskReference, type Homework, type HomeworkTask, type TaskRecording } from "@notenkraker/client";
+import { currentHomework, dueLabel, taskReference, type Homework, type HomeworkTask, type TaskRecording } from "@notenkraker/client";
 import { client } from "@/lib/client";
 import { useApp } from "@/lib/store";
 import { MAX_SECONDS, pickAudioType, timeLabel } from "@/lib/opname";
@@ -14,15 +14,18 @@ import { Chip, Week } from "@/components/ui";
  * rechts het opnemen en je opnames met de reactie per opname. Je kunt een stuk vaker opnemen,
  * bijvoorbeeld aan het begin en aan het eind van de week (AC-121).
  */
-export function Taak({ studentId, taskId }: { studentId: string; taskId: string }) {
+/** `lessonId`: de les waaruit de taak geopend werd; een opdracht die meeging staat in meer lessen (AC-124) */
+export function Taak({ studentId, taskId, lessonId }: { studentId: string; taskId: string; lessonId?: string }) {
   const { students } = useApp();
   const student = students.find((s) => s.id === studentId);
   const [found, setFound] = useState<{ h: Homework; t: HomeworkTask } | null | undefined>(undefined);
 
   const load = useCallback(() => client.homework.list(studentId).then((list) => {
-    for (const h of list) { const t = h.tasks.find((x) => x.id === taskId); if (t) return setFound({ h, t }); }
+    // de les waaruit je kwam; anders de lopende les; anders de nieuwste waarin de opdracht staat
+    const order = [...list.filter((h) => h.id === lessonId), ...currentHomework(list), ...list];
+    for (const h of order) { const t = h.tasks.find((x) => x.id === taskId); if (t) return setFound({ h, t }); }
     setFound(null);
-  }).catch(() => setFound(null)), [studentId, taskId]);
+  }).catch(() => setFound(null)), [studentId, taskId, lessonId]);
   useEffect(() => { void load(); }, [load]);
 
   if (found === undefined) return <p className="text-muted">Laden…</p>;

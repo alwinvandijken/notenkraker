@@ -224,7 +224,7 @@ export function AppMetLogin() {
         <>
           {!hasBackend && <p className="text-xs text-muted border border-line rounded-lg px-3 py-2 mb-2">Zonder backend: gegevens staan alleen in deze browser. Zet VITE_SUPABASE_URL en VITE_SUPABASE_ANON_KEY in .env voor de echte database.</p>}
           {student
-            ? <Vandaag key={student.id} student={student} onPlay={practise} onOpenTask={(t) => go("taak", { taskId: t.id, studentIds: [student.id] })} />
+            ? <Vandaag key={student.id} student={student} onPlay={practise} onOpenTask={(t) => go("taak", { taskId: t.id, studentIds: [student.id], homeworkId: t.homeworkId })} />
             : noStudent}
         </>
       )}
@@ -250,7 +250,7 @@ export function AppMetLogin() {
       {current === "banknieuw" && <NieuweBankOpdracht onDone={() => window.history.back()} />}
       {current === "toewijzen" && extra.bankIds && <Toewijzen bankIds={extra.bankIds} onDone={() => go("overzicht")} />}
       {current === "weergave" && <Weergave />}
-      {current === "taak" && extra.taskId && extra.studentIds?.[0] && <Taak studentId={extra.studentIds[0]} taskId={extra.taskId} />}
+      {current === "taak" && extra.taskId && extra.studentIds?.[0] && <Taak studentId={extra.studentIds[0]} taskId={extra.taskId} lessonId={extra.homeworkId} />}
       {current === "feedback" && <FeedbackGeven screen={extra.from ?? "onbekend"} onDone={() => window.history.back()} />}
       {current === "beheer" && profile.role === "admin" && (
         <Beheer tab={extra.tab ?? "feedback"} onOpen={(id) => go("feedbackdetail", { feedbackId: id })}

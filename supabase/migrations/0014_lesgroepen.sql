@@ -98,9 +98,11 @@ create table public.recordings (
 create index on public.recordings (assignment_id, student_id, submitted_at);
 
 -- ── Helpers ──────────────────────────────────────────────────────────
+-- de docent of ouder van de groep, zolang hij bij elk huidig lid mag (na ontkoppelen niet meer)
 create or replace function public.is_group_teacher(gid uuid) returns boolean
 language sql stable security definer set search_path = public as $$
-  select exists (select 1 from public.lesson_groups g where g.id = gid and g.teacher_id = auth.uid());
+  select exists (select 1 from public.lesson_groups g where g.id = gid and g.teacher_id = auth.uid())
+     and not exists (select 1 from public.group_members m where m.group_id = gid and m.left_on is null and not public.can_access_student(m.student_id));
 $$;
 -- wie de groep mag zien: de docent of ouder van de groep, en wie bij een lid mag (leerling, ouder, andere leraar)
 create or replace function public.can_see_group(gid uuid) returns boolean
@@ -268,6 +270,10 @@ begin
     d := current_date;
   end if;
   if l.id is null then
+    -- staat er op die dag een gestopte les, dan begint die opnieuw: leeg, zonder het oude huiswerk
+    delete from public.homework h using public.lessons x
+      where h.lesson_id = x.id and x.group_id = p_group and x.date = d and x.status = 'afgezegd';
+    update public.lessons set notes = '[]', remark = '' where group_id = p_group and date = d and status = 'afgezegd';
     insert into public.lessons (group_id, date, status) values (p_group, d, case when d <= current_date then 'gegeven' else 'gepland' end)
     on conflict (group_id, date) do update set status = case when excluded.date <= current_date then 'gegeven' else 'gepland' end
     returning * into l;
@@ -459,7 +465,8 @@ create function public.expired_recordings() returns table (task_id uuid, path te
 language sql stable security definer set search_path = public as $$
   select r.id, r.path from public.recordings r
   where r.path is not null
-    and (select max(public.lesson_end(h.lesson_id)) from public.homework h where h.assignment_id = r.assignment_id) + 28 < current_date;
+    -- een opdracht die in geen les meer staat: vanaf het insturen
+    and coalesce((select max(public.lesson_end(h.lesson_id)) from public.homework h where h.assignment_id = r.assignment_id), r.submitted_at::date) + 28 < current_date;
 $$;
 create or replace function public.mark_recordings_deleted(p_tasks uuid[]) returns void
 language sql security definer set search_path = public as $$
