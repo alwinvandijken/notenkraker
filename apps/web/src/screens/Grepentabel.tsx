@@ -24,12 +24,12 @@ const Sax3D = lazy(() => import("@/components/sax3d/Sax3D"));
  * login op /app geeft de status van de gekozen leerling mee, plus een titel en het menu.
  */
 
-type Filter = "mine" | "les" | "all";
+export type Filter = "mine" | "les" | "all";
 /** Notenkiezer: letters (knoppen), alleen de notenbalk (de leerling leest de noot), of de balk met letters eronder */
-type View = "buttons" | "staff" | "both";
-type Render = "3d" | "2d";
+export type View = "buttons" | "staff" | "both";
+export type Render = "3d" | "2d";
 
-const FILTERS: Array<[Filter, string]> = [["mine", "Mijn noten"], ["les", "In de les"], ["all", "Alle noten"]];
+const FILTERS: Array<[Filter, string]> = [["mine", "mijn noten"], ["les", "in de les"], ["all", "alle noten"]];
 const STATUS: Array<[NoteStatus | "", string]> = [["kent", "Kent al"], ["les", "In de les"], ["moet", "Komt nog"], ["", "Geen"]];
 
 /** Klasse per status: vorm én kleur verschillen, zodat het ook zonder kleurzicht leesbaar is. */
@@ -54,17 +54,22 @@ export interface GrepentabelProps {
   notice?: ReactNode;
   /** helemaal rechts; op een smal scherm naast de titel */
   menu?: ReactNode;
+  /** de status van een noot zetten; een leerling met ouder of leraar ziet hem alleen als label (AC-120) */
+  canSetStatus?: boolean;
+  /** naar de pagina Weergave (welke noten, letters of balk, klank, 3D, bij elke noot) */
+  onWeergave?(): void;
 }
 
-export function Grepentabel({ instrument, student, title, actions, notice, menu }: GrepentabelProps) {
+export function Grepentabel({ instrument, student, title, actions, notice, menu, canSetStatus = true, onWeergave }: GrepentabelProps) {
   const all = useMemo(() => instrumentNotes(instrument), [instrument]);
   const local = useStatuses(instrument.id, instrument.starterNotes);
   const { statuses, setStatus } = student ?? local;
-  const [filter, setFilter] = usePref<Filter>("filter", "mine");
-  const [view, setView] = usePref<View>("view", "buttons");
-  const [render, setRender] = usePref<Render>("render", "3d");
-  const [sound, setSound] = usePref<Sound>("sound", "sax");
-  const [auto, setAuto] = usePref<"aan" | "uit">("auto", "uit");
+  // ingesteld op de pagina Weergave (AC-120 PR 4); hier alleen lezen
+  const [filter] = usePref<Filter>("filter", "mine");
+  const [view] = usePref<View>("view", "buttons");
+  const [render] = usePref<Render>("render", "3d");
+  const [sound] = usePref<Sound>("sound", "sax");
+  const [auto] = usePref<"aan" | "uit">("auto", "uit");
   const [webgl] = useState(hasWebGL);
   const is3d = render === "3d" && webgl;
   const [showAll, setShowAll] = useState(false);
@@ -78,7 +83,6 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu 
   const needed = useMemo(() => new Set(all.filter((n) => statuses[n]).flatMap((n) => instrument.fingerings[n]?.[0] ?? [])), [all, statuses, instrument]);
   const keyNames = fingering.map((k) => instrument.keyNames[k] ?? k);
   const sounding = soundingMidi(current, instrument.transposition);
-  const counts = { mine: all.filter((n) => statuses[n]).length, les: all.filter((n) => statuses[n] === "les").length, all: all.length };
 
   const showAllButton = (
     <IconButton label={showAll ? "Alleen kleppen voor mijn noten" : "Toon alle kleppen"} pressed={showAll} onClick={() => setShowAll((v) => !v)}>
@@ -95,23 +99,18 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu 
 
   return (
     <div className="flex flex-col gap-3 p-4 md:p-5 md:h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-var(--ruimte-onder,0px))] md:overflow-hidden">
-      <header className="flex flex-wrap items-center gap-x-4 gap-y-3 shrink-0">
-        <div className="flex items-center gap-2.5 w-full lg:w-auto">
-          <svg width="36" height="36" viewBox="0 0 40 40" aria-hidden="true">
-            <rect width="40" height="40" rx="12" fill="var(--color-fg)" />
-            <ellipse cx="17" cy="27" rx="7" ry="5" fill="var(--color-les)" transform="rotate(-20 17 27)" />
-            <path d="M23 26V9l8 4" stroke="var(--color-les)" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <h1 className="font-display font-bold text-xl m-0 leading-tight">{title ?? "Notenkraker"}<span className="block text-xs font-medium text-muted">{instrument.name}</span></h1>
-          {menu && <span className="ml-auto lg:hidden">{menu}</span>}
-        </div>
-        <div className="flex flex-wrap items-center gap-3 flex-1">
-          <Segmented value={filter} onChange={setFilter} label="Welke noten"
-            options={FILTERS.map(([v, t]) => [v, `${t} (${counts[v]})`] as [Filter, string])} />
-          <span className="ml-auto"><Segmented value={view} onChange={setView} label="Weergave notenkiezer" options={[["buttons", "Letters"], ["staff", "Notenbalk"], ["both", "Beide"]]} /></span>
-          {actions}
-          {menu && <span className="hidden lg:block">{menu}</span>}
-        </div>
+      <header className="flex items-center gap-3 shrink-0">
+        <h1 className="font-display font-bold text-2xl m-0 leading-tight min-w-0 truncate">{title ?? "Notenkraker"}<span className="block text-xs font-medium text-muted">{instrument.name}</span></h1>
+        <span className="ml-auto" />
+        {actions}
+        {onWeergave && (
+          <button type="button" onClick={onWeergave} aria-label="Weergave" title="Weergave"
+            className="w-11 h-11 rounded-full border-2 border-line bg-surface flex items-center justify-center cursor-pointer shrink-0">
+            {/* grootte op de span: "button { font: inherit }" in index.css wint van tekstklassen op de knop */}
+            <span aria-hidden="true" className="text-2xl leading-none">⚙︎</span>
+          </button>
+        )}
+        {menu}
       </header>
       {notice}
 
@@ -126,11 +125,6 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu 
               <div className="absolute inset-0 pt-16 pb-3 pl-4 pr-[72px] flex items-center justify-center [&_svg]:max-w-none [&_svg]:h-full [&_svg]:w-auto [&_svg]:max-w-full">
                 <Fingering instrument={instrument} pressed={fingering} needed={needed} showAll={showAll} />
                 <div className="absolute top-3.5 right-3.5 z-[2] flex flex-col gap-2">{showAllButton}</div>
-              </div>
-            )}
-            {webgl && (
-              <div className="absolute top-3.5 left-3.5 z-[2] shadow-sm rounded-3xl">
-                <Segmented value={render} onChange={setRender} label="Weergave greep" options={[["3d", "3D"], ["2d", "Eenvoudig"]]} />
               </div>
             )}
           </div>
@@ -150,23 +144,15 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu 
         <section aria-label="Noot" className={`${panel} order-1 md:order-2 p-4 md:p-5 flex flex-col gap-3 md:min-h-0`}>
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
-              <span className={`text-sm font-semibold px-3 py-1.5 rounded-xl border-2 whitespace-nowrap ${statusClass(statuses[current])}`}>
-                {STATUS.find(([v]) => v === (statuses[current] ?? ""))?.[1]}
-              </span>
-              {/* op het witte vlak een grijze ondergrond, zoals in de mock-up */}
-              <span className="ml-auto [&>span]:bg-bg [&>span]:flex-nowrap [&_button]:px-3 md:[&_button]:px-4">
-                <Segmented value={sound} label="Klank" onChange={(v) => { setSound(v); playSound(sounding, v); }}
-                  options={[["sax", "Sax"], ["toon", "Toon"]]} />
-              </span>
-              <button type="button" aria-label="Laat horen" title="Laat horen" onClick={() => playSound(sounding, sound)}
-                className="w-11 h-11 rounded-full border-2 border-fg flex items-center justify-center cursor-pointer">
+              {statuses[current] && (
+                <span className={`text-sm font-semibold px-3 py-1.5 rounded-xl border-2 whitespace-nowrap ${statusClass(statuses[current])}`}>
+                  {STATUS.find(([v]) => v === statuses[current])?.[1]}
+                </span>
+              )}
+              <button type="button" onClick={() => playSound(sounding, sound)}
+                className="ml-auto min-h-11 px-5 rounded-full border-2 border-fg flex items-center gap-2 font-semibold cursor-pointer">
                 <svg width="20" height="20" viewBox="0 0 22 22" aria-hidden="true"><path d="M3 8h4l5-4v14l-5-4H3z" fill="currentColor" /><path d="M15 7.5a5 5 0 010 7M17.5 5a8.5 8.5 0 010 12" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" /></svg>
-              </button>
-              <button type="button" aria-pressed={auto === "aan"} onClick={() => { const on = auto !== "aan"; setAuto(on ? "aan" : "uit"); if (on) playSound(sounding, sound); }}
-                aria-label="Bij elke noot" title={auto === "aan" ? "Je hoort elke noot die je kiest (tik om uit te zetten)" : "Speel de noot bij elke wissel"}
-                className="min-h-11 min-w-11 px-2.5 md:px-3.5 rounded-full border-2 border-line text-muted flex items-center justify-center gap-1.5 text-sm font-semibold cursor-pointer aria-pressed:bg-fg aria-pressed:border-fg aria-pressed:text-surface">
-                <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 2l3 3-3 3" /><path d="M4 11V9a4 4 0 014-4h12" /><path d="M7 22l-3-3 3-3" /><path d="M20 13v2a4 4 0 01-4 4H4" /></svg>
-                <span className="hidden md:inline whitespace-nowrap">Bij elke noot</span>
+                Luister
               </button>
             </div>
             <span className="text-muted text-sm">Geschreven {withOctave(current)} · klinkt als {withOctave(toId(midiToPitch(sounding)))}</span>
@@ -182,7 +168,7 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu 
             </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
+          {canSetStatus && <div className="flex flex-col gap-1.5">
             <span id="status-label" className="text-muted text-sm">Status</span>
             <div className="grid grid-cols-4 gap-2" role="group" aria-labelledby="status-label">
               {STATUS.map(([v, t]) => {
@@ -193,7 +179,7 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu 
                 );
               })}
             </div>
-          </div>
+          </div>}
         </section>
       </main>
 
@@ -201,7 +187,7 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu 
         <button type="button" onClick={() => step(-1)} aria-label="Vorige noot" className="shrink-0 w-12 h-16 rounded-2xl bg-bg font-bold text-lg cursor-pointer">◀</button>
         <div className="flex-1 min-w-0">
           {visible.length === 0 ? (
-            <p className="text-muted m-0 px-2">Nog geen noten in deze lijst. Kies "Alle noten" en geef een noot een status.</p>
+            <p className="text-muted m-0 px-2">Nog geen noten in deze lijst. Kies bij Weergave "Alle".</p>
           ) : view === "buttons" ? (
             <NoteButtons notes={visible} current={current} statuses={statuses} range={instrument.range} onSelect={select} />
           ) : (
@@ -212,6 +198,9 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu 
           )}
         </div>
         <button type="button" onClick={() => step(1)} aria-label="Volgende noot" className="shrink-0 w-12 h-16 rounded-2xl bg-bg font-bold text-lg cursor-pointer">▶</button>
+        {onWeergave
+          ? <button type="button" onClick={onWeergave} className="hidden md:block shrink-0 text-sm text-muted bg-transparent cursor-pointer px-2">{FILTERS.find(([v]) => v === filter)?.[1]}</button>
+          : <span className="hidden md:block shrink-0 text-sm text-muted px-2">{FILTERS.find(([v]) => v === filter)?.[1]}</span>}
       </nav>
     </div>
   );

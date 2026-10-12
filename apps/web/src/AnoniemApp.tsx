@@ -16,13 +16,14 @@ import { Game } from "@/screens/Game";
 import { VrijOefenen } from "@/screens/VrijOefenen";
 import { Kennismaking } from "@/screens/Kennismaking";
 import { Vandaag, type Mode } from "@/screens/Vandaag";
+import { Weergave } from "@/screens/Weergave";
 import { Menu, type MenuItem } from "@/components/Menu";
 import { TabBalk, type Tab } from "@/components/TabBalk";
 
-type Screen = "start" | "grepen" | "spel" | "vrij";
-const SCREENS: Screen[] = ["start", "grepen", "spel", "vrij"];
-const TITLES: Record<Exclude<Screen, "start">, string> = { grepen: "Grepen", spel: "Spelen", vrij: "Vrij spelen" };
-const SCREEN_FOR: Record<Mode, Exclude<Screen, "start">> = { learn: "grepen", game: "spel", vrij: "vrij" };
+type Screen = "start" | "grepen" | "spel" | "vrij" | "weergave";
+const SCREENS: Screen[] = ["start", "grepen", "spel", "vrij", "weergave"];
+const TITLES: Record<Exclude<Screen, "start">, string> = { grepen: "Grepen", spel: "Spelen", vrij: "Vrij spelen", weergave: "Weergave" };
+const SCREEN_FOR: Record<Mode, Exclude<Screen, "start" | "weergave">> = { learn: "grepen", game: "spel", vrij: "vrij" };
 /** het proefconcept (AC-107) bewaarde de notenstatus hier; die nemen we één keer over */
 const POC_KEY = "nk.poc.altsax.status";
 
@@ -64,6 +65,7 @@ export function AnoniemApp() {
   if (!ready || !profile || !student) return <div className="p-6 text-muted">Laden…</div>;
 
   const items: MenuItem[] = [
+    { key: "weergave", label: "Weergave", onSelect: () => go("weergave"), active: screen === "weergave" },
     { key: "account", label: "Gratis account maken", onSelect: () => toAccount("/app?nieuw") },
     { key: "login", label: "Inloggen", onSelect: () => toAccount("/app") },
     { key: "welkom", label: "Welkomstpagina", onSelect: () => window.location.assign("/?welkom"), apart: true },
@@ -97,7 +99,7 @@ export function AnoniemApp() {
       <>
       <Grepentabel instrument={getInstrument(student.instrumentId)} title="Grepen"
         student={{ statuses, setStatus: (n, st) => void setStatus(n, st) }}
-        menu={menu} />
+        onWeergave={() => go("weergave")} menu={menu} />
       {tabBalk}
       </>
     );
@@ -107,6 +109,9 @@ export function AnoniemApp() {
     <div className="max-w-[900px] mx-auto px-4 pt-5 pb-12 flex flex-col gap-4">
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
+          {screen === "weergave" && (
+            <button type="button" onClick={() => window.history.back()} className="text-sm font-semibold text-muted bg-transparent cursor-pointer mb-2 -ml-1 px-1">← Terug</button>
+          )}
           <h1 className="font-display font-extrabold text-3xl sm:text-4xl leading-none m-0">{screen === "start" ? "Hoi!" : TITLES[screen]}</h1>
           {screen === "start" && <p className="text-muted mt-1 mb-0">{new Date().toLocaleDateString("nl-NL", { weekday: "long", day: "numeric", month: "long" })}</p>}
         </div>
@@ -120,6 +125,7 @@ export function AnoniemApp() {
             <button type="button" onClick={() => toAccount("/app?nieuw")} className="self-start font-semibold text-accent bg-transparent cursor-pointer p-0">Account maken →</button>
           </div>} />
       )}
+      {screen === "weergave" && <Weergave />}
       {screen === "spel" && <Game onDone={() => go("start")} />}
       {screen === "vrij" && <VrijOefenen onDone={() => go("start")} after={nudge("Wil je dat je ouder of leraar dit ziet? Met een gratis account bewaar je je oefentijd en kijken zij mee.")} />}
       {tabBalk}
