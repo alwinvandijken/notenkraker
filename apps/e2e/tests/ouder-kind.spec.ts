@@ -1,4 +1,4 @@
-import { expect, inloggen, kiesInMenu, speelRonde, test } from "../fixtures";
+import { expect, inloggen, kiesInMenu, kiesTab, speelRonde, test } from "../fixtures";
 
 test("ouder maakt een kind aan, kind speelt, ouder ziet de ronde", async ({ page, maakGebruiker }) => {
   const ouder = await maakGebruiker("ouder");
@@ -10,7 +10,7 @@ test("ouder maakt een kind aan, kind speelt, ouder ziet de ronde", async ({ page
   await inloggen(page, ouder);
   await expect(page.getByText("Voeg eerst een kind toe.")).toBeVisible();
 
-  await kiesInMenu(page, "Mijn kinderen");
+  await kiesInMenu(page, "Kind toevoegen");
   await page.getByRole("textbox", { name: "Naam" }).fill("Sam");
   await page.getByRole("button", { name: "Toevoegen" }).click();
   // de ouder beantwoordt leeftijd en ervaring over het kind
@@ -22,13 +22,14 @@ test("ouder maakt een kind aan, kind speelt, ouder ziet de ronde", async ({ page
   // de notentoets doet het kind zelf; hier overslaan
   await expect(page.getByRole("heading", { name: "Welke noten ken je al?" })).toBeVisible();
   await page.getByRole("button", { name: "Overslaan" }).click();
-  await page.getByRole("group", { name: "Onderdeel" }).getByRole("button", { name: "Spel", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Hoi Sam" })).toBeVisible();
+  await kiesTab(page, "Spelen");
   // de ronde gaat via de Edge Function rounds; wachten tot die hem heeft opgeslagen
   const opgeslagen = page.waitForResponse((r) => r.url().includes("/functions/v1/rounds") && r.request().method() === "POST");
   await speelRonde(page);
   expect((await opgeslagen).ok()).toBe(true);
 
-  await kiesInMenu(page, "Overzicht");
+  await kiesInMenu(page, "Terug naar Mijn kinderen");
   await page.getByRole("button", { name: "Sam: details" }).click();
   await expect(page.getByRole("heading", { name: "Sam" })).toBeVisible();
   await expect(page.getByText(/Notenspel: \d+ van \d+ goed/)).toBeVisible();

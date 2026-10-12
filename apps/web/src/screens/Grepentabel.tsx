@@ -48,7 +48,7 @@ export interface GrepentabelProps {
   student?: { statuses: StatusMap; setStatus(note: NoteId, status: NoteStatus | null): void };
   /** vervangt "Notenkraker" in de kopregel, bijvoorbeeld de naam van de leerling */
   title?: string;
-  /** rechts in de kopregel, bijvoorbeeld Grepen/Spel en het menu */
+  /** rechts in de kopregel, bijvoorbeeld de keuze van de leerling */
   actions?: ReactNode;
   /** onder de kopregel, bijvoorbeeld een melding */
   notice?: ReactNode;
@@ -94,7 +94,7 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu 
   const step = (d: number) => { if (!visible.length) return; const i = visible.indexOf(current); select(visible[(i + d + visible.length) % visible.length]!); };
 
   return (
-    <div className="flex flex-col gap-3 p-4 md:p-5 md:h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom))] md:overflow-hidden">
+    <div className="flex flex-col gap-3 p-4 md:p-5 md:h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-var(--ruimte-onder,0px))] md:overflow-hidden">
       <header className="flex flex-wrap items-center gap-x-4 gap-y-3 shrink-0">
         <div className="flex items-center gap-2.5 w-full lg:w-auto">
           <svg width="36" height="36" viewBox="0 0 40 40" aria-hidden="true">

@@ -7,7 +7,7 @@ import { Chip, Segmented } from "@/components/ui";
 
 /**
  * Feedback geven (AC-116, mock-up docs/mockups/Feedback.html), een eigen pagina. Je komt hier via
- * het mini-icoontje; de pagina waar je was (`screen`) gaat mee, net als apparaat, versie en rol.
+ * "Feedback geven" in het avatarmenu; de pagina waar je was (`screen`) gaat mee, net als apparaat, versie en rol.
  */
 export const APP_VERSION = (import.meta.env.VITE_APP_VERSION as string | undefined) ?? "dev";
 
@@ -56,16 +56,5 @@ export function FeedbackGeven({ screen, onDone }: { screen: string; onDone(): vo
         {state === "bezig" ? "Versturen…" : "Versturen"}
       </Chip>
     </div>
-  );
-}
-
-/** het mini-icoontje rechtsonder op elke pagina, alleen voor wie feedback mag geven */
-export function FeedbackKnop({ onOpen }: { onOpen(): void }) {
-  return (
-    <button type="button" onClick={onOpen} aria-label="Feedback geven over deze pagina" title="Feedback geven"
-      className="fixed right-3 bottom-3 z-30 w-10 h-10 rounded-full bg-fg text-bg text-lg flex items-center justify-center shadow-md opacity-80 hover:opacity-100 cursor-pointer"
-      style={{ marginBottom: "env(safe-area-inset-bottom)" }}>
-      <span aria-hidden="true">💬</span>
-    </button>
   );
 }

@@ -1,5 +1,5 @@
 /** De volledige app met login (AC-63, AC-106), bereikbaar op /app zolang het proefconcept op / staat. */
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { rightsFor, type HomeworkTask, type Student } from "@notenkraker/client";
 import { getInstrument } from "@notenkraker/instruments";
 import { client, hasBackend } from "@/lib/client";
@@ -16,22 +16,25 @@ import { DagPagina } from "@/screens/DagPagina";
 import { Kennismaking } from "@/screens/Kennismaking";
 import { Profiel } from "@/screens/Profiel";
 import { HuiswerkGeven } from "@/screens/HuiswerkGeven";
+import { HuiswerkKiezen } from "@/screens/HuiswerkKiezen";
 import { Sjablonen } from "@/screens/Sjablonen";
 import { Boeken } from "@/screens/Boeken";
 import { Opnemen } from "@/screens/Opnemen";
 import { NieuweBankOpdracht, Opdrachtenbank, Toewijzen } from "@/screens/Opdrachtenbank";
 import { HuiswerkKaart, HuiswerkRegel, useHomework } from "@/components/Huiswerk";
 import { Menu, type MenuItem } from "@/components/Menu";
+import { TabBalk, type Tab } from "@/components/TabBalk";
 import { KoppelMelding } from "@/components/KoppelMelding";
 import { NotenOvernemen } from "@/components/NotenOvernemen";
 import { Chip, Segmented } from "@/components/ui";
-import { FeedbackGeven, FeedbackKnop } from "@/screens/FeedbackGeven";
+import { FeedbackGeven } from "@/screens/FeedbackGeven";
 import { Beheer, FeedbackDetail, type BeheerTab } from "@/screens/Beheer";
 
-type Screen = "overzicht" | "kind" | "dag" | "huiswerk" | "oefenen" | "kinderen" | "profiel" | "feedback" | "beheer" | "feedbackdetail" | "sjablonen" | "boeken" | "bank" | "banknieuw" | "toewijzen" | "opnemen";
+type Screen = "vandaag" | "overzicht" | "kind" | "dag" | "huiswerk" | "geven" | "oefenen" | "kinderen" | "profiel" | "feedback" | "beheer" | "feedbackdetail" | "sjablonen" | "boeken" | "bank" | "banknieuw" | "toewijzen" | "opnemen";
+type Mode = "learn" | "game" | "vrij";
 interface NavState {
   screen: Screen; childId: string | null; day: { date: string; back: "overzicht" | "kind" } | null;
-  /** feedback: de pagina waar het icoontje werd aangetikt; beheer: tabblad en geopende feedback */
+  /** feedback: de pagina waar je "Feedback geven" koos; huiswerk: de tab waar je vandaan kwam; beheer: tabblad en geopende feedback */
   from?: string; tab?: BeheerTab; feedbackId?: string;
   /** huiswerk voor meerdere leerlingen tegelijk (AC-117); zonder: alleen childId */
   studentIds?: string[];
@@ -43,6 +46,11 @@ interface NavState {
 /** na herladen blijft het scherm uit de browsergeschiedenis staan */
 const navState = () => (window.history.state?.screen ? (window.history.state as NavState) : null);
 
+/** de drie plekken van de Bibliotheek (AC-120): één tab, drie tabbladen */
+const LIBRARY: Array<[Screen, string]> = [["bank", "Opdrachten"], ["sjablonen", "Sjablonen"], ["boeken", "Boeken"]];
+const MODE_TITLE: Record<Mode, string> = { learn: "Grepen", game: "Spelen", vrij: "Vrij spelen" };
+const ROLE_LABEL = { leerling: "leerling", ouder: "ouder", leraar: "leraar", admin: "beheerder" } as const;
+
 function greeting(name: string, now = new Date()) {
   const h = now.getHours();
   return `${h < 12 ? "Goedemorgen" : h < 18 ? "Goedemiddag" : "Goedenavond"}, ${name.split(" ")[0]}`;
@@ -50,7 +58,7 @@ function greeting(name: string, now = new Date()) {
 
 export function AppMetLogin() {
   const { profile, students, studentId, statuses, mode, init, selectStudent, setMode, setStatus, loadStudents } = useApp();
-  // ouder en leraar starten op het overzicht, een leerling meteen bij het oefenen
+  // ouder en leraar starten op het overzicht, een leerling op Vandaag
   const [screen, setScreen] = useState<Screen | null>(() => navState()?.screen ?? null);
   /** het kind waarvan de pagina open is (scherm "kind") */
   const [childId, setChildId] = useState<string | null>(() => navState()?.childId ?? null);
@@ -76,27 +84,17 @@ export function AppMetLogin() {
   if (rights.mustChooseRole) return <Welkom />;
 
   const hasDashboard = rights.studentsTitle !== null;
-  const current: Screen = screen ?? (hasDashboard ? "overzicht" : "oefenen");
+  const isOuder = profile.role === "ouder";
+  const current: Screen = screen ?? (hasDashboard ? "overzicht" : "vandaag");
+  /** de schermen van de leerling; een ouder of leraar komt hier via "Zelf oefenen" */
+  const practicing = current === "vandaag" || current === "oefenen";
   const student = students.find((s) => s.id === studentId);
   const child = students.find((s) => s.id === childId);
   /** huiswerk voor meerdere leerlingen (vanuit de leerlingentabel) of voor het kind van de pagina */
   const homeworkFor = extra.studentIds?.length ? extra.studentIds : childId ? [childId] : [];
   const many = homeworkFor.length > 1;
   const onChildPage = current === "kind" || current === "dag" || current === "huiswerk";
-  const items: MenuItem[] = [
-    ...(hasDashboard ? [{ key: "overzicht", label: "Overzicht", onSelect: () => go("overzicht"), active: current === "overzicht" || onChildPage }] : []),
-    { key: "oefenen", label: "Oefenen", onSelect: () => go("oefenen"), active: current === "oefenen" },
-    ...(rights.studentsTitle ? [{ key: "kinderen", label: rights.studentsTitle, onSelect: () => go("kinderen"), active: current === "kinderen" }] : []),
-    ...(rights.canCreateStudents ? [
-      { key: "bank", label: "📚 Opdrachtenbank", onSelect: () => go("bank"), active: current === "bank" || current === "banknieuw" || current === "toewijzen" },
-      { key: "sjablonen", label: "📋 Sjablonen", onSelect: () => go("sjablonen"), active: current === "sjablonen" },
-      { key: "boeken", label: "📖 Mijn boeken", onSelect: () => go("boeken"), active: current === "boeken" },
-    ] : []),
-    { key: "profiel", label: "Mijn profiel", onSelect: () => go("profiel"), active: current === "profiel" },
-    ...(profile.role === "admin" ? [{ key: "beheer", label: "Beheer", onSelect: () => go("beheer", { tab: "feedback" }), active: current === "beheer" || current === "feedbackdetail" }] : []),
-    { key: "welkom", label: "Welkomstpagina", onSelect: () => window.location.assign("/?welkom") },
-    { key: "uit", label: "Uitloggen", onSelect: () => void client.auth.signOut() },
-  ];
+  const inLibrary = LIBRARY.some(([s]) => s === current);
   /** naar een ander scherm, bovenaan beginnen; komt in de browsergeschiedenis */
   const go = (s: Screen, more: Partial<Omit<NavState, "screen">> = {}) => {
     const st: NavState = { screen: s, childId: more.childId ?? childId, day: more.day ?? day, from: more.from, tab: more.tab ?? extra.tab, feedbackId: more.feedbackId, studentIds: more.studentIds, bankIds: more.bankIds, taskId: more.taskId };
@@ -104,25 +102,52 @@ export function AppMetLogin() {
     setScreen(st.screen); setChildId(st.childId); setDay(st.day); setExtra({ from: st.from, tab: st.tab, feedbackId: st.feedbackId, studentIds: st.studentIds, bankIds: st.bankIds, taskId: st.taskId });
     window.scrollTo(0, 0);
   };
+  /** een tab van de tabbalk; nog eens tikken op de tab waar je al bent doet niets */
+  const practise = (m: Mode) => { if (current === "oefenen" && mode === m) return; setMode(m); go("oefenen"); };
+  const studentsLabel = isOuder ? "Mijn kinderen" : "Leerlingen";
+  const tabs: Tab[] = hasDashboard && !practicing && current !== "opnemen" ? [
+    { key: "leerlingen", label: studentsLabel, icon: "👥", onSelect: () => go("overzicht"), active: current === "overzicht" || current === "kinderen" || (onChildPage && !(current === "huiswerk" && extra.from === "Huiswerk")) },
+    { key: "huiswerk", label: "Huiswerk", icon: "📝", onSelect: () => go("geven"), active: current === "geven" || (current === "huiswerk" && extra.from === "Huiswerk") },
+    { key: "bibliotheek", label: "Bibliotheek", icon: "📚", onSelect: () => go("bank"), active: inLibrary || current === "banknieuw" || current === "toewijzen" },
+  ] : [
+    { key: "vandaag", label: "Vandaag", icon: "☀️", onSelect: () => { if (current !== "vandaag") go("vandaag"); }, active: current === "vandaag" },
+    { key: "game", label: "Spelen", icon: "🎮", onSelect: () => practise("game"), active: current === "oefenen" && mode === "game" },
+    { key: "learn", label: "Grepen", icon: "🎷", onSelect: () => practise("learn"), active: current === "oefenen" && mode === "learn" },
+    { key: "vrij", label: "Vrij spelen", icon: "🎙️", onSelect: () => practise("vrij"), active: current === "oefenen" && mode === "vrij" },
+  ];
   /** naam van de pagina voor feedback (AC-116), zodat Alwin weet waar het over gaat */
   const pageName = ({
-    overzicht: "Overzicht", kind: `Kindpagina (${child?.name ?? "?"})`, dag: `Dagpagina (${day?.date ?? "?"})`, huiswerk: "Huiswerk geven",
+    vandaag: "Vandaag", overzicht: "Overzicht", kind: `Kindpagina (${child?.name ?? "?"})`, dag: `Dagpagina (${day?.date ?? "?"})`, huiswerk: "Huiswerk geven", geven: "Huiswerk: voor wie",
     oefenen: mode === "learn" ? "Grepen" : mode === "game" ? "Notenspel" : "Vrij oefenen", kinderen: rights.studentsTitle ?? "Kinderen",
     profiel: "Mijn profiel", feedback: "Feedback geven", beheer: extra.tab === "mensen" ? "Beheer: accounts" : "Beheer", feedbackdetail: "Beheer: feedback", sjablonen: "Sjablonen", boeken: "Mijn boeken", bank: "Opdrachtenbank", banknieuw: "Nieuwe opdracht in de bank", toewijzen: "Opdrachten toewijzen", opnemen: "Opnemen",
   } satisfies Record<Screen, string>)[current];
-  const knop = profile.canGiveFeedback && current !== "feedback" ? <FeedbackKnop onOpen={() => go("feedback", { from: pageName })} /> : null;
-  const practice = (id: string) => { selectStudent(id); go("oefenen"); };
-  const menu = <Menu title={profile.displayName || "Menu"} items={items} />;
-  const modeSwitch = <Segmented value={mode} options={[["learn", "Grepen"], ["game", "Spel"], ["vrij", "🎷 Vrij oefenen"]]} onChange={setMode} label="Onderdeel" />;
+  const items: MenuItem[] = [
+    { key: "profiel", label: "Mijn profiel", onSelect: () => go("profiel"), active: current === "profiel" },
+    ...(hasDashboard ? (practicing
+      ? [{ key: "terug", label: `Terug naar ${studentsLabel}`, onSelect: () => go("overzicht") }]
+      : [
+        { key: "kinderen", label: isOuder ? "Kind toevoegen" : "Leerling toevoegen", onSelect: () => go("kinderen"), active: current === "kinderen" },
+        { key: "oefenen", label: "Zelf oefenen", onSelect: () => go("vandaag") },
+      ]) : []),
+    // het zwevende 💬-icoontje (AC-116) is opgegaan in het menu
+    ...(profile.canGiveFeedback && current !== "feedback" ? [{ key: "feedback", label: "Feedback geven", onSelect: () => go("feedback", { from: pageName }) }] : []),
+    ...(profile.role === "admin" ? [{ key: "beheer", label: "Beheer", onSelect: () => go("beheer", { tab: "feedback" }), active: current === "beheer" || current === "feedbackdetail" }] : []),
+    { key: "welkom", label: "Welkomstpagina", onSelect: () => window.location.assign("/?welkom"), apart: true },
+    { key: "uit", label: "Uitloggen", onSelect: () => void client.auth.signOut() },
+  ];
+  const subtitle = profile.role === "leerling" && student ? `leerling · ${getInstrument(student.instrumentId).name}` : profile.role ? ROLE_LABEL[profile.role] : undefined;
+  const menu = <Menu name={profile.displayName || "Ik"} subtitle={subtitle} items={items} />;
+  const practice = (id: string) => { selectStudent(id); go("vandaag"); };
   const studentPicker = students.length > 1 && (
-    <select id="student" aria-label={profile.role === "ouder" ? "Kind" : "Leerling"} value={studentId ?? ""} onChange={(e) => selectStudent(e.target.value || null)}
+    <select id="student" aria-label={isOuder ? "Kind" : "Leerling"} value={studentId ?? ""} onChange={(e) => selectStudent(e.target.value || null)}
       className="rounded-xl border-2 border-line bg-surface px-3 py-1.5 font-display font-bold">
       {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
     </select>
   );
+  const tabBalk = <TabBalk tabs={tabs} />;
 
   // eerste keer oefenen met deze leerling: even kennismaken (AC-115); ook als het kind op het toestel van de ouder speelt
-  if (current === "oefenen" && student && !student.onboardedAt) {
+  if (practicing && student && !student.onboardedAt) {
     return (
       <div className="max-w-[900px] mx-auto px-4 pt-6 pb-12">
         <header className="flex items-start justify-between gap-3 mb-4">
@@ -131,7 +156,6 @@ export function AppMetLogin() {
         </header>
         <NotenOvernemen />
         <Kennismaking key={student.id} student={student} statuses={statuses} onDone={() => void loadStudents()} />
-        {knop}
       </div>
     );
   }
@@ -140,31 +164,46 @@ export function AppMetLogin() {
   if (current === "oefenen" && mode === "learn" && student) {
     return (
       <>
-      {knop}
       <Grepentabel instrument={getInstrument(student.instrumentId)} title={student.name}
         student={{ statuses, setStatus: (n, st) => void setStatus(n, st) }}
-        actions={<div className="flex flex-wrap items-center gap-3">{studentPicker}{modeSwitch}</div>} menu={menu}
+        actions={studentPicker || undefined} menu={menu}
         notice={<><KoppelMelding /><NotenOvernemen /><HuiswerkVoorLeerling student={student} compact /></>} />
+      {tabBalk}
       </>
     );
   }
+
+  const noStudent = (
+    <div className="rounded-3xl bg-surface p-6 flex flex-col items-start gap-3">
+      <p className="m-0">{isOuder ? "Voeg eerst een kind toe." : rights.canCreateStudents ? "Voeg eerst een leerling toe." : "Er is nog geen leerlingprofiel."}</p>
+      {rights.studentsTitle && <Chip primary onClick={() => go("kinderen")}>{isOuder ? "+ kind" : "+ leerling"}</Chip>}
+    </div>
+  );
+  const backTo = onChildPage || current === "feedback" || current === "feedbackdetail" || current === "banknieuw" || current === "toewijzen" || current === "opnemen"
+    ? current === "feedback" ? (extra.from ?? "Terug") : current === "feedbackdetail" ? "Beheer" : current === "banknieuw" || current === "toewijzen" ? "Bibliotheek" : current === "opnemen" ? "Terug"
+      : current === "huiswerk" && extra.from ? extra.from : (current === "huiswerk" && !many) || (current === "dag" && day?.back === "kind") ? (child?.name ?? "Terug") : studentsLabel
+    : null;
+  const title: ReactNode = current === "vandaag" ? `Hoi ${(student?.userId === profile.id ? profile.displayName : student?.name ?? profile.displayName).split(" ")[0]}`
+    : current === "oefenen" ? MODE_TITLE[mode]
+    : current === "overzicht" ? greeting(profile.displayName) : current === "huiswerk" ? `Huiswerk voor ${many ? `${homeworkFor.length} leerlingen` : (students.find((s) => s.id === homeworkFor[0])?.name ?? "")}` : onChildPage ? (child?.name ?? "")
+    : current === "geven" ? "Huiswerk" : current === "kinderen" ? (rights.studentsTitle ?? "Kinderen") : current === "profiel" ? "Mijn profiel"
+    : inLibrary ? "Bibliotheek"
+    : current === "banknieuw" ? "Nieuwe opdracht" : current === "opnemen" ? "Opnemen" : current === "toewijzen" ? `${extra.bankIds?.length ?? 0} ${extra.bankIds?.length === 1 ? "opdracht" : "opdrachten"} toewijzen` : current === "feedback" ? "Feedback geven" : current === "beheer" ? "Beheer" : current === "feedbackdetail" ? "Feedback" : "Notenkraker";
+  /** tussen de tabbladen van de Bibliotheek wisselen vervangt het scherm in de geschiedenis */
+  const swap = (s: Screen) => { window.history.replaceState({ ...window.history.state, screen: s }, ""); setScreen(s); };
 
   return (
     <div className={`${current === "overzicht" || current === "kind" || current === "dag" ? "max-w-[1240px]" : "max-w-[900px]"} mx-auto px-4 pt-6 pb-12`}>
       <header className="flex items-start justify-between gap-3 mb-4">
         <div className="min-w-0">
-          {(onChildPage || current === "feedback" || current === "feedbackdetail" || current === "banknieuw" || current === "toewijzen" || current === "opnemen") && (
+          {backTo && (
             <button type="button" onClick={() => window.history.back()}
               className="text-sm font-semibold text-muted bg-transparent cursor-pointer mb-2 -ml-1 px-1">
-              ← {current === "feedback" ? (extra.from ?? "Terug") : current === "feedbackdetail" ? "Beheer" : current === "banknieuw" || current === "toewijzen" ? "Opdrachtenbank" : current === "opnemen" ? "Huiswerk"
-                : (current === "huiswerk" && !many) || (current === "dag" && day?.back === "kind") ? (child?.name ?? "Terug") : "Overzicht"}
+              ← {backTo}
             </button>
           )}
-          <h1 className="font-display font-extrabold text-3xl sm:text-4xl leading-none">
-            {current === "overzicht" ? greeting(profile.displayName) : current === "huiswerk" ? `Huiswerk voor ${many ? `${homeworkFor.length} leerlingen` : (students.find((s) => s.id === homeworkFor[0])?.name ?? "")}` : onChildPage ? (child?.name ?? "")
-              : current === "sjablonen" ? "Sjablonen" : current === "boeken" ? "Mijn boeken" : current === "bank" ? "Opdrachten\u00adbank"
-              : current === "banknieuw" ? "Nieuwe opdracht" : current === "opnemen" ? "Opnemen" : current === "toewijzen" ? `${extra.bankIds?.length ?? 0} ${extra.bankIds?.length === 1 ? "opdracht" : "opdrachten"} toewijzen` : current === "feedback" ? "Feedback geven" : current === "beheer" ? "Beheer" : current === "feedbackdetail" ? "Feedback" : "Notenkraker"}
-          </h1>
+          <h1 className="font-display font-extrabold text-3xl sm:text-4xl leading-none">{title}</h1>
+          {current === "vandaag" && <p className="text-muted mt-1">{new Date().toLocaleDateString("nl-NL", { weekday: "long", day: "numeric", month: "long" })}</p>}
           {current === "overzicht" && <p className="text-muted mt-1">Zo ging het oefenen deze week</p>}
           {current === "oefenen" && <p className="text-muted mt-1">{mode === "vrij" ? "Speel wat je wilt. Ik tel mee hoe lang ik je hoor." : "Speel het notenspel."}</p>}
         </div>
@@ -173,6 +212,20 @@ export function AppMetLogin() {
       <KoppelMelding />
       <NotenOvernemen />
 
+      {inLibrary && <div className="mb-4"><Segmented value={current} options={LIBRARY} onChange={swap} label="Bibliotheek" /></div>}
+      {practicing && studentPicker && <div className="mb-3">{studentPicker}</div>}
+
+      {current === "vandaag" && (
+        <>
+          {!hasBackend && <p className="text-xs text-muted border border-line rounded-lg px-3 py-2 mb-2">Zonder backend: gegevens staan alleen in deze browser. Zet VITE_SUPABASE_URL en VITE_SUPABASE_ANON_KEY in .env voor de echte database.</p>}
+          {student ? (
+            <>
+              <HuiswerkVoorLeerling student={student} onRecord={(t) => go("opnemen", { taskId: t.id, studentIds: [student.id] })} />
+              <VerderOefenen onGo={practise} />
+            </>
+          ) : noStudent}
+        </>
+      )}
       {current === "overzicht" && (
         <Dashboard onManage={() => go("kinderen")}
           onOpenChild={(id) => go("kind", { childId: id })}
@@ -182,6 +235,10 @@ export function AppMetLogin() {
       {current === "kind" && childId && (
         <KindPagina studentId={childId} onPractice={() => practice(childId)} onOpenDay={(date) => go("dag", { day: { date, back: "kind" } })}
           onGiveHomework={() => go("huiswerk", { studentIds: [childId] })} />
+      )}
+      {current === "geven" && (
+        <HuiswerkKiezen onAdd={() => go("kinderen")}
+          onGive={(ids) => go("huiswerk", { studentIds: ids, childId: ids.length === 1 ? ids[0] : childId, from: "Huiswerk" })} />
       )}
       {current === "huiswerk" && homeworkFor.length > 0 && <HuiswerkGeven key={homeworkFor.join()} studentIds={homeworkFor} onDone={() => window.history.back()} />}
       {current === "sjablonen" && <Sjablonen />}
@@ -201,27 +258,42 @@ export function AppMetLogin() {
         const next = { ...day, date }; setDay(next); window.history.replaceState({ screen: "dag", childId, day: next } satisfies NavState, "");
       }} />}
       {current === "kinderen" && <Kinderen onPractice={practice} />}
-      {current === "profiel" && <Profiel onLinked={() => go("oefenen")} onRedoIntake={() => go("oefenen")} />}
+      {current === "profiel" && <Profiel onLinked={() => go("vandaag")} onRedoIntake={() => go("vandaag")} />}
       {current === "oefenen" && (
         <>
-          <div className="font-display font-semibold text-lg mt-5 mb-2 flex flex-wrap items-center gap-x-3 gap-y-2">
-            {studentPicker || (student && <span>{student.name}</span>)}
-            <span className="ml-auto">{modeSwitch}</span>
-          </div>
           {!hasBackend && <p className="text-xs text-muted border border-line rounded-lg px-3 py-2 mb-2">Zonder backend: gegevens staan alleen in deze browser. Zet VITE_SUPABASE_URL en VITE_SUPABASE_ANON_KEY in .env voor de echte database.</p>}
           {student && <HuiswerkVoorLeerling student={student} onRecord={(t) => go("opnemen", { taskId: t.id, studentIds: [student.id] })} />}
-          {student ? (mode === "vrij" ? <VrijOefenen key={student.id} /> : <Game />) : (
-            <div className="rounded-3xl bg-surface p-6 flex flex-col items-start gap-3">
-              <p className="m-0">{profile.role === "ouder" ? "Voeg eerst een kind toe." : rights.canCreateStudents ? "Voeg eerst een leerling toe." : "Er is nog geen leerlingprofiel."}</p>
-              {rights.studentsTitle && <Chip primary onClick={() => go("kinderen")}>{profile.role === "ouder" ? "+ kind" : "+ leerling"}</Chip>}
-            </div>
-          )}
+          {student ? (mode === "vrij" ? <VrijOefenen key={student.id} /> : <Game />) : noStudent}
         </>
       )}
-      {knop}
+      {tabBalk}
     </div>
   );
 }
+
+/** Vandaag, voorlopig (AC-120 PR 1): het huiswerk en de drie dingen die je altijd kunt doen. PR 2 maakt er het echte startscherm van. */
+function VerderOefenen({ onGo }: { onGo(m: Mode): void }) {
+  const tiles: Array<{ m: Mode; icon: string; text: string; tint: string }> = [
+    { m: "game", icon: "🎮", text: "Het notenspel", tint: "bg-kent-soft" },
+    { m: "learn", icon: "🎷", text: "Zoek op welke kleppen bij een noot horen", tint: "bg-kent-soft" },
+    { m: "vrij", icon: "🎙️", text: "De app luistert en telt mee", tint: "bg-accent-soft" },
+  ];
+  return (
+    <section aria-label="Verder oefenen" className="mt-2">
+      <h2 className="font-display font-bold text-xl mt-0 mb-2">Verder oefenen</h2>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {tiles.map((t) => (
+          <button key={t.m} type="button" onClick={() => onGo(t.m)}
+            className="rounded-3xl bg-surface p-4 flex sm:flex-col items-center sm:items-start gap-3 text-left cursor-pointer border-2 border-transparent hover:border-line">
+            <span className={`w-14 h-14 rounded-2xl ${t.tint} flex items-center justify-center text-3xl shrink-0`} aria-hidden="true">{t.icon}</span>
+            <span><b className="font-display text-lg block">{MODE_TITLE[t.m]}</b><span className="text-sm text-muted">{t.text}</span></span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 
 /** het lopende huiswerk bij het oefenen, zodat de leerling ziet wat er van hem verwacht wordt */
 function HuiswerkVoorLeerling({ student, compact, onRecord }: { student: Student; compact?: boolean; onRecord?(t: HomeworkTask): void }) {

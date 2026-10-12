@@ -1,8 +1,8 @@
 /**
  * Notenkraker zonder account op /oefenen (AC-114, mock-up docs/mockups/Welkom-Twee-Routes.html).
- * Eigen navigatie: Start, Grepen, Notenspel en Vrij oefenen. Alles staat in deze browser
- * (lokale client, zie lib/client.ts); geen ouder, leraar of huiswerk. Een gratis account maken
- * kan altijd via het menu en op momenten waar het uitmaakt.
+ * Dezelfde tabbalk als met account (AC-120): Vandaag, Spelen, Grepen en Vrij spelen. Alles staat in
+ * deze browser (lokale client, zie lib/client.ts); geen ouder, leraar of huiswerk. Een gratis account
+ * maken kan altijd via het avatarmenu en op momenten waar het uitmaakt.
  */
 import { useEffect, useState } from "react";
 import { childSummary } from "@notenkraker/client";
@@ -18,11 +18,11 @@ import { VrijOefenen } from "@/screens/VrijOefenen";
 import { Kennismaking } from "@/screens/Kennismaking";
 import { Donut } from "@/components/Donut";
 import { Menu, type MenuItem } from "@/components/Menu";
-import { Segmented } from "@/components/ui";
+import { TabBalk, type Tab } from "@/components/TabBalk";
 
 type Screen = "start" | "grepen" | "spel" | "vrij";
 const SCREENS: Screen[] = ["start", "grepen", "spel", "vrij"];
-const TITLES: Record<Exclude<Screen, "start">, string> = { grepen: "Grepen", spel: "Notenspel", vrij: "Vrij oefenen" };
+const TITLES: Record<Exclude<Screen, "start">, string> = { grepen: "Grepen", spel: "Spelen", vrij: "Vrij spelen" };
 /** het proefconcept (AC-107) bewaarde de notenstatus hier; die nemen we één keer over */
 const POC_KEY = "nk.poc.altsax.status";
 
@@ -64,18 +64,14 @@ export function AnoniemApp() {
   if (!ready || !profile || !student) return <div className="p-6 text-muted">Laden…</div>;
 
   const items: MenuItem[] = [
-    { key: "start", label: "Start", onSelect: () => go("start"), active: screen === "start" },
-    { key: "grepen", label: `${ICON.vrij} Grepen`, onSelect: () => go("grepen"), active: screen === "grepen" },
-    { key: "spel", label: `${ICON.spel} Notenspel`, onSelect: () => go("spel"), active: screen === "spel" },
-    { key: "vrij", label: "🎙️ Vrij oefenen", onSelect: () => go("vrij"), active: screen === "vrij" },
     { key: "account", label: "Gratis account maken", onSelect: () => toAccount("/app?nieuw") },
     { key: "login", label: "Inloggen", onSelect: () => toAccount("/app") },
-    { key: "welkom", label: "Welkomstpagina", onSelect: () => window.location.assign("/?welkom") },
+    { key: "welkom", label: "Welkomstpagina", onSelect: () => window.location.assign("/?welkom"), apart: true },
   ];
-  const menu = <Menu title="Menu" items={items} />;
-  const switcher = screen !== "start" && (
-    <Segmented value={screen} options={[["grepen", "Grepen"], ["spel", "Spel"], ["vrij", "Vrij oefenen"]]} onChange={go} label="Onderdeel" />
-  );
+  const menu = <Menu name="Ik" subtitle={`zonder account · ${getInstrument(student.instrumentId).name}`} items={items} />;
+  /** nog eens tikken op de tab waar je al bent doet niets */
+  const tab = (s: Screen, label: string, icon: string): Tab => ({ key: s, label, icon, active: screen === s, onSelect: () => { if (screen !== s) go(s); } });
+  const tabBalk = <TabBalk tabs={[tab("start", "Vandaag", "☀️"), tab("spel", "Spelen", ICON.spel), tab("grepen", "Grepen", ICON.vrij), tab("vrij", "Vrij spelen", "🎙️")]} />;
   const nudge = (text: string) => (
     <div className="rounded-2xl bg-bg p-4 text-sm text-left flex flex-col gap-2 w-full">
       <span className="text-muted">{text}</span>
@@ -98,9 +94,12 @@ export function AnoniemApp() {
 
   if (screen === "grepen") {
     return (
+      <>
       <Grepentabel instrument={getInstrument(student.instrumentId)} title="Grepen"
         student={{ statuses, setStatus: (n, st) => void setStatus(n, st) }}
-        actions={<div className="flex flex-wrap items-center gap-3">{switcher}</div>} menu={menu} notice={<Banner onAccount={() => toAccount("/app?nieuw")} />} />
+        menu={menu} notice={<Banner onAccount={() => toAccount("/app?nieuw")} />} />
+      {tabBalk}
+      </>
     );
   }
 
@@ -113,11 +112,11 @@ export function AnoniemApp() {
         {menu}
       </header>
       <Banner onAccount={() => toAccount("/app?nieuw")} />
-      {switcher && <div className="flex justify-end">{switcher}</div>}
 
       {screen === "start" && <Start onGo={go} />}
       {screen === "spel" && <Game />}
       {screen === "vrij" && <VrijOefenen after={nudge("Wil je dat je ouder of leraar dit ziet? Met een gratis account bewaar je je oefentijd en kijken zij mee.")} />}
+      {tabBalk}
     </div>
   );
 }
