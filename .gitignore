@@ -9,3 +9,5 @@ dev-dist/
 .netlify/
 supabase/.temp/
 supabase/.branches
+apps/e2e/playwright-report/
+apps/e2e/test-results/
