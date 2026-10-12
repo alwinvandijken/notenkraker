@@ -41,8 +41,7 @@ export function Profiel({ onLinked, onRedoIntake }: { onLinked(): void; onRedoIn
   }
 
   return (
-    <div className="flex flex-col gap-3 mt-5 max-w-lg">
-      <h2 className="font-display font-bold text-2xl m-0">Mijn profiel</h2>
+    <div className="flex flex-col gap-3 max-w-lg">
       <Card className="!p-4">
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 m-0">
           <dt className="text-muted">Naam</dt><dd className="m-0 font-semibold">{profile.displayName}</dd>

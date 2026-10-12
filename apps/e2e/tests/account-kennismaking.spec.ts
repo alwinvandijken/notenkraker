@@ -13,12 +13,13 @@ test("account maken, kennismaken, en na opnieuw inloggen niet nog eens", async (
   await expect(page.getByRole("heading", { name: "Hoe oud ben je?" })).toBeVisible();
   await page.getByRole("button", { name: /9 – 12 jaar/ }).click();
   await page.getByRole("button", { name: /Net begonnen/ }).click();
-  // klaar met kennismaken: oefenen (Grepen, Spel of Vrij oefenen)
-  const onderdeel = page.getByRole("group", { name: "Onderdeel" });
-  await expect(onderdeel).toBeVisible();
+  // klaar met kennismaken: Vandaag, met de tabbalk van de leerling
+  const vandaag = page.getByRole("heading", { name: "Hoi Robin" });
+  await expect(vandaag).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Tabbalk" }).getByRole("button", { name: "Vrij spelen" })).toBeVisible();
 
   await kiesInMenu(page, "Uitloggen");
   await inloggen(page, { email, password: WACHTWOORD });
-  await expect(onderdeel).toBeVisible();
+  await expect(vandaag).toBeVisible();
   await expect(page.getByRole("heading", { name: "Hoe oud ben je?" })).toHaveCount(0);
 });

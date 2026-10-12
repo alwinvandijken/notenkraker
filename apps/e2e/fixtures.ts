@@ -59,6 +59,11 @@ export async function kiesInMenu(page: Page, label: string | RegExp) {
   await page.getByRole("navigation", { name: "Hoofdmenu" }).getByRole("button", { name: label }).click();
 }
 
+/** een tab in de tabbalk onderin (AC-120) */
+export async function kiesTab(page: Page, label: string) {
+  await page.getByRole("navigation", { name: "Tabbalk" }).getByRole("button", { name: label, exact: true }).click();
+}
+
 /**
  * Eén ronde notenspel met de knoppen: steeds de eerste naamknop tikken tot "▶ Spelen" terugkomt
  * (ronde vol of levens op). Goed of fout maakt niet uit; de noten zijn willekeurig.

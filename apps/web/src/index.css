@@ -40,6 +40,9 @@
 
 html, body, #root { min-height: 100%; }
 body { background: var(--color-bg); color: var(--color-fg); font-family: var(--font-sans); margin: 0; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+/* tabbalk onderin (components/TabBalk): de pagina houdt er ruimte voor vrij */
+:root { --tabbalk: 60px; }
+body.met-tabbalk { --ruimte-onder: var(--tabbalk); padding-bottom: calc(var(--tabbalk) + env(safe-area-inset-bottom)); }
 button { font: inherit; }
 button:focus-visible, textarea:focus-visible { outline: 3px solid var(--color-les); outline-offset: 2px; }
 

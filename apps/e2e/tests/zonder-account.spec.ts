@@ -1,4 +1,4 @@
-import { expect, kiesInMenu, speelRonde, test } from "../fixtures";
+import { expect, kiesTab, speelRonde, test } from "../fixtures";
 
 test("zonder account: grepen, notenspel en de status blijft na herladen", async ({ page }) => {
   await page.goto("/");
@@ -9,15 +9,15 @@ test("zonder account: grepen, notenspel en de status blijft na herladen", async 
   await page.getByRole("button", { name: "Overslaan" }).click();
   await expect(page.getByRole("heading", { name: "Wat ga je doen?" })).toBeVisible();
 
-  await page.getByRole("button", { name: /^Grepen/ }).click();
+  await kiesTab(page, "Grepen");
   const kent = page.getByRole("group", { name: "Status" }).getByRole("button", { name: "Kent al" });
   await kent.click();
   await expect(kent).toHaveAttribute("aria-pressed", "true");
 
-  await kiesInMenu(page, /Notenspel$/);
+  await kiesTab(page, "Spelen");
   await speelRonde(page);
 
-  await kiesInMenu(page, "Start");
+  await kiesTab(page, "Vandaag");
   const noten = page.getByText(/die je kent/);
   await expect(noten).not.toContainText(" 0 noten");
   const voor = await noten.textContent();

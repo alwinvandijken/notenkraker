@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { Menu as MenuIcon, X } from "lucide-react";
 import clsx from "clsx";
 
-export interface MenuItem { key: string; label: string; onSelect(): void; active?: boolean }
+/** `apart`: met een lijntje erboven, voor Welkomstpagina en Uitloggen */
+export interface MenuItem { key: string; label: string; onSelect(): void; active?: boolean; apart?: boolean }
 
-/** Hamburgermenu rechtsboven. Sluit bij een keuze, Escape of een tik ernaast. */
-export function Menu({ title, items }: { title: string; items: MenuItem[] }) {
+/**
+ * Avatarmenu rechtsboven (AC-120, mock-up richting B): alles wat niet in de tabbalk staat.
+ * Bovenin wie je bent. Sluit bij een keuze, Escape of een tik ernaast.
+ */
+export function Menu({ name, subtitle, items }: { name: string; subtitle?: string; items: MenuItem[] }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -20,23 +23,38 @@ export function Menu({ title, items }: { title: string; items: MenuItem[] }) {
   }, [open]);
 
   return (
-    <div ref={ref} className="relative">
-      <button type="button" aria-label="Menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-full border-2 border-line bg-surface pl-4 pr-3 py-2 font-display font-semibold cursor-pointer">
-        <span className="max-w-40 truncate">{title}</span>
-        {open ? <X size={20} aria-hidden /> : <MenuIcon size={20} aria-hidden />}
+    <div ref={ref} className="relative shrink-0">
+      <button type="button" aria-label="Menu" aria-expanded={open} title={name} onClick={() => setOpen((v) => !v)}
+        className={clsx("rounded-full cursor-pointer border-2", open ? "border-accent" : "border-transparent")}>
+        <Initiaal name={name} />
       </button>
       {open && (
-        <nav aria-label="Hoofdmenu" className="absolute right-0 mt-2 w-64 rounded-2xl border-2 border-line bg-surface p-2 shadow-lg z-20 flex flex-col">
+        <nav aria-label="Hoofdmenu" className="absolute right-0 mt-2 w-64 rounded-2xl border-2 border-line bg-surface p-2 shadow-lg z-40 flex flex-col">
+          <div className="flex items-center gap-3 px-3 pt-2 pb-3 mb-1 border-b border-line">
+            <Initiaal name={name} />
+            <div className="min-w-0">
+              <b className="font-display block truncate">{name}</b>
+              {subtitle && <span className="text-sm text-muted block truncate">{subtitle}</span>}
+            </div>
+          </div>
           {items.map((it) => (
             <button key={it.key} type="button" aria-current={it.active ? "page" : undefined}
               onClick={() => { setOpen(false); it.onSelect(); }}
-              className={clsx("text-left rounded-xl px-3 py-3 cursor-pointer font-display", it.active ? "bg-accent-soft font-semibold" : "hover:bg-bg")}>
+              className={clsx("text-left rounded-xl px-3 py-3 cursor-pointer font-display", it.apart && "mt-1 border-t border-line rounded-t-none",
+                it.active ? "bg-accent-soft font-semibold" : "hover:bg-bg")}>
               {it.label}
             </button>
           ))}
         </nav>
       )}
     </div>
+  );
+}
+
+function Initiaal({ name }: { name: string }) {
+  return (
+    <span aria-hidden="true" className="rounded-full bg-kent text-white font-display font-bold flex items-center justify-center w-11 h-11 text-lg shrink-0">
+      {name.trim().slice(0, 1).toUpperCase() || "?"}
+    </span>
   );
 }
