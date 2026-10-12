@@ -35,12 +35,11 @@ export const toInput = ({ kind, title, bookId, page, chapter, number, track, ban
 
 const field = "w-full rounded-xl border-2 border-line bg-surface px-3 py-2 text-[15px]";
 
-export function OpdrachtenEditor({ tasks, onChange, books, bank }: { tasks: TaskDraft[]; onChange(t: TaskDraft[]): void; books: Book[]; bank: BankTask[] }) {
+/** `bankBeside`: de opdrachtenbank staat op een breed scherm al naast het formulier (BankLijst); dan alleen op smal de knop */
+export function OpdrachtenEditor({ tasks, onChange, books, bank, bankBeside }: { tasks: TaskDraft[]; onChange(t: TaskDraft[]): void; books: Book[]; bank: BankTask[]; bankBeside?: boolean }) {
   const [picking, setPicking] = useState(false);
-  const [q, setQ] = useState("");
   const set = (key: string, patch: Partial<TaskDraft>) => onChange(tasks.map((t) => (t.key === key ? { ...t, ...patch } : t)));
   const categories = allCategories(bank.map((b) => b.categories));
-  const found = bank.filter((b) => `${b.title} ${b.categories.join(" ")}`.toLocaleLowerCase("nl").includes(q.trim().toLocaleLowerCase("nl")));
 
   return (
     <div className="flex flex-col gap-3">
@@ -110,23 +109,49 @@ export function OpdrachtenEditor({ tasks, onChange, books, bank }: { tasks: Task
         <button type="button" onClick={() => onChange([...tasks, newDraft()])}
           className="flex-1 rounded-xl border-2 border-dashed border-line text-muted bg-surface px-3 py-2 font-semibold cursor-pointer">+ Nieuwe opdracht</button>
         <button type="button" onClick={() => setPicking(!picking)} aria-expanded={picking}
-          className="flex-1 rounded-xl border-2 border-kent text-kent bg-surface px-3 py-2 font-semibold cursor-pointer">📚 Uit de opdrachtenbank</button>
+          className={clsx("flex-1 rounded-xl border-2 border-kent text-kent bg-surface px-3 py-2 font-semibold cursor-pointer", bankBeside && "lg:hidden")}>📚 Uit de bibliotheek</button>
       </div>
       {picking && (
-        <div className="rounded-2xl bg-bg p-3 flex flex-col gap-2">
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="🔍 Zoek in je opdrachtenbank" aria-label="Zoek in je opdrachtenbank" className={field} />
-          {bank.length === 0 && <span className="text-sm text-muted">Je opdrachtenbank is nog leeg. Vink bij een nieuwe opdracht “Ook bewaren in de opdrachtenbank” aan.</span>}
-          {found.slice(0, 20).map((b) => (
-            <button key={b.id} type="button" onClick={() => onChange([...tasks, draftFromBank(b)])}
-              className="flex items-center gap-2 rounded-xl bg-surface px-3 py-2 text-left cursor-pointer border-2 border-transparent hover:border-kent">
-              <span aria-hidden="true">{b.kind === "stuk" ? "🎵" : "✓"}</span>
-              <span className="flex-1 min-w-0"><b className="block truncate">{b.title}</b>
-                <span className="block text-xs text-muted truncate">{[b.categories.join(", "), taskReference({ ...b, bookTitle: books.find((x) => x.id === b.bookId)?.title ?? "" })].filter(Boolean).join(" · ")}</span></span>
-              <span className="text-kent font-semibold text-sm">+ toevoegen</span>
-            </button>
+        <div className={clsx("rounded-2xl bg-bg p-3", bankBeside && "lg:hidden")}>
+          <BankLijst bank={bank} books={books} onAdd={(b) => onChange([...tasks, draftFromBank(b)])} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** opdrachten uit de eigen opdrachtenbank, met zoeken en categorieën; één tik voegt er een toe (AC-120 PR 6) */
+export function BankLijst({ bank, books, onAdd, added = [] }: { bank: BankTask[]; books: Book[]; onAdd(b: BankTask): void; added?: string[] }) {
+  const [q, setQ] = useState("");
+  const [cat, setCat] = useState<string | null>(null);
+  const categories = allCategories(bank.map((b) => b.categories)).filter((c) => bank.some((b) => b.categories.includes(c)));
+  const found = bank.filter((b) => (!cat || b.categories.includes(cat))
+    && `${b.title} ${b.categories.join(" ")}`.toLocaleLowerCase("nl").includes(q.trim().toLocaleLowerCase("nl")));
+  if (bank.length === 0) return <span className="text-sm text-muted">Je opdrachtenbank is nog leeg. Vink bij een nieuwe opdracht “Ook bewaren in de opdrachtenbank” aan.</span>;
+  return (
+    <div className="flex flex-col gap-2">
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="🔍 Zoek in je opdrachtenbank" aria-label="Zoek in je opdrachtenbank" className={field} />
+      {categories.length > 1 && (
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Categorie in de bibliotheek">
+          {categories.map((c) => (
+            <button key={c} type="button" aria-pressed={cat === c} onClick={() => setCat(cat === c ? null : c)}
+              className={clsx("rounded-full border-2 px-3 py-1 text-sm cursor-pointer", cat === c ? "border-kent bg-kent-soft font-semibold" : "border-line bg-surface")}>{c}</button>
           ))}
         </div>
       )}
+      {found.slice(0, 30).map((b) => {
+        const on = added.includes(b.id);
+        return (
+          <button key={b.id} type="button" onClick={() => onAdd(b)} disabled={on}
+            className="flex items-center gap-2 rounded-xl bg-surface px-3 py-2 text-left cursor-pointer border-2 border-transparent hover:border-kent disabled:cursor-default disabled:opacity-60">
+            <span aria-hidden="true">{b.kind === "stuk" ? "🎵" : "✓"}</span>
+            <span className="flex-1 min-w-0"><b className="block truncate">{b.title}</b>
+              <span className="block text-xs text-muted truncate">{[b.categories.join(", "), taskReference({ ...b, bookTitle: books.find((x) => x.id === b.bookId)?.title ?? "" })].filter(Boolean).join(" · ")}</span></span>
+            <span className="text-kent font-semibold text-sm shrink-0">{on ? "✓ erin" : "+ toevoegen"}</span>
+          </button>
+        );
+      })}
+      {found.length === 0 && <span className="text-sm text-muted">Niets gevonden.</span>}
     </div>
   );
 }

@@ -196,7 +196,7 @@ export function AppMetLogin() {
   const swap = (s: Screen) => { window.history.replaceState({ ...window.history.state, screen: s }, ""); setScreen(s); };
 
   return (
-    <div className={`${current === "overzicht" || current === "kind" || current === "dag" || current === "taak" ? "max-w-[1240px]" : "max-w-[900px]"} mx-auto px-4 pt-6 pb-12`}>
+    <div className={`${current === "overzicht" || current === "kind" || current === "dag" || current === "taak" || current === "huiswerk" ? "max-w-[1240px]" : "max-w-[900px]"} mx-auto px-4 pt-6 pb-12`}>
       <header className="flex items-start justify-between gap-3 mb-4">
         <div className="min-w-0">
           {backTo && (
