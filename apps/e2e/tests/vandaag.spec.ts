@@ -15,6 +15,10 @@ test("ouder geeft huiswerk, het kind ziet het op Vandaag als takenlijst", async 
   await page.getByRole("button", { name: "+ Nieuwe opdracht" }).click();
   await page.getByRole("button", { name: "✓ Opdracht" }).nth(1).click();
   await page.getByRole("textbox", { name: "Titel van de opdracht" }).nth(1).fill("Notenalfabet achteruit");
+  // drie stappen: Wat · Doel · Versturen (AC-120 PR 6)
+  await page.getByRole("button", { name: "Volgende: doel" }).click();
+  await page.getByRole("button", { name: "Volgende: versturen" }).click();
+  await expect(page.getByRole("region", { name: "Overzicht" }).getByText("Lang zal ze leven")).toBeVisible();
   await page.getByRole("button", { name: /naar Noor sturen/ }).click();
   await expect(page.getByRole("heading", { name: "Huiswerk", exact: true })).toBeVisible();
 

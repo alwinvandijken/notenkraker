@@ -4,14 +4,21 @@ import { dateKey } from "@notenkraker/client";
 import { client, hasBackend } from "@/lib/client";
 import { useApp } from "@/lib/store";
 import { KindUitnodigen } from "@/components/KindUitnodigen";
-import { Chip } from "@/components/ui";
+import { Chip, Segmented } from "@/components/ui";
 import { HuiswerkKaart, useNoteLabels } from "@/components/Huiswerk";
 import { activityOf, ActivityRow, Avatar, Label, PracticeChart, SessionRow, StreakBadge, useChildRows } from "./Dashboard";
 
+type Tab = "huiswerk" | "oefentijd" | "noten";
+const TABS: Array<[Tab, string]> = [["huiswerk", "Huiswerk"], ["oefentijd", "Oefentijd"], ["noten", "Noten"]];
+/** het open tabblad staat in de browsergeschiedenis, zodat terug van de dagpagina op hetzelfde tabblad uitkomt */
+const tabFromHistory = (): Tab => (TABS.some(([t]) => t === window.history.state?.kindTab) ? window.history.state.kindTab as Tab : "huiswerk");
+
 /**
- * Pagina van één kind of leerling voor de ouder of leraar: bovenaan het huiswerk (AC-113), dan oefentijd per dag, sessies vrij
- * oefenen, rondes van het notenspel en noten, elk in een eigen blok. Op een telefoon onder elkaar, op een
- * iPad in twee kolommen. Tik op een dag of sessie voor de dagpagina met de details.
+ * Pagina van één kind of leerling voor de ouder of leraar (AC-120 PR 6, mock-up docs/ux-review/vandaag.html
+ * "Ouder en leraar"): bovenaan wie het is met één oranje knop "Huiswerk geven", daaronder drie tabbladen.
+ * Huiswerk: de huiswerkkaarten met opnames en reacties. Oefentijd: minuten per dag, vrij oefenen en het
+ * notenspel; tik op een dag of sessie voor de dagpagina. Noten: wat het kind kent, in de les heeft en
+ * nog lastig vindt.
  */
 export function KindPagina({ studentId, onPractice, onOpenDay, onGiveHomework }: { studentId: string; onPractice(): void; onOpenDay(date: string): void; onGiveHomework(): void }) {
   const { profile, loadStudents } = useApp();
@@ -20,6 +27,8 @@ export function KindPagina({ studentId, onPractice, onOpenDay, onGiveHomework }:
   /** direct tonen wat je aanklikt; daarna komt het via loadStudents uit de database */
   const [consent, setConsent] = useState<boolean | null>(null);
   const labels = useNoteLabels(row?.student.instrumentId ?? "altsax");
+  const [tab, setTabState] = useState<Tab>(tabFromHistory);
+  const setTab = (t: Tab) => { setTabState(t); window.history.replaceState({ ...window.history.state, kindTab: t }, ""); };
 
   if (!row) return <p className="text-muted">Laden…</p>;
   const { student, summary: s } = row;
@@ -40,7 +49,8 @@ export function KindPagina({ studentId, onPractice, onOpenDay, onGiveHomework }:
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Chip primary className="flex-1" onClick={onPractice}>Oefenen met {student.name}</Chip>
+          {canGive && <Chip primary className="flex-1" onClick={onGiveHomework}>Huiswerk geven</Chip>}
+          <Chip onClick={onPractice}>Oefenen met {student.name}</Chip>
           {isOuder && hasBackend && !student.userId && (
             <Chip onClick={() => void client.students.inviteCode(student.id, "kind").then(setInvite)}>Laten inloggen</Chip>
           )}
@@ -55,19 +65,22 @@ export function KindPagina({ studentId, onPractice, onOpenDay, onGiveHomework }:
         )}
       </section>
 
-      <div className="grid gap-4 lg:grid-cols-2 min-w-0">
+      <div><Segmented value={tab} onChange={setTab} label="Tabbladen" options={TABS} /></div>
+
+      {tab === "huiswerk" && (
+      <div className="grid gap-4 lg:grid-cols-2 min-w-0 items-start">
         {row.homework.map((x) => (
           <HuiswerkKaart key={x.h.id} item={x} instrumentId={student.instrumentId} mine={x.h.givenBy === profile?.id} onEdit={onGiveHomework} />
         ))}
-        {canGive && !mine && (
-          <section className="rounded-3xl bg-surface p-4 flex flex-col gap-3 min-w-0">
-            <Label>{row.homework.length ? "Eigen huiswerk" : "Nog geen huiswerk"}</Label>
-            <p className="text-sm text-muted m-0">Geef {student.name} noten om te oefenen en een doel per dag. {student.name} ziet het bij het oefenen.</p>
-            <Chip primary className="self-start" onClick={onGiveHomework}>Huiswerk geven</Chip>
-          </section>
+        {row.homework.length === 0 && (
+          <p className="text-muted m-0">{canGive && !mine ? `Nog geen huiswerk. Met "Huiswerk geven" geef je ${student.name} noten, opdrachten en een doel per dag.` : "Nog geen huiswerk."}</p>
         )}
+      </div>
+      )}
 
-        <section className="rounded-3xl bg-surface p-4 flex flex-col gap-2 min-w-0">
+      {tab === "oefentijd" && (
+      <div className="grid gap-4 lg:grid-cols-2 min-w-0 items-start">
+        <section className="rounded-3xl bg-surface p-4 flex flex-col gap-2 min-w-0 lg:col-span-2">
           <div className="flex justify-between gap-2"><Label>Oefentijd</Label><span className="text-xs text-muted">deze week {s.week.minutes} min</span></div>
           <PracticeChart summary={s} onOpenDay={onOpenDay} />
         </section>
@@ -83,6 +96,11 @@ export function KindPagina({ studentId, onPractice, onOpenDay, onGiveHomework }:
           {games.length === 0 && <p className="text-sm text-muted m-0 mt-1">Nog geen notenspel gespeeld.</p>}
           {games.map((a) => <ActivityRow key={a.id} item={a} onOpen={() => onOpenDay(dateKey(new Date(a.at)))} />)}
         </section>
+      </div>
+      )}
+
+      {tab === "noten" && (
+      <div className="min-w-0 max-w-[720px]">
 
         <section className="rounded-3xl bg-surface p-4 flex flex-col gap-4 min-w-0">
           <div>
@@ -112,6 +130,7 @@ export function KindPagina({ studentId, onPractice, onOpenDay, onGiveHomework }:
           </div>
         </section>
       </div>
+      )}
 
       {invite && <KindUitnodigen name={student.name} code={invite} onClose={() => setInvite(null)} />}
     </div>

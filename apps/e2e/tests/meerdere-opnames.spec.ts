@@ -12,6 +12,10 @@ test("twee opnames van hetzelfde stuk, elk met een eigen reactie", async ({ page
   await page.getByRole("button", { name: "+ Nieuwe opdracht" }).click();
   await page.getByRole("textbox", { name: "Titel van de opdracht" }).fill("Lang zal ze leven");
   await page.getByRole("checkbox", { name: /neemt het op/ }).check();
+  // drie stappen: Wat · Doel · Versturen (AC-120 PR 6)
+  await page.getByRole("button", { name: "Volgende: doel" }).click();
+  await page.getByRole("button", { name: "Volgende: versturen" }).click();
+  await expect(page.getByRole("region", { name: "Overzicht" }).getByText("Lang zal ze leven")).toBeVisible();
   await page.getByRole("button", { name: /naar Noor sturen/ }).click();
   await expect(page.getByRole("heading", { name: "Huiswerk", exact: true })).toBeVisible();
 

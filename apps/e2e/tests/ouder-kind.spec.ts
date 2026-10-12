@@ -32,5 +32,7 @@ test("ouder maakt een kind aan, kind speelt, ouder ziet de ronde", async ({ page
   await kiesInMenu(page, "Terug naar Mijn kinderen");
   await page.getByRole("button", { name: "Sam: details" }).click();
   await expect(page.getByRole("heading", { name: "Sam" })).toBeVisible();
+  // de kindpagina in tabbladen (AC-120 PR 6): de rondes staan bij Oefentijd
+  await page.getByRole("group", { name: "Tabbladen" }).getByRole("button", { name: "Oefentijd" }).click();
   await expect(page.getByText(/Notenspel: \d+ van \d+ goed/)).toBeVisible();
 });
