@@ -116,7 +116,7 @@ export function HuiswerkKaart({ item: { h, p }, instrumentId, mine, pupil, onEdi
         <div className="flex flex-wrap gap-1.5">{h.notes.map((n) => <span key={n} className="rounded-xl px-2.5 py-1 font-bold bg-les text-fg text-sm">{labels[n] ?? n}</span>)}</div>
       )}
       {h.piece && <div className="text-sm">🎵 <b>{h.piece}</b>{h.pieceNote ? `, ${h.pieceNote}` : ""}</div>}
-      {h.remark && <div className="text-sm rounded-xl bg-bg px-3 py-2">💬 “{h.remark}”</div>}
+      {h.remark && <div className="text-sm rounded-xl bg-bg px-3 py-2 whitespace-pre-line">💬 “{h.remark}”</div>}
 
       {!pupil && (
         <div className="flex flex-col gap-1.5">
