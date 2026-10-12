@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { instrumentNotes, type NoteId, type StatusMap } from "@notenkraker/core";
 import { getInstrument } from "@notenkraker/instruments";
-import { dateKey, type Homework, type HomeworkTemplate } from "@notenkraker/client";
+import { dateKey, type BankTask, type Book, type Homework, type HomeworkTemplate } from "@notenkraker/client";
 import { client } from "@/lib/client";
 import { useApp } from "@/lib/store";
 import { Chip } from "@/components/ui";
 import { useNoteLabels } from "@/components/Huiswerk";
+import { draftFromTask, newDraft, OpdrachtenEditor, toInput, type TaskDraft } from "@/components/Opdrachten";
 
 /**
  * Huiswerk geven (AC-113, mock-up docs/mockups/Leraar-Huiswerk.html stap 3), een eigen pagina. Het
@@ -14,6 +15,8 @@ import { useNoteLabels } from "@/components/Huiswerk";
  * maakt een nieuwe opgave die de vorige van deze gever vervangt; die van een ander blijft staan.
  * Voor meerdere leerlingen tegelijk (AC-117, desktop) krijgt elke leerling een eigen kopie. Bovenaan
  * staan de eigen sjablonen: één tik vult het formulier; onderaan kun je de opgave als sjabloon bewaren.
+ * Het oude veld "stuk of oefening" is opgegaan in de opdrachten (AC-118): stukken met boekverwijzing
+ * en opdrachten om af te vinken, nieuw of uit de eigen opdrachtenbank.
  */
 const inDays = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n); return dateKey(d); };
 
@@ -27,8 +30,9 @@ export function HuiswerkGeven({ studentIds, onDone }: { studentIds: string[]; on
   const [notes, setNotes] = useState<NoteId[]>([]);
   const [minutes, setMinutes] = useState(15);
   const [days, setDays] = useState(5);
-  const [piece, setPiece] = useState("");
-  const [pieceNote, setPieceNote] = useState("");
+  const [tasks, setTasks] = useState<TaskDraft[]>([]);
+  const [books, setBooks] = useState<Book[]>([]);
+  const [bank, setBank] = useState<BankTask[]>([]);
   const [remark, setRemark] = useState("");
   const [due, setDue] = useState(inDays(7));
   const [picking, setPicking] = useState(false);
@@ -38,23 +42,29 @@ export function HuiswerkGeven({ studentIds, onDone }: { studentIds: string[]; on
   const [asTemplate, setAsTemplate] = useState(false);
   const [templateName, setTemplateName] = useState("");
 
-  useEffect(() => { void client.homework.templates().then(setTemplates).catch(() => setTemplates([])); }, []);
+  useEffect(() => {
+    void client.homework.templates().then(setTemplates).catch(() => setTemplates([]));
+    void client.bank.list().then(setBank).catch(() => setBank([]));
+  }, []);
   useEffect(() => {
     if (!studentId) return;
     void client.notes.list(studentId).then((ns) => setStatuses(Object.fromEntries(ns.map((n) => [n.noteId, n.status]))));
     // het vorige huiswerk van mij als begin; de einddatum begint opnieuw over een week
-    void client.homework.list(studentId).then((list) => {
+    void Promise.all([client.homework.list(studentId), client.books.list().catch(() => [] as Book[])]).then(([list, myBooks]) => {
+      setBooks(myBooks);
       const prev: Homework | undefined = list.find((h) => h.givenBy === profile?.id);
       if (!prev) return;
-      setNotes(prev.notes); setMinutes(prev.minutesPerDay); setDays(prev.daysPerWeek);
-      setPiece(prev.piece); setPieceNote(prev.pieceNote); setRemark(prev.remark);
+      setNotes(prev.notes); setMinutes(prev.minutesPerDay); setDays(prev.daysPerWeek); setRemark(prev.remark);
+      setTasks([...legacyPiece(prev.piece, prev.pieceNote), ...prev.tasks.map((t) => draftFromTask(t, myBooks))]);
     }).catch(() => { /* niets om in te vullen */ });
   }, [studentId, profile?.id]);
+  useEffect(() => { if (!studentId) void client.books.list().then(setBooks).catch(() => setBooks([])); }, [studentId]);
 
   if (!student) return <p className="text-muted">Laden…</p>;
   const who = studentId ? student.name : `${chosen.length} leerlingen`;
   const use = (t: HomeworkTemplate) => {
-    setNotes(t.notes); setMinutes(t.minutesPerDay); setDays(t.daysPerWeek); setPiece(t.piece); setPieceNote(t.pieceNote); setRemark(t.remark);
+    setNotes(t.notes); setMinutes(t.minutesPerDay); setDays(t.daysPerWeek); setRemark(t.remark);
+    setTasks([...legacyPiece(t.piece, t.pieceNote), ...t.tasks.map((x) => newDraft(x.kind, x))]);
   };
   const instrument = getInstrument(student.instrumentId);
   const all = instrumentNotes(instrument);
@@ -63,12 +73,15 @@ export function HuiswerkGeven({ studentIds, onDone }: { studentIds: string[]; on
   const save = async () => {
     setBusy(true); setError(null);
     try {
-      const input = { notes, minutesPerDay: minutes, daysPerWeek: days, piece: piece.trim(), pieceNote: pieceNote.trim(), remark: remark.trim(), dueDate: due };
-      if (studentId) await client.homework.give({ ...input, studentId });
-      else await client.homework.giveMany(studentIds, input);
+      const filled = tasks.filter((t) => t.title.trim());
+      const input = { notes, minutesPerDay: minutes, daysPerWeek: days, remark: remark.trim(), dueDate: due };
+      // eerst nieuwe opdrachten in de bank, zodat het huiswerk ernaar verwijst
+      const withBank = await Promise.all(filled.map(async (t) => (t.toBank && !t.bankId
+        ? { ...t, bankId: (await client.bank.save({ ...toInput(t), categories: t.categories })).id } : t)));
+      await client.homework.giveWithTasks(studentIds, input, withBank.map(toInput));
       if (asTemplate) {
-        const name = templateName.trim() || `${input.piece || "Huiswerk"}, ${minutes} min`;
-        await client.homework.saveTemplate({ name, notes, minutesPerDay: minutes, daysPerWeek: days, piece: input.piece, pieceNote: input.pieceNote, remark: input.remark });
+        const name = templateName.trim() || `${filled[0]?.title.trim() || "Huiswerk"}, ${minutes} min`;
+        await client.homework.saveTemplate({ name, notes, minutesPerDay: minutes, daysPerWeek: days, piece: "", pieceNote: "", remark: input.remark, tasks: withBank.map(toInput) });
       }
       onDone();
     } catch {
@@ -124,9 +137,8 @@ export function HuiswerkGeven({ studentIds, onDone }: { studentIds: string[]; on
       </section>
 
       <section className="rounded-3xl bg-surface p-4 flex flex-col gap-2.5">
-        <Caption>Stuk of oefening</Caption>
-        <input value={piece} onChange={(e) => setPiece(e.target.value)} placeholder="Bijv. Toonladder G groot" aria-label="Stuk of oefening" maxLength={200} className={field} />
-        <input value={pieceNote} onChange={(e) => setPieceNote(e.target.value)} placeholder="Uitleg, bijv. “langzaam, 2× per dag”" aria-label="Uitleg" maxLength={500} className={field} />
+        <Caption>Opdrachten</Caption>
+        <OpdrachtenEditor tasks={tasks} onChange={setTasks} books={books} bank={bank} />
       </section>
 
       <section className="rounded-3xl bg-surface p-4 flex flex-col gap-2.5">
@@ -147,7 +159,7 @@ export function HuiswerkGeven({ studentIds, onDone }: { studentIds: string[]; on
           Ook bewaren als sjabloon
         </label>
         {asTemplate && <input value={templateName} onChange={(e) => setTemplateName(e.target.value)} maxLength={100} aria-label="Naam van het sjabloon"
-          placeholder={`${piece.trim() || "Huiswerk"}, ${minutes} min`} className={field} />}
+          placeholder={`${tasks[0]?.title.trim() || "Huiswerk"}, ${minutes} min`} className={field} />}
       </section>
       {error && <p className="text-sm text-wrong m-0">{error}</p>}
       <Chip primary disabled={busy} onClick={() => void save()} className="py-3 text-lg">{busy ? "Opslaan…" : `Opslaan en naar ${who} sturen`}</Chip>
@@ -173,4 +185,9 @@ function Stepper({ label, value, min, max, step, onChange }: { label: string; va
       </div>
     </div>
   );
+}
+
+/** huiswerk van vóór de opdrachten (één "stuk of oefening") als een opdracht "stuk spelen" */
+function legacyPiece(piece: string, pieceNote: string): TaskDraft[] {
+  return piece.trim() ? [newDraft("stuk", { title: pieceNote.trim() ? `${piece.trim()}, ${pieceNote.trim()}` : piece.trim() })] : [];
 }

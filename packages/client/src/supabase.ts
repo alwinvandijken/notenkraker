@@ -1,7 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { promotionCandidates, scoreRound } from "@notenkraker/core";
 import type {
-  AdminApi, AdminUser, AuthApi, Guardian, Feedback, FeedbackApi, Homework, HomeworkApi, HomeworkTemplate, InvitePurpose, NotenkrakerClient, NotesApi, PracticeApi, PracticeSession, Profile, Progress, Role, Round, RoundsApi, RoundSubmission,
+  AdminApi, AdminUser, AuthApi, BankApi, BankTask, Book, BooksApi, HomeworkTask, TaskInput, Guardian, Feedback, FeedbackApi, Homework, HomeworkApi, HomeworkTemplate, InvitePurpose, NotenkrakerClient, NotesApi, PracticeApi, PracticeSession, Profile, Progress, Role, Round, RoundsApi, RoundSubmission,
   SelfRole, Song, SongsApi, Student, StudentNote, StudentsApi,
 } from "./types.js";
 
@@ -211,17 +211,30 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
     givenByRole: r.given_by_role as Homework["givenByRole"], givenByName: r.given_by_name as string, createdAt: r.created_at as string,
     dueDate: r.due_date as string, minutesPerDay: r.minutes_per_day as number, daysPerWeek: r.days_per_week as number,
     notes: (r.notes as string[]) ?? [], piece: (r.piece as string) ?? "", pieceNote: (r.piece_note as string) ?? "", remark: (r.remark as string) ?? "",
+    tasks: ((r.homework_tasks as Array<Record<string, unknown>>) ?? []).map(rowToTask).sort((a, b) => a.position - b.position),
+  });
+
+  const rowToTask = (r: Record<string, unknown>): HomeworkTask => ({
+    id: r.id as string, homeworkId: r.homework_id as string, position: r.position as number, kind: r.kind as HomeworkTask["kind"],
+    title: r.title as string, bookTitle: (r.book_title as string) ?? "", bookAuthor: (r.book_author as string) ?? "",
+    page: (r.page as string) ?? "", chapter: (r.chapter as string) ?? "", number: (r.number as string) ?? "", track: (r.track as string) ?? "",
+    doneAt: (r.done_at as string | null) ?? null,
+  });
+  /** opdracht in de vorm die de databasefuncties verwachten */
+  const taskToJson = (t: TaskInput) => ({
+    kind: t.kind, title: t.title, book_id: t.bookId ?? null, page: t.page, chapter: t.chapter, number: t.number, track: t.track, bank_id: t.bankId ?? null,
   });
 
   const rowToTemplate = (r: Record<string, unknown>): HomeworkTemplate => ({
     id: r.id as string, name: r.name as string, notes: (r.notes as string[]) ?? [], minutesPerDay: r.minutes_per_day as number,
     daysPerWeek: r.days_per_week as number, piece: (r.piece as string) ?? "", pieceNote: (r.piece_note as string) ?? "", remark: (r.remark as string) ?? "",
+    tasks: (r.tasks as TaskInput[]) ?? [],
   });
 
   // geven is een databasefunctie: die controleert wie het mag en zet de noten op "in de les"
   const homework: HomeworkApi = {
     async list(studentId, limit = 20) {
-      const { data, error } = await sb.from("homework").select("*").eq("student_id", studentId).order("created_at", { ascending: false }).limit(limit);
+      const { data, error } = await sb.from("homework").select("*, homework_tasks(*)").eq("student_id", studentId).order("created_at", { ascending: false }).limit(limit);
       if (error) throw error;
       return (data ?? []).map(rowToHomework);
     },
@@ -249,7 +262,7 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
     async saveTemplate(t) {
       const { data, error } = await sb.from("homework_templates").insert({
         name: t.name, notes: t.notes, minutes_per_day: t.minutesPerDay, days_per_week: t.daysPerWeek,
-        piece: t.piece, piece_note: t.pieceNote, remark: t.remark,
+        piece: t.piece, piece_note: t.pieceNote, remark: t.remark, tasks: t.tasks,
       }).select().single();
       if (error) throw error;
       return rowToTemplate(data);
@@ -257,6 +270,59 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
     async removeTemplate(id) {
       const { error } = await sb.from("homework_templates").delete().eq("id", id);
       if (error) throw error;
+    },
+    async giveWithTasks(studentIds, input, tasks) {
+      const { data, error } = await sb.rpc("give_homework_with_tasks", {
+        p_students: studentIds, p_notes: input.notes, p_minutes: input.minutesPerDay, p_days: input.daysPerWeek,
+        p_remark: input.remark, p_due: input.dueDate, p_tasks: tasks.map(taskToJson),
+      });
+      if (error) throw error;
+      return data as number;
+    },
+    async setTaskDone(taskId, done) {
+      const { error } = await sb.rpc("set_task_done", { p_task: taskId, p_done: done });
+      if (error) throw error;
+    },
+  };
+
+  const rowToBook = (r: Record<string, unknown>): Book => ({ id: r.id as string, title: r.title as string, author: (r.author as string) ?? "", hasAudio: r.has_audio === true });
+  const books: BooksApi = {
+    async list() {
+      const { data, error } = await sb.from("books").select("*").order("title");
+      if (error) throw error;
+      return (data ?? []).map(rowToBook);
+    },
+    async save(b) {
+      const row = { title: b.title, author: b.author, has_audio: b.hasAudio };
+      const { data, error } = b.id ? await sb.from("books").update(row).eq("id", b.id).select().single() : await sb.from("books").insert(row).select().single();
+      if (error) throw error;
+      return rowToBook(data);
+    },
+    async remove(id) { const { error } = await sb.from("books").delete().eq("id", id); if (error) throw error; },
+  };
+
+  const rowToBank = (r: Record<string, unknown>): BankTask => ({
+    id: r.id as string, kind: r.kind as BankTask["kind"], title: r.title as string, bookId: (r.book_id as string | null) ?? null,
+    page: (r.page as string) ?? "", chapter: (r.chapter as string) ?? "", number: (r.number as string) ?? "", track: (r.track as string) ?? "",
+    categories: (r.categories as string[]) ?? [],
+  });
+  const bank: BankApi = {
+    async list() {
+      const { data, error } = await sb.from("task_bank").select("*").order("title");
+      if (error) throw error;
+      return (data ?? []).map(rowToBank);
+    },
+    async save(t) {
+      const row = { kind: t.kind, title: t.title, book_id: t.bookId ?? null, page: t.page, chapter: t.chapter, number: t.number, track: t.track, categories: t.categories };
+      const { data, error } = t.id ? await sb.from("task_bank").update(row).eq("id", t.id).select().single() : await sb.from("task_bank").insert(row).select().single();
+      if (error) throw error;
+      return rowToBank(data);
+    },
+    async remove(id) { const { error } = await sb.from("task_bank").delete().eq("id", id); if (error) throw error; },
+    async assign(studentIds, bankIds, dueDate) {
+      const { data, error } = await sb.rpc("assign_tasks", { p_students: studentIds, p_bank_ids: bankIds, p_due: dueDate });
+      if (error) throw error;
+      return data as number;
     },
   };
 
@@ -333,7 +399,7 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
     async remove(id) { const { error } = await sb.from("songs").delete().eq("id", id); if (error) throw error; },
   };
 
-  return { auth, students, notes, rounds, practice, homework, feedback, admin, songs };
+  return { auth, students, notes, rounds, practice, homework, books, bank, feedback, admin, songs };
 }
 
 /** Lokale scorefunctie, voor optimistische UI en voor de Edge Function (zelfde core). */

@@ -13,6 +13,7 @@ import { instrumentNotes } from "@notenkraker/core";
 import { getInstrument } from "@notenkraker/instruments";
 import { distinctLabels } from "@/lib/noten";
 import { Donut } from "@/components/Donut";
+import { OpdrachtenLijst } from "@/components/Opdrachten";
 
 export interface CurrentHomework { h: Homework; p: HomeworkProgress }
 
@@ -116,6 +117,7 @@ export function HuiswerkKaart({ item: { h, p }, instrumentId, mine, pupil, onEdi
         <div className="flex flex-wrap gap-1.5">{h.notes.map((n) => <span key={n} className="rounded-xl px-2.5 py-1 font-bold bg-les text-fg text-sm">{labels[n] ?? n}</span>)}</div>
       )}
       {h.piece && <div className="text-sm">🎵 <b>{h.piece}</b>{h.pieceNote ? `, ${h.pieceNote}` : ""}</div>}
+      <OpdrachtenLijst tasks={h.tasks} canTick={pupil} />
       {h.remark && <div className="text-sm rounded-xl bg-bg px-3 py-2 whitespace-pre-line">💬 “{h.remark}”</div>}
 
       {!pupil && (

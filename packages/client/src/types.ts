@@ -107,7 +107,40 @@ export interface Homework {
   piece: string;
   pieceNote: string;
   remark: string;
+  /** opdrachten (AC-118); leeg bij ouder huiswerk */
+  tasks: HomeworkTask[];
 }
+
+/** opdracht in het huiswerk (AC-118): een stuk spelen (met verwijzing in een boek) of een opdracht om af te vinken */
+export type TaskKind = "stuk" | "opdracht";
+export interface TaskInput {
+  kind: TaskKind;
+  title: string;
+  /** boek uit de eigen boekenlijst; de titel gaat mee bij het geven */
+  bookId?: string | null;
+  page: string;
+  chapter: string;
+  number: string;
+  track: string;
+  /** uit de opdrachtenbank */
+  bankId?: string | null;
+}
+export interface HomeworkTask {
+  id: string;
+  homeworkId: string;
+  position: number;
+  kind: TaskKind;
+  title: string;
+  bookTitle: string;
+  bookAuthor: string;
+  page: string;
+  chapter: string;
+  number: string;
+  track: string;
+  doneAt: string | null;
+}
+export interface Book { id: string; title: string; author: string; hasAudio: boolean }
+export interface BankTask extends Omit<TaskInput, "bankId"> { id: string; categories: string[] }
 /** eigen opgave om te hergebruiken (AC-117); alleen de eigenaar ziet hem */
 export interface HomeworkTemplate {
   id: string;
@@ -118,6 +151,7 @@ export interface HomeworkTemplate {
   piece: string;
   pieceNote: string;
   remark: string;
+  tasks: TaskInput[];
 }
 export type HomeworkInput = Pick<Homework, "studentId" | "dueDate" | "minutesPerDay" | "daysPerWeek" | "notes" | "piece" | "pieceNote" | "remark">;
 
@@ -195,6 +229,26 @@ export interface HomeworkApi {
   templates(): Promise<HomeworkTemplate[]>;
   saveTemplate(t: Omit<HomeworkTemplate, "id">): Promise<HomeworkTemplate>;
   removeTemplate(id: string): Promise<void>;
+  /** huiswerk met opdrachten (AC-118) voor één of meer leerlingen; alles of niets */
+  giveWithTasks(studentIds: string[], input: Omit<HomeworkInput, "studentId" | "piece" | "pieceNote">, tasks: TaskInput[]): Promise<number>;
+  /** afvinken door de leerling (of ouder/leraar) */
+  setTaskDone(taskId: string, done: boolean): Promise<void>;
+}
+
+/** eigen boekenlijst van een leraar of ouder (AC-118) */
+export interface BooksApi {
+  list(): Promise<Book[]>;
+  save(book: Omit<Book, "id"> & { id?: string }): Promise<Book>;
+  remove(id: string): Promise<void>;
+}
+
+/** eigen opdrachtenbank (AC-118) */
+export interface BankApi {
+  list(): Promise<BankTask[]>;
+  save(task: Omit<BankTask, "id"> & { id?: string }): Promise<BankTask>;
+  remove(id: string): Promise<void>;
+  /** opdrachten bij het lopende huiswerk van mij zetten, of nieuw huiswerk (tot dueDate) */
+  assign(studentIds: string[], bankIds: string[], dueDate: string): Promise<number>;
 }
 
 export interface FeedbackApi {
@@ -228,6 +282,8 @@ export interface NotenkrakerClient {
   rounds: RoundsApi;
   practice: PracticeApi;
   homework: HomeworkApi;
+  books: BooksApi;
+  bank: BankApi;
   feedback: FeedbackApi;
   admin: AdminApi;
   songs: SongsApi;
