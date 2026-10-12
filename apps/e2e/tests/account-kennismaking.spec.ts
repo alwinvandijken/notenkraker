@@ -1,4 +1,4 @@
-import { expect, inloggen, kiesInMenu, nieuwEmail, test, WACHTWOORD } from "../fixtures";
+import { expect, inloggen, kiesInMenu, kiesTab, nieuwEmail, test, WACHTWOORD } from "../fixtures";
 
 test("account maken, kennismaken, en na opnieuw inloggen niet nog eens", async ({ page }) => {
   const email = nieuwEmail("leerling");
@@ -17,6 +17,12 @@ test("account maken, kennismaken, en na opnieuw inloggen niet nog eens", async (
   const vandaag = page.getByRole("heading", { name: "Hoi Robin" });
   await expect(vandaag).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Tabbalk" }).getByRole("button", { name: "Vrij spelen" })).toBeVisible();
+
+  // Grepen: de leerling ziet de status van een noot alleen als label; die zetten ouder en leraar (AC-120)
+  await kiesTab(page, "Grepen");
+  await expect(page.getByRole("button", { name: "Luister" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Status" })).toHaveCount(0);
+  await kiesTab(page, "Vandaag");
 
   await kiesInMenu(page, "Uitloggen");
   await inloggen(page, { email, password: WACHTWOORD });
