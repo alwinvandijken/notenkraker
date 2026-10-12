@@ -17,6 +17,20 @@ pnpm build
 
 Met de echte backend: kopieer `apps/web/.env.example` naar `apps/web/.env` en vul de Supabase-URL en anon key in. Schema en Edge Functions staan in `supabase/`.
 
+## E2E-tests
+
+Playwright (WebKit, iPad en iPhone) tegen de productiebuild en een lokale Supabase. Raakt nooit de clouddatabase: de tests stoppen als Supabase niet op localhost draait, en de build wordt gecontroleerd op de lokale URL.
+
+```bash
+pnpm --filter @notenkraker/e2e exec playwright install webkit   # eenmalig
+supabase start                    # Supabase CLI 2.120 of nieuwer (brew upgrade supabase)
+pnpm e2e                          # alle scenario's, beide schermen
+pnpm e2e --project webkit-ipad    # alleen iPad
+pnpm e2e --ui                     # interactief
+```
+
+Elke test maakt eigen gebruikers aan; `supabase db reset` ruimt ze op. De Edge Functions komen uit de map waar `supabase start` draaide: start opnieuw (`supabase stop && supabase start`) vanuit je eigen worktree als je functions wijzigt. Met CLI 2.72 starten de functions wel, maar weigeren ze elke ingelogde aanroep.
+
 ## Structuur
 
 ```
@@ -25,6 +39,7 @@ packages/core          muziektheorie, instrumentmodel, spelregels, toonherkennin
 packages/instruments   instrumentdefinities (altsax.json, …) + schematest
 packages/client        SDK over het API-contract; implementaties: Supabase en lokaal
 packages/api           openapi.yaml — het contract tussen frontend en backend
+apps/e2e               Playwright-e2e-tests (zie hierboven)
 supabase/              migraties (schema + RLS), Edge Functions (rounds, invite-code, link-student)
 docs/ARCHITECTURE.md   keuzes en lagen
 legacy/                de oorspronkelijke één-bestands versie (Claude-artifact)
