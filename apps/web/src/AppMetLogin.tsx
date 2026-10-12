@@ -1,6 +1,6 @@
 /** De volledige app met login (AC-63, AC-106), bereikbaar op /app zolang het proefconcept op / staat. */
 import { useEffect, useState } from "react";
-import { rightsFor } from "@notenkraker/client";
+import { rightsFor, type HomeworkTask, type Student } from "@notenkraker/client";
 import { getInstrument } from "@notenkraker/instruments";
 import { client, hasBackend } from "@/lib/client";
 import { useApp } from "@/lib/store";
@@ -18,6 +18,7 @@ import { Profiel } from "@/screens/Profiel";
 import { HuiswerkGeven } from "@/screens/HuiswerkGeven";
 import { Sjablonen } from "@/screens/Sjablonen";
 import { Boeken } from "@/screens/Boeken";
+import { Opnemen } from "@/screens/Opnemen";
 import { NieuweBankOpdracht, Opdrachtenbank, Toewijzen } from "@/screens/Opdrachtenbank";
 import { HuiswerkKaart, HuiswerkRegel, useHomework } from "@/components/Huiswerk";
 import { Menu, type MenuItem } from "@/components/Menu";
@@ -27,7 +28,7 @@ import { Chip, Segmented } from "@/components/ui";
 import { FeedbackGeven, FeedbackKnop } from "@/screens/FeedbackGeven";
 import { Beheer, FeedbackDetail, type BeheerTab } from "@/screens/Beheer";
 
-type Screen = "overzicht" | "kind" | "dag" | "huiswerk" | "oefenen" | "kinderen" | "profiel" | "feedback" | "beheer" | "feedbackdetail" | "sjablonen" | "boeken" | "bank" | "banknieuw" | "toewijzen";
+type Screen = "overzicht" | "kind" | "dag" | "huiswerk" | "oefenen" | "kinderen" | "profiel" | "feedback" | "beheer" | "feedbackdetail" | "sjablonen" | "boeken" | "bank" | "banknieuw" | "toewijzen" | "opnemen";
 interface NavState {
   screen: Screen; childId: string | null; day: { date: string; back: "overzicht" | "kind" } | null;
   /** feedback: de pagina waar het icoontje werd aangetikt; beheer: tabblad en geopende feedback */
@@ -36,6 +37,8 @@ interface NavState {
   studentIds?: string[];
   /** opdrachten uit de bank om toe te wijzen (AC-118) */
   bankIds?: string[];
+  /** opdracht om op te nemen (AC-118 stap 1b) */
+  taskId?: string;
 }
 /** na herladen blijft het scherm uit de browsergeschiedenis staan */
 const navState = () => (window.history.state?.screen ? (window.history.state as NavState) : null);
@@ -53,7 +56,7 @@ export function AppMetLogin() {
   const [childId, setChildId] = useState<string | null>(() => navState()?.childId ?? null);
   /** de dag die open is (scherm "dag"), en waar "terug" heen gaat */
   const [day, setDay] = useState<NavState["day"]>(() => navState()?.day ?? null);
-  const [extra, setExtra] = useState<Pick<NavState, "from" | "tab" | "feedbackId" | "studentIds" | "bankIds">>(() => navState() ?? {});
+  const [extra, setExtra] = useState<Pick<NavState, "from" | "tab" | "feedbackId" | "studentIds" | "bankIds" | "taskId">>(() => navState() ?? {});
 
   useEffect(() => { void init(); }, [init]);
   // terug in de browser (of terugvegen op de iPhone) gaat naar het vorige scherm in de app
@@ -61,7 +64,7 @@ export function AppMetLogin() {
     const onPop = (e: PopStateEvent) => {
       const st = (e.state ?? {}) as Partial<NavState>;
       setScreen(st.screen ?? null); setChildId(st.childId ?? null); setDay(st.day ?? null);
-      setExtra({ from: st.from, tab: st.tab, feedbackId: st.feedbackId, studentIds: st.studentIds, bankIds: st.bankIds });
+      setExtra({ from: st.from, tab: st.tab, feedbackId: st.feedbackId, studentIds: st.studentIds, bankIds: st.bankIds, taskId: st.taskId });
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
@@ -96,16 +99,16 @@ export function AppMetLogin() {
   ];
   /** naar een ander scherm, bovenaan beginnen; komt in de browsergeschiedenis */
   const go = (s: Screen, more: Partial<Omit<NavState, "screen">> = {}) => {
-    const st: NavState = { screen: s, childId: more.childId ?? childId, day: more.day ?? day, from: more.from, tab: more.tab ?? extra.tab, feedbackId: more.feedbackId, studentIds: more.studentIds, bankIds: more.bankIds };
+    const st: NavState = { screen: s, childId: more.childId ?? childId, day: more.day ?? day, from: more.from, tab: more.tab ?? extra.tab, feedbackId: more.feedbackId, studentIds: more.studentIds, bankIds: more.bankIds, taskId: more.taskId };
     window.history.pushState(st, "");
-    setScreen(st.screen); setChildId(st.childId); setDay(st.day); setExtra({ from: st.from, tab: st.tab, feedbackId: st.feedbackId, studentIds: st.studentIds, bankIds: st.bankIds });
+    setScreen(st.screen); setChildId(st.childId); setDay(st.day); setExtra({ from: st.from, tab: st.tab, feedbackId: st.feedbackId, studentIds: st.studentIds, bankIds: st.bankIds, taskId: st.taskId });
     window.scrollTo(0, 0);
   };
   /** naam van de pagina voor feedback (AC-116), zodat Alwin weet waar het over gaat */
   const pageName = ({
     overzicht: "Overzicht", kind: `Kindpagina (${child?.name ?? "?"})`, dag: `Dagpagina (${day?.date ?? "?"})`, huiswerk: "Huiswerk geven",
     oefenen: mode === "learn" ? "Grepen" : mode === "game" ? "Notenspel" : "Vrij oefenen", kinderen: rights.studentsTitle ?? "Kinderen",
-    profiel: "Mijn profiel", feedback: "Feedback geven", beheer: extra.tab === "mensen" ? "Beheer: accounts" : "Beheer", feedbackdetail: "Beheer: feedback", sjablonen: "Sjablonen", boeken: "Mijn boeken", bank: "Opdrachtenbank", banknieuw: "Nieuwe opdracht in de bank", toewijzen: "Opdrachten toewijzen",
+    profiel: "Mijn profiel", feedback: "Feedback geven", beheer: extra.tab === "mensen" ? "Beheer: accounts" : "Beheer", feedbackdetail: "Beheer: feedback", sjablonen: "Sjablonen", boeken: "Mijn boeken", bank: "Opdrachtenbank", banknieuw: "Nieuwe opdracht in de bank", toewijzen: "Opdrachten toewijzen", opnemen: "Opnemen",
   } satisfies Record<Screen, string>)[current];
   const knop = profile.canGiveFeedback && current !== "feedback" ? <FeedbackKnop onOpen={() => go("feedback", { from: pageName })} /> : null;
   const practice = (id: string) => { selectStudent(id); go("oefenen"); };
@@ -141,7 +144,7 @@ export function AppMetLogin() {
       <Grepentabel instrument={getInstrument(student.instrumentId)} title={student.name}
         student={{ statuses, setStatus: (n, st) => void setStatus(n, st) }}
         actions={<div className="flex flex-wrap items-center gap-3">{studentPicker}{modeSwitch}</div>} menu={menu}
-        notice={<><KoppelMelding /><NotenOvernemen /><HuiswerkVoorLeerling studentId={student.id} instrumentId={student.instrumentId} compact /></>} />
+        notice={<><KoppelMelding /><NotenOvernemen /><HuiswerkVoorLeerling student={student} compact /></>} />
       </>
     );
   }
@@ -150,17 +153,17 @@ export function AppMetLogin() {
     <div className={`${current === "overzicht" || current === "kind" || current === "dag" ? "max-w-[1240px]" : "max-w-[900px]"} mx-auto px-4 pt-6 pb-12`}>
       <header className="flex items-start justify-between gap-3 mb-4">
         <div className="min-w-0">
-          {(onChildPage || current === "feedback" || current === "feedbackdetail" || current === "banknieuw" || current === "toewijzen") && (
+          {(onChildPage || current === "feedback" || current === "feedbackdetail" || current === "banknieuw" || current === "toewijzen" || current === "opnemen") && (
             <button type="button" onClick={() => window.history.back()}
               className="text-sm font-semibold text-muted bg-transparent cursor-pointer mb-2 -ml-1 px-1">
-              ← {current === "feedback" ? (extra.from ?? "Terug") : current === "feedbackdetail" ? "Beheer" : current === "banknieuw" || current === "toewijzen" ? "Opdrachtenbank"
+              ← {current === "feedback" ? (extra.from ?? "Terug") : current === "feedbackdetail" ? "Beheer" : current === "banknieuw" || current === "toewijzen" ? "Opdrachtenbank" : current === "opnemen" ? "Huiswerk"
                 : (current === "huiswerk" && !many) || (current === "dag" && day?.back === "kind") ? (child?.name ?? "Terug") : "Overzicht"}
             </button>
           )}
           <h1 className="font-display font-extrabold text-3xl sm:text-4xl leading-none">
             {current === "overzicht" ? greeting(profile.displayName) : current === "huiswerk" ? `Huiswerk voor ${many ? `${homeworkFor.length} leerlingen` : (students.find((s) => s.id === homeworkFor[0])?.name ?? "")}` : onChildPage ? (child?.name ?? "")
               : current === "sjablonen" ? "Sjablonen" : current === "boeken" ? "Mijn boeken" : current === "bank" ? "Opdrachten\u00adbank"
-              : current === "banknieuw" ? "Nieuwe opdracht" : current === "toewijzen" ? `${extra.bankIds?.length ?? 0} ${extra.bankIds?.length === 1 ? "opdracht" : "opdrachten"} toewijzen` : current === "feedback" ? "Feedback geven" : current === "beheer" ? "Beheer" : current === "feedbackdetail" ? "Feedback" : "Notenkraker"}
+              : current === "banknieuw" ? "Nieuwe opdracht" : current === "opnemen" ? "Opnemen" : current === "toewijzen" ? `${extra.bankIds?.length ?? 0} ${extra.bankIds?.length === 1 ? "opdracht" : "opdrachten"} toewijzen` : current === "feedback" ? "Feedback geven" : current === "beheer" ? "Beheer" : current === "feedbackdetail" ? "Feedback" : "Notenkraker"}
           </h1>
           {current === "overzicht" && <p className="text-muted mt-1">Zo ging het oefenen deze week</p>}
           {current === "oefenen" && <p className="text-muted mt-1">{mode === "vrij" ? "Speel wat je wilt. Ik tel mee hoe lang ik je hoor." : "Speel het notenspel."}</p>}
@@ -186,6 +189,7 @@ export function AppMetLogin() {
       {current === "bank" && <Opdrachtenbank onNew={() => go("banknieuw")} onAssign={(ids) => go("toewijzen", { bankIds: ids })} />}
       {current === "banknieuw" && <NieuweBankOpdracht onDone={() => window.history.back()} />}
       {current === "toewijzen" && extra.bankIds && <Toewijzen bankIds={extra.bankIds} onDone={() => go("overzicht")} />}
+      {current === "opnemen" && extra.taskId && extra.studentIds?.[0] && <Opnemen studentId={extra.studentIds[0]} taskId={extra.taskId} onDone={() => window.history.back()} />}
       {current === "feedback" && <FeedbackGeven screen={extra.from ?? "onbekend"} onDone={() => window.history.back()} />}
       {current === "beheer" && profile.role === "admin" && (
         <Beheer tab={extra.tab ?? "feedback"} onOpen={(id) => go("feedbackdetail", { feedbackId: id })}
@@ -205,7 +209,7 @@ export function AppMetLogin() {
             <span className="ml-auto">{modeSwitch}</span>
           </div>
           {!hasBackend && <p className="text-xs text-muted border border-line rounded-lg px-3 py-2 mb-2">Zonder backend: gegevens staan alleen in deze browser. Zet VITE_SUPABASE_URL en VITE_SUPABASE_ANON_KEY in .env voor de echte database.</p>}
-          {student && <HuiswerkVoorLeerling studentId={student.id} instrumentId={student.instrumentId} />}
+          {student && <HuiswerkVoorLeerling student={student} onRecord={(t) => go("opnemen", { taskId: t.id, studentIds: [student.id] })} />}
           {student ? (mode === "vrij" ? <VrijOefenen key={student.id} /> : <Game />) : (
             <div className="rounded-3xl bg-surface p-6 flex flex-col items-start gap-3">
               <p className="m-0">{profile.role === "ouder" ? "Voeg eerst een kind toe." : rights.canCreateStudents ? "Voeg eerst een leerling toe." : "Er is nog geen leerlingprofiel."}</p>
@@ -220,13 +224,16 @@ export function AppMetLogin() {
 }
 
 /** het lopende huiswerk bij het oefenen, zodat de leerling ziet wat er van hem verwacht wordt */
-function HuiswerkVoorLeerling({ studentId, instrumentId, compact }: { studentId: string; instrumentId: string; compact?: boolean }) {
+function HuiswerkVoorLeerling({ student, compact, onRecord }: { student: Student; compact?: boolean; onRecord?(t: HomeworkTask): void }) {
+  const { id: studentId, instrumentId } = student;
   const items = useHomework(studentId);
+  // zelfde regel als may_record in de database (0011_opnames.sql)
+  const mayRecord = student.ageBand === "18+" || !!student.recordingConsent || (!!student.userId && student.ownerId === student.userId);
   if (!items?.length) return null;
   if (compact) return <div className="grid gap-2 md:grid-cols-2">{items.map((x) => <HuiswerkRegel key={x.h.id} item={x} instrumentId={instrumentId} />)}</div>;
   return (
     <div className="grid gap-3 md:grid-cols-2 mb-3">
-      {items.map((x) => <HuiswerkKaart key={x.h.id} item={x} instrumentId={instrumentId} pupil />)}
+      {items.map((x) => <HuiswerkKaart key={x.h.id} item={x} instrumentId={instrumentId} pupil mayRecord={mayRecord} onRecord={onRecord} />)}
     </div>
   );
 }

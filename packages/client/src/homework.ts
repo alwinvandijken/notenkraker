@@ -115,3 +115,11 @@ export function allCategories(perTask: string[][]): string[] {
   }
   return out;
 }
+
+/** opnames worden 4 weken na de einddatum van het huiswerk verwijderd (AC-118); jjjj-mm-dd */
+export const RECORDING_KEEP_DAYS = 28;
+export function recordingKeptUntil(dueDate: string): string {
+  const d = parseDate(dueDate);
+  d.setDate(d.getDate() + RECORDING_KEEP_DAYS);
+  return dateKey(d);
+}

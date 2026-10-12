@@ -42,6 +42,7 @@ export function createLocalNotenkraker(storageKey = "notenkraker-local", opts: {
       async claimByCode() { throw new Error("niet beschikbaar zonder backend"); },
       async inviteCode() { throw new Error("niet beschikbaar zonder backend"); },
       async guardians() { return []; },
+      async setRecordingConsent() { /* lokaal geen opnames */ },
     },
     notes: {
       async list(sid) { return state.notes.filter((n) => n.studentId === sid); },
@@ -111,15 +112,26 @@ export function createLocalNotenkraker(storageKey = "notenkraker-local", opts: {
           h.tasks = tasks.map((t, i): HomeworkTask => {
             const b = state.books?.find((x) => x.id === t.bookId);
             return { id: uid(), homeworkId: h.id, position: i, kind: t.kind, title: t.title, bookTitle: b?.title ?? "", bookAuthor: b?.author ?? "",
-              page: t.page, chapter: t.chapter, number: t.number, track: t.track, doneAt: null };
+              page: t.page, chapter: t.chapter, number: t.number, track: t.track, doneAt: null,
+              sheetPath: null, sheetName: "", examplePath: null, recording: false, recordingPath: null, submittedAt: null, recordingDeletedAt: null,
+              reactionEmoji: "", reaction: "", reactedAt: null };
           });
         }
         save(); return ids.length;
       },
+      async submitRecording() { throw new Error("niet beschikbaar zonder backend"); },
+      async react() { throw new Error("niet beschikbaar zonder backend"); },
       async setTaskDone(taskId, done) {
         for (const h of state.homework ?? []) for (const t of h.tasks ?? []) if (t.id === taskId) t.doneAt = done ? now() : null;
         save();
       },
+    },
+    // zonder account geen bestanden
+    files: {
+      async uploadSheet() { throw new Error("niet beschikbaar zonder backend"); },
+      async uploadRecording() { throw new Error("niet beschikbaar zonder backend"); },
+      async removeRecording() { /* niets */ },
+      async url() { throw new Error("niet beschikbaar zonder backend"); },
     },
     books: {
       async list() { return [...(state.books ?? [])].sort((a, b) => a.title.localeCompare(b.title)); },
