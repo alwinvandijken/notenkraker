@@ -1,3 +1,4 @@
+import { lessonPeriod } from "./homework.js";
 import { ageProfile, scoreRound, type StatusMap } from "@notenkraker/core";
 import type { BankTask, Book, Homework, HomeworkTask, HomeworkTemplate, NotenkrakerClient, PracticeSession, Profile, Round, Song, Student, StudentNote } from "./types.js";
 
@@ -89,7 +90,7 @@ export function createLocalNotenkraker(storageKey = "notenkraker-local", opts: {
     homework: {
       async list(sid, limit = 20) { return (state.homework ?? []).filter((h) => h.studentId === sid).slice(0, limit); },
       async give(input) {
-        const h: Homework = { ...input, id: uid(), givenBy: profile.id, givenByRole: profile.role === "leraar" ? "leraar" : "ouder", givenByName: profile.displayName, createdAt: now(), tasks: [] };
+        const h: Homework = { startDate: now().slice(0, 10), ...input, id: uid(), givenBy: profile.id, givenByRole: profile.role === "leraar" ? "leraar" : "ouder", givenByName: profile.displayName, createdAt: now(), tasks: [] };
         (state.homework ??= []).unshift(h);
         for (const n of input.notes) {
           if (!state.notes.some((x) => x.studentId === input.studentId && x.noteId === n && x.status === "kent")) {
@@ -117,6 +118,44 @@ export function createLocalNotenkraker(storageKey = "notenkraker-local", opts: {
           });
         }
         save(); return ids.length;
+      },
+      async giveForLesson(ids, which, input, tasks) {
+        for (const sid of ids) {
+          const st = state.students.find((x) => x.id === sid);
+          const per = lessonPeriod(st?.lessonWeekday, which);
+          const today = now().slice(0, 10);
+          const prev = (state.homework ?? []).find((h) => h.studentId === sid && h.givenBy === profile.id && h.dueDate >= today
+            && (which === "deze" ? h.startDate <= today : h.startDate > today));
+          if (prev) {
+            prev.notes = [...new Set([...prev.notes, ...input.notes])];
+            await this.update(prev.id, { ...prev, startDate: prev.startDate }, [...prev.tasks.map((t) => ({ ...t, id: t.id, bookId: null })), ...tasks]);
+          } else {
+            await this.giveWithTasks([sid], { ...input, dueDate: per.due }, tasks);
+            const h = state.homework?.find((x) => x.studentId === sid);
+            if (h) h.startDate = per.start;
+          }
+        }
+        save(); return ids.length;
+      },
+      async update(homeworkId, input, tasks) {
+        const h = state.homework?.find((x) => x.id === homeworkId);
+        if (!h) throw new Error("onbekend huiswerk");
+        Object.assign(h, { notes: input.notes, minutesPerDay: input.minutesPerDay, daysPerWeek: input.daysPerWeek, remark: input.remark, startDate: input.startDate, dueDate: input.dueDate });
+        const old = h.tasks ?? [];
+        h.tasks = tasks.map((t, i): HomeworkTask => {
+          const prev = old.find((x) => x.id === t.id);
+          const b = state.books?.find((x) => x.id === t.bookId);
+          return { id: prev?.id ?? uid(), homeworkId, position: i, kind: t.kind, title: t.title, bookTitle: b?.title ?? prev?.bookTitle ?? "", bookAuthor: b?.author ?? prev?.bookAuthor ?? "",
+            page: t.page, chapter: t.chapter, number: t.number, track: t.track, doneAt: prev?.doneAt ?? null,
+            sheetPath: null, sheetName: "", examplePath: null, recording: t.kind === "stuk" && !!t.recording, recordings: prev?.recordings ?? [] };
+        });
+        save(); emit(h.studentId);
+      },
+      async end(homeworkId) {
+        const h = state.homework?.find((x) => x.id === homeworkId);
+        if (!h) return;
+        const d = new Date(); d.setDate(d.getDate() - 1);
+        h.dueDate = d.toISOString().slice(0, 10); save(); emit(h.studentId);
       },
       async submitRecording() { throw new Error("niet beschikbaar zonder backend"); },
       async reactToRecording() { throw new Error("niet beschikbaar zonder backend"); },

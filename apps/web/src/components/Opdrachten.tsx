@@ -22,20 +22,23 @@ export const newDraft = (kind: TaskKind = "stuk", from: Partial<TaskDraft> = {})
   key: `t${++seq}`, kind, title: "", bookId: null, page: "", chapter: "", number: "", track: "", bankId: null, toBank: false, categories: [],
   sheetPath: null, sheetName: "", examplePath: null, recording: false, ...from,
 });
-export const draftFromBank = (b: BankTask): TaskDraft => newDraft(b.kind, { ...b, bankId: b.id, categories: b.categories });
-/** gegeven opdracht terug naar een concept (bij "vorige huiswerk als begin"); het boek zoeken we op titel in de eigen lijst */
-export const draftFromTask = (t: HomeworkTask, books: Book[]): TaskDraft =>
-  newDraft(t.kind, { title: t.title, page: t.page, chapter: t.chapter, number: t.number, track: t.track, bookId: books.find((b) => b.title === t.bookTitle)?.id ?? null,
+export const draftFromBank = (b: BankTask): TaskDraft => newDraft(b.kind, { ...b, id: undefined, bankId: b.id, categories: b.categories });
+/**
+ * gegeven opdracht terug naar een concept; het boek zoeken we op titel in de eigen lijst. `keepId` bij aanpassen:
+ * dan blijft het dezelfde opdracht (met vinkje en opnames); bij "vorig huiswerk als begin" wordt het een nieuwe.
+ */
+export const draftFromTask = (t: HomeworkTask, books: Book[], keepId = false): TaskDraft =>
+  newDraft(t.kind, { id: keepId ? t.id : undefined, title: t.title, page: t.page, chapter: t.chapter, number: t.number, track: t.track, bookId: books.find((b) => b.title === t.bookTitle)?.id ?? null,
     sheetPath: t.sheetPath, sheetName: t.sheetName, examplePath: t.examplePath, recording: t.recording });
-export const toInput = ({ kind, title, bookId, page, chapter, number, track, bankId, sheetPath, sheetName, examplePath, recording }: TaskDraft): TaskInput => ({
-  kind, title: title.trim(), bookId: bookId ?? null, page: page.trim(), chapter: chapter.trim(), number: number.trim(), track: track.trim(), bankId: bankId ?? null,
+export const toInput = ({ id, kind, title, bookId, page, chapter, number, track, bankId, sheetPath, sheetName, examplePath, recording }: TaskDraft): TaskInput => ({
+  id, kind, title: title.trim(), bookId: bookId ?? null, page: page.trim(), chapter: chapter.trim(), number: number.trim(), track: track.trim(), bankId: bankId ?? null,
   sheetPath: kind === "stuk" ? sheetPath ?? null : null, sheetName: kind === "stuk" ? sheetName ?? "" : "",
   examplePath: kind === "stuk" ? examplePath ?? null : null, recording: kind === "stuk" && !!recording,
 });
 
 const field = "w-full rounded-xl border-2 border-line bg-surface px-3 py-2 text-[15px]";
 
-/** `bankBeside`: de opdrachtenbank staat op een breed scherm al naast het formulier (BankLijst); dan alleen op smal de knop */
+/** `bankBeside`: de opdrachtenbank staat op een breed scherm (xl) al naast het formulier (BankLijst); dan alleen daaronder de knop */
 export function OpdrachtenEditor({ tasks, onChange, books, bank, bankBeside }: { tasks: TaskDraft[]; onChange(t: TaskDraft[]): void; books: Book[]; bank: BankTask[]; bankBeside?: boolean }) {
   const [picking, setPicking] = useState(false);
   const set = (key: string, patch: Partial<TaskDraft>) => onChange(tasks.map((t) => (t.key === key ? { ...t, ...patch } : t)));
@@ -109,10 +112,10 @@ export function OpdrachtenEditor({ tasks, onChange, books, bank, bankBeside }: {
         <button type="button" onClick={() => onChange([...tasks, newDraft()])}
           className="flex-1 rounded-xl border-2 border-dashed border-line text-muted bg-surface px-3 py-2 font-semibold cursor-pointer">+ Nieuwe opdracht</button>
         <button type="button" onClick={() => setPicking(!picking)} aria-expanded={picking}
-          className={clsx("flex-1 rounded-xl border-2 border-kent text-kent bg-surface px-3 py-2 font-semibold cursor-pointer", bankBeside && "lg:hidden")}>📚 Uit de bibliotheek</button>
+          className={clsx("flex-1 rounded-xl border-2 border-kent text-kent bg-surface px-3 py-2 font-semibold cursor-pointer", bankBeside && "xl:hidden")}>📚 Uit de bibliotheek</button>
       </div>
       {picking && (
-        <div className={clsx("rounded-2xl bg-bg p-3", bankBeside && "lg:hidden")}>
+        <div className={clsx("rounded-2xl bg-bg p-3", bankBeside && "xl:hidden")}>
           <BankLijst bank={bank} books={books} onAdd={(b) => onChange([...tasks, draftFromBank(b)])} />
         </div>
       )}

@@ -55,6 +55,8 @@ export interface Student {
   onboardedAt?: string | null;
   /** de ouder staat toe dat het kind opnames instuurt (AC-118) */
   recordingConsent?: boolean;
+  /** vaste lesdag, 0 = zondag … 6 = zaterdag (0013); null = geen vaste lesdag */
+  lessonWeekday?: number | null;
 }
 
 export interface Guardian { studentId: string; name: string; role: "ouder" | "leraar" }
@@ -104,6 +106,8 @@ export interface Homework {
   givenByRole: "ouder" | "leraar";
   givenByName: string;
   createdAt: string;
+  /** de les (0013): het huiswerk loopt van startDate t/m dueDate; de leerling ziet het pas vanaf startDate */
+  startDate: string;
   dueDate: string;
   minutesPerDay: number;
   daysPerWeek: number;
@@ -118,6 +122,8 @@ export interface Homework {
 /** opdracht in het huiswerk (AC-118): een stuk spelen (met verwijzing in een boek) of een opdracht om af te vinken */
 export type TaskKind = "stuk" | "opdracht";
 export interface TaskInput {
+  /** bij aanpassen: de bestaande opdracht (houdt vinkje en opnames) */
+  id?: string;
   kind: TaskKind;
   title: string;
   /** boek uit de eigen boekenlijst; de titel gaat mee bij het geven */
@@ -181,6 +187,7 @@ export interface HomeworkTemplate {
   remark: string;
   tasks: TaskInput[];
 }
+export type Lesson = "deze" | "volgende";
 export type HomeworkInput = Pick<Homework, "studentId" | "dueDate" | "minutesPerDay" | "daysPerWeek" | "notes" | "piece" | "pieceNote" | "remark">;
 
 export interface SongNote { id?: NoteId; rest?: boolean; duration: "1" | "2" | "4" | "8" | "16" }
@@ -217,7 +224,7 @@ export interface AuthApi {
 export interface StudentsApi {
   list(): Promise<Student[]>;
   create(input: { name: string; instrumentId: string; naming?: "nl" | "en" }): Promise<Student>;
-  update(id: string, patch: Partial<Pick<Student, "name" | "instrumentId" | "naming" | "ageBand" | "experience" | "onboardedAt">>): Promise<Student>;
+  update(id: string, patch: Partial<Pick<Student, "name" | "instrumentId" | "naming" | "ageBand" | "experience" | "onboardedAt" | "lessonWeekday">>): Promise<Student>;
   remove(id: string): Promise<void>;
   /** leraar koppelt een leerling via uitnodigingscode */
   linkByCode(code: string): Promise<Student>;
@@ -261,6 +268,15 @@ export interface HomeworkApi {
   removeTemplate(id: string): Promise<void>;
   /** huiswerk met opdrachten (AC-118) voor één of meer leerlingen; alles of niets */
   giveWithTasks(studentIds: string[], input: Omit<HomeworkInput, "studentId" | "piece" | "pieceNote">, tasks: TaskInput[]): Promise<number>;
+  /**
+   * huiswerk voor deze of de volgende les (0013): heb ik voor die les al huiswerk gegeven, dan komen de opdrachten
+   * erbij en verandert de rest niet; anders nieuw huiswerk met de data van die les
+   */
+  giveForLesson(studentIds: string[], which: Lesson, input: Omit<HomeworkInput, "studentId" | "piece" | "pieceNote" | "dueDate">, tasks: TaskInput[]): Promise<number>;
+  /** één huiswerk aanpassen zonder opnieuw te beginnen: opdrachten met id houden vinkje en opnames */
+  update(homeworkId: string, input: Omit<HomeworkInput, "studentId" | "piece" | "pieceNote"> & { startDate: string }, tasks: TaskInput[]): Promise<void>;
+  /** huiswerk stoppen: de einddatum wordt gisteren */
+  end(homeworkId: string): Promise<void>;
   /** afvinken door de leerling (of ouder/leraar) */
   setTaskDone(taskId: string, done: boolean): Promise<void>;
   /** opname insturen (eerst uploaden met files.uploadRecording); de lengte telt mee als oefentijd */

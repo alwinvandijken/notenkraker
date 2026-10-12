@@ -62,6 +62,7 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
     naming: (r.naming as "nl" | "en") ?? "nl", userId: (r.user_id as string | null) ?? null, ownerId: r.owner_id as string, createdAt: r.created_at as string,
     ageBand: (r.age_band as Student["ageBand"]) ?? null, experience: (r.experience as Student["experience"]) ?? null,
     onboardedAt: (r.onboarded_at as string | null) ?? null, recordingConsent: r.recording_consent === true,
+    lessonWeekday: (r.lesson_weekday as number | null) ?? null,
   });
 
   const students: StudentsApi = {
@@ -83,6 +84,7 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
       if (patch.ageBand !== undefined) row.age_band = patch.ageBand;
       if (patch.experience !== undefined) row.experience = patch.experience;
       if (patch.onboardedAt !== undefined) row.onboarded_at = patch.onboardedAt;
+      if (patch.lessonWeekday !== undefined) row.lesson_weekday = patch.lessonWeekday;
       const { data, error } = await sb.from("students").update(row).eq("id", id).select().single();
       if (error) throw error;
       return rowToStudent(data);
@@ -213,7 +215,7 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
   const rowToHomework = (r: Record<string, unknown>): Homework => ({
     id: r.id as string, studentId: r.student_id as string, givenBy: r.given_by as string,
     givenByRole: r.given_by_role as Homework["givenByRole"], givenByName: r.given_by_name as string, createdAt: r.created_at as string,
-    dueDate: r.due_date as string, minutesPerDay: r.minutes_per_day as number, daysPerWeek: r.days_per_week as number,
+    startDate: (r.start_date as string) ?? (r.created_at as string).slice(0, 10), dueDate: r.due_date as string, minutesPerDay: r.minutes_per_day as number, daysPerWeek: r.days_per_week as number,
     notes: (r.notes as string[]) ?? [], piece: (r.piece as string) ?? "", pieceNote: (r.piece_note as string) ?? "", remark: (r.remark as string) ?? "",
     tasks: ((r.homework_tasks as Array<Record<string, unknown>>) ?? []).map(rowToTask).sort((a, b) => a.position - b.position),
   });
@@ -234,7 +236,7 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
   });
   /** opdracht in de vorm die de databasefuncties verwachten */
   const taskToJson = (t: TaskInput) => ({
-    kind: t.kind, title: t.title, book_id: t.bookId ?? null, page: t.page, chapter: t.chapter, number: t.number, track: t.track, bank_id: t.bankId ?? null,
+    id: t.id ?? null, kind: t.kind, title: t.title, book_id: t.bookId ?? null, page: t.page, chapter: t.chapter, number: t.number, track: t.track, bank_id: t.bankId ?? null,
     sheet_path: t.sheetPath ?? null, sheet_name: t.sheetName ?? "", example_path: t.examplePath ?? null, recording: t.recording ?? false,
   });
 
@@ -291,6 +293,25 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
       });
       if (error) throw error;
       return data as number;
+    },
+    async giveForLesson(studentIds, which, input, tasks) {
+      const { data, error } = await sb.rpc("give_for_lesson", {
+        p_students: studentIds, p_which: which, p_notes: input.notes, p_minutes: input.minutesPerDay, p_days: input.daysPerWeek,
+        p_remark: input.remark, p_tasks: tasks.map(taskToJson),
+      });
+      if (error) throw error;
+      return data as number;
+    },
+    async update(homeworkId, input, tasks) {
+      const { error } = await sb.rpc("update_homework", {
+        p_homework: homeworkId, p_notes: input.notes, p_minutes: input.minutesPerDay, p_days: input.daysPerWeek,
+        p_remark: input.remark, p_start: input.startDate, p_due: input.dueDate, p_tasks: tasks.map(taskToJson),
+      });
+      if (error) throw error;
+    },
+    async end(homeworkId) {
+      const { error } = await sb.rpc("end_homework", { p_homework: homeworkId });
+      if (error) throw error;
     },
     async setTaskDone(taskId, done) {
       const { error } = await sb.rpc("set_task_done", { p_task: taskId, p_done: done });

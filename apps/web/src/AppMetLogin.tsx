@@ -40,6 +40,8 @@ interface NavState {
   studentIds?: string[];
   /** opdrachten uit de bank om toe te wijzen (AC-118) */
   bankIds?: string[];
+  /** het huiswerk dat je aanpast (0013); zonder: nieuw huiswerk voor deze of de volgende les */
+  homeworkId?: string;
   /** de taak die open is (AC-120 PR 5) */
   taskId?: string;
 }
@@ -64,7 +66,7 @@ export function AppMetLogin() {
   const [childId, setChildId] = useState<string | null>(() => navState()?.childId ?? null);
   /** de dag die open is (scherm "dag"), en waar "terug" heen gaat */
   const [day, setDay] = useState<NavState["day"]>(() => navState()?.day ?? null);
-  const [extra, setExtra] = useState<Pick<NavState, "from" | "tab" | "feedbackId" | "studentIds" | "bankIds" | "taskId">>(() => navState() ?? {});
+  const [extra, setExtra] = useState<Pick<NavState, "from" | "tab" | "feedbackId" | "studentIds" | "bankIds" | "taskId" | "homeworkId">>(() => navState() ?? {});
 
   useEffect(() => { void init(); }, [init]);
   // terug in de browser (of terugvegen op de iPhone) gaat naar het vorige scherm in de app
@@ -72,7 +74,7 @@ export function AppMetLogin() {
     const onPop = (e: PopStateEvent) => {
       const st = (e.state ?? {}) as Partial<NavState>;
       setScreen(st.screen ?? null); setChildId(st.childId ?? null); setDay(st.day ?? null);
-      setExtra({ from: st.from, tab: st.tab, feedbackId: st.feedbackId, studentIds: st.studentIds, bankIds: st.bankIds, taskId: st.taskId });
+      setExtra({ from: st.from, tab: st.tab, feedbackId: st.feedbackId, studentIds: st.studentIds, bankIds: st.bankIds, taskId: st.taskId, homeworkId: st.homeworkId });
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
@@ -97,9 +99,9 @@ export function AppMetLogin() {
   const inLibrary = LIBRARY.some(([s]) => s === current);
   /** naar een ander scherm, bovenaan beginnen; komt in de browsergeschiedenis */
   const go = (s: Screen, more: Partial<Omit<NavState, "screen">> = {}) => {
-    const st: NavState = { screen: s, childId: more.childId ?? childId, day: more.day ?? day, from: more.from, tab: more.tab ?? extra.tab, feedbackId: more.feedbackId, studentIds: more.studentIds, bankIds: more.bankIds, taskId: more.taskId };
+    const st: NavState = { screen: s, childId: more.childId ?? childId, day: more.day ?? day, from: more.from, tab: more.tab ?? extra.tab, feedbackId: more.feedbackId, studentIds: more.studentIds, bankIds: more.bankIds, taskId: more.taskId, homeworkId: more.homeworkId };
     window.history.pushState(st, "");
-    setScreen(st.screen); setChildId(st.childId); setDay(st.day); setExtra({ from: st.from, tab: st.tab, feedbackId: st.feedbackId, studentIds: st.studentIds, bankIds: st.bankIds, taskId: st.taskId });
+    setScreen(st.screen); setChildId(st.childId); setDay(st.day); setExtra({ from: st.from, tab: st.tab, feedbackId: st.feedbackId, studentIds: st.studentIds, bankIds: st.bankIds, taskId: st.taskId, homeworkId: st.homeworkId });
     window.scrollTo(0, 0);
   };
   /** een tab van de tabbalk; nog eens tikken op de tab waar je al bent doet niets */
@@ -188,7 +190,7 @@ export function AppMetLogin() {
     : null;
   const title: ReactNode | null = current === "vandaag" ? `Hoi ${(student?.userId === profile.id ? profile.displayName : student?.name ?? profile.displayName).split(" ")[0]}`
     : current === "oefenen" ? MODE_TITLE[mode]
-    : current === "overzicht" ? greeting(profile.displayName) : current === "huiswerk" ? `Huiswerk voor ${many ? `${homeworkFor.length} leerlingen` : (students.find((s) => s.id === homeworkFor[0])?.name ?? "")}` : onChildPage ? (child?.name ?? "")
+    : current === "overzicht" ? greeting(profile.displayName) : current === "huiswerk" && extra.homeworkId ? `Huiswerk aanpassen · ${child?.name ?? ""}` : current === "huiswerk" ? `Huiswerk voor ${many ? `${homeworkFor.length} leerlingen` : (students.find((s) => s.id === homeworkFor[0])?.name ?? "")}` : onChildPage ? (child?.name ?? "")
     : current === "geven" ? "Huiswerk" : current === "kinderen" ? (rights.studentsTitle ?? "Kinderen") : current === "profiel" ? "Mijn profiel"
     : inLibrary ? "Bibliotheek"
     : current === "banknieuw" ? "Nieuwe opdracht" : current === "taak" ? null : current === "weergave" ? "Weergave" : current === "toewijzen" ? `${extra.bankIds?.length ?? 0} ${extra.bankIds?.length === 1 ? "opdracht" : "opdrachten"} toewijzen` : current === "feedback" ? "Feedback geven" : current === "beheer" ? "Beheer" : current === "feedbackdetail" ? "Feedback" : "Notenkraker";
@@ -196,7 +198,7 @@ export function AppMetLogin() {
   const swap = (s: Screen) => { window.history.replaceState({ ...window.history.state, screen: s }, ""); setScreen(s); };
 
   return (
-    <div className={`${current === "overzicht" || current === "kind" || current === "dag" || current === "taak" || current === "huiswerk" ? "max-w-[1240px]" : "max-w-[900px]"} mx-auto px-4 pt-6 pb-12`}>
+    <div className={`${current === "overzicht" || current === "kind" || current === "dag" || current === "taak" ? "max-w-[1240px]" : current === "huiswerk" ? "max-w-[1480px]" : "max-w-[900px]"} mx-auto px-4 pt-6 pb-12`}>
       <header className="flex items-start justify-between gap-3 mb-4">
         <div className="min-w-0">
           {backTo && (
@@ -234,13 +236,14 @@ export function AppMetLogin() {
       )}
       {current === "kind" && childId && (
         <KindPagina studentId={childId} onPractice={() => practice(childId)} onOpenDay={(date) => go("dag", { day: { date, back: "kind" } })}
-          onGiveHomework={() => go("huiswerk", { studentIds: [childId] })} />
+          onGiveHomework={() => go("huiswerk", { studentIds: [childId] })}
+          onEditHomework={(id) => go("huiswerk", { studentIds: [childId], homeworkId: id })} />
       )}
       {current === "geven" && (
         <HuiswerkKiezen onAdd={() => go("kinderen")}
           onGive={(ids) => go("huiswerk", { studentIds: ids, childId: ids.length === 1 ? ids[0] : childId, from: "Huiswerk" })} />
       )}
-      {current === "huiswerk" && homeworkFor.length > 0 && <HuiswerkGeven key={homeworkFor.join()} studentIds={homeworkFor} onDone={() => window.history.back()} />}
+      {current === "huiswerk" && homeworkFor.length > 0 && <HuiswerkGeven key={`${homeworkFor.join()}-${extra.homeworkId ?? ""}`} studentIds={homeworkFor} homeworkId={extra.homeworkId} onDone={() => window.history.back()} />}
       {current === "sjablonen" && <Sjablonen />}
       {current === "boeken" && <Boeken />}
       {current === "bank" && <Opdrachtenbank onNew={() => go("banknieuw")} onAssign={(ids) => go("toewijzen", { bankIds: ids })} />}
