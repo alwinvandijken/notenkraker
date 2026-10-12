@@ -99,25 +99,35 @@ export interface PracticeSession {
  * nieuwste. dueDate is jjjj-mm-dd; naam en rol van de gever staan erbij, want een leerling mag
  * hun profielen niet lezen.
  */
+/**
+ * Gemaksvorm voor de schermen (AC-124): één les van een lesgroep met het huiswerk voor één leerling.
+ * `id` is het id van de les. Onder water: lesson_groups, lessons, assignments, homework (0014).
+ */
 export interface Homework {
   id: string;
+  groupId: string;
   studentId: string;
   givenBy: string;
   givenByRole: "ouder" | "leraar";
   givenByName: string;
   createdAt: string;
-  /** de les (0013): het huiswerk loopt van startDate t/m dueDate; de leerling ziet het pas vanaf startDate */
+  /** de lesdatum; het huiswerk loopt t/m dueDate (de dag vóór de volgende les); de leerling ziet het pas vanaf startDate */
   startDate: string;
   dueDate: string;
+  /** afgezegd = gestopt; telt dan niet als lopende les */
+  status: "gepland" | "gegeven" | "afgezegd";
   minutesPerDay: number;
   daysPerWeek: number;
   notes: NoteId[];
   piece: string;
   pieceNote: string;
   remark: string;
-  /** opdrachten (AC-118); leeg bij ouder huiswerk */
+  /** de opdrachten die in deze les als huiswerk staan */
   tasks: HomeworkTask[];
 }
+
+/** een les waarin een opdracht als huiswerk stond (voor "2e week" en opnames per week) */
+export interface LessonSpan { lessonId: string; start: string; end: string }
 
 /** opdracht in het huiswerk (AC-118): een stuk spelen (met verwijzing in een boek) of een opdracht om af te vinken */
 export type TaskKind = "stuk" | "opdracht";
@@ -143,7 +153,10 @@ export interface TaskInput {
 }
 export interface HomeworkTask {
   id: string;
+  /** de les (zoals Homework.id) */
   homeworkId: string;
+  /** de huiswerkregel: deze opdracht in deze les */
+  homeworkItemId: string;
   position: number;
   kind: TaskKind;
   title: string;
@@ -160,6 +173,12 @@ export interface HomeworkTask {
   recording: boolean;
   /** ingestuurde opnames, oudste eerst (AC-121: meer dan één per opdracht) */
   recordings: TaskRecording[];
+  /** 1 = de eerste les waarin de opdracht staat; 2 = hij ging één keer mee */
+  week: number;
+  /** alle lessen van de opdracht, oudste eerst */
+  weeks: LessonSpan[];
+  /** voortgang van deze leerling (de docent zet die) */
+  progress: { status: "bezig" | "klaar"; grade: number | null } | null;
 }
 /** één ingestuurde opname, met een eigen reactie van wie het huiswerk gaf (AC-121) */
 export interface TaskRecording {
@@ -188,6 +207,7 @@ export interface HomeworkTemplate {
   tasks: TaskInput[];
 }
 export type Lesson = "deze" | "volgende";
+export interface LessonInput { notes: NoteId[]; minutesPerDay: number; daysPerWeek: number; remark: string }
 export type HomeworkInput = Pick<Homework, "studentId" | "dueDate" | "minutesPerDay" | "daysPerWeek" | "notes" | "piece" | "pieceNote" | "remark">;
 
 export interface SongNote { id?: NoteId; rest?: boolean; duration: "1" | "2" | "4" | "8" | "16" }
@@ -259,28 +279,28 @@ export interface PracticeApi {
 export interface HomeworkApi {
   /** nieuwste eerst, ook ouder huiswerk */
   list(studentId: string, limit?: number): Promise<Homework[]>;
-  /** alleen een ouder (eigenaar) of gekoppelde leraar; de noten komen op "in de les" */
-  give(input: HomeworkInput): Promise<Homework>;
-  /** dezelfde opgave voor meerdere leerlingen, elk een eigen kopie; alles of niets */
-  giveMany(studentIds: string[], input: Omit<HomeworkInput, "studentId">): Promise<number>;
   templates(): Promise<HomeworkTemplate[]>;
   saveTemplate(t: Omit<HomeworkTemplate, "id">): Promise<HomeworkTemplate>;
   removeTemplate(id: string): Promise<void>;
-  /** huiswerk met opdrachten (AC-118) voor één of meer leerlingen; alles of niets */
-  giveWithTasks(studentIds: string[], input: Omit<HomeworkInput, "studentId" | "piece" | "pieceNote">, tasks: TaskInput[]): Promise<number>;
   /**
-   * huiswerk voor deze of de volgende les (0013): heb ik voor die les al huiswerk gegeven, dan komen de opdrachten
-   * erbij en verandert de rest niet; anders nieuw huiswerk met de data van die les
+   * huiswerk voor deze of de volgende les van mijn (privé)groep met elke leerling (0014). Heb ik voor die les al
+   * huiswerk gegeven, dan komen de opdrachten erbij en verandert de rest niet. `carry`: per leerling de opdrachten
+   * die meegaan naar deze les (ze houden hun opnames).
    */
-  giveForLesson(studentIds: string[], which: Lesson, input: Omit<HomeworkInput, "studentId" | "piece" | "pieceNote" | "dueDate">, tasks: TaskInput[]): Promise<number>;
-  /** één huiswerk aanpassen zonder opnieuw te beginnen: opdrachten met id houden vinkje en opnames */
-  update(homeworkId: string, input: Omit<HomeworkInput, "studentId" | "piece" | "pieceNote"> & { startDate: string }, tasks: TaskInput[]): Promise<void>;
-  /** huiswerk stoppen: de einddatum wordt gisteren */
-  end(homeworkId: string): Promise<void>;
-  /** afvinken door de leerling (of ouder/leraar) */
-  setTaskDone(taskId: string, done: boolean): Promise<void>;
+  give(studentIds: string[], which: Lesson, input: LessonInput, tasks: TaskInput[], carry?: Record<string, string[]>): Promise<number>;
+  /** één les aanpassen zonder opnieuw te beginnen: opdrachten met id houden vinkje en opnames */
+  update(lessonId: string, input: LessonInput & { startDate: string }, tasks: TaskInput[]): Promise<void>;
+  /** huiswerk stoppen: de les wordt afgezegd */
+  end(lessonId: string): Promise<void>;
+  /** afvinken in deze les, voor één leerling (de leerling zelf, of ouder/leraar namens hem) */
+  setTaskDone(homeworkItemId: string, studentId: string, done: boolean): Promise<void>;
   /** opname insturen (eerst uploaden met files.uploadRecording); de lengte telt mee als oefentijd */
-  submitRecording(taskId: string, path: string, seconds: number): Promise<void>;
+  submitRecording(assignmentId: string, studentId: string, path: string, seconds: number): Promise<void>;
+  /** de lesdag van mijn groep met deze leerling (0 = zondag … 6 = zaterdag), of null */
+  schedule(studentId: string): Promise<number | null>;
+  setSchedule(studentId: string, weekday: number | null): Promise<void>;
+  /** voortgang van een opdracht voor een leerling (de docent) */
+  setProgress(assignmentId: string, studentId: string, status: "bezig" | "klaar", grade: number | null): Promise<void>;
   /** reactie van wie het huiswerk gaf, op één opname */
   reactToRecording(recordingId: string, emoji: string, text: string): Promise<void>;
   /** de leerling gooit een opname weg; daarna ook het bestand (files.removeRecording) */
