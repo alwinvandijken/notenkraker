@@ -19,6 +19,7 @@ Noten leren lezen en spelen voor beginnende muziekleerlingen (vanaf ±8 jaar): g
 | Domeinlogica | `@notenkraker/core`: puur TypeScript zonder DOM/netwerk | Dezelfde regels in app, Edge Function en tests |
 | Audio | Algoritme in `core/audio` (autocorrelatie + stabiliteitsvolger); browserkant in `apps/web/src/audio` | Platform levert samples, core beslist |
 | Hosting | **Netlify** (`netlify.toml`), CI via GitHub Actions | Gratis, HTTPS (nodig voor microfoon), preview per branch |
+| E2E | **Playwright, WebKit** (iPad + iPhone) tegen `vite preview` en een lokale Supabase, ook in CI (`apps/e2e`) | Echte auth, RLS en Edge Functions op de motor van Safari; nooit tegen de gedeelde clouddatabase |
 | Offline | Service worker (vite-plugin-pwa); datacache en wachtrij met Dexie | Oefenen zonder internet, sync daarna |
 | Schermen | **iPad liggend eerst**, dan telefoon, dan computer. Indeling kiest op beschikbare ruimte, niet op apparaattype | Zie "Frontend" hieronder en `docs/mockups/` |
 | Routing | **React Router 7** (declaratief), routes per scherm | Diepe links (`/leraar/:id`), terugknop werkt, schermen los te laden |
@@ -41,7 +42,7 @@ packages/themes                 notenbalk.json (basislook), skins … (+ contras
 ```
 
 Regels:
-- `apps/*` importeert nooit `@supabase/supabase-js` rechtstreeks.
+- `apps/*` importeert nooit `@supabase/supabase-js` rechtstreeks. Uitzondering: `apps/e2e` (testcode) gebruikt het met de service role van de lokale Supabase om testgebruikers aan te maken.
 - `core` heeft geen afhankelijkheden behalve `zod`.
 - De scoreregels in `supabase/functions/rounds` zijn een kopie van `core/game.scoreRound`; houd ze gelijk (Deno kan het workspace-pakket niet importeren).
 

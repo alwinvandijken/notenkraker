@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { allCategories, recordingKeptUntil, currentHomework, dueLabel, homeworkProgress, taskReference, worstStatus } from "./homework.js";
+import { allCategories, recordingKeptUntil, currentHomework, upcomingHomework, lessonPeriod, dueLabel, homeworkProgress, taskReference, worstStatus } from "./homework.js";
 import type { Homework, PracticeSession, Round } from "./types.js";
 
 // Zaterdag 10 oktober 2026, 16:00 lokale tijd
@@ -10,7 +10,7 @@ const day = (offset: number) => { const d = new Date(2026, 9, 10 + offset); retu
 function hw(opts: Partial<Homework> = {}): Homework {
   return {
     id: "h1", studentId: "s1", givenBy: "marieke", givenByRole: "leraar", givenByName: "Marieke",
-    createdAt: at(1, 17), dueDate: day(6), minutesPerDay: 20, daysPerWeek: 5,
+    groupId: "g1", status: "gegeven", createdAt: at(1, 17), startDate: day(-1), dueDate: day(6), minutesPerDay: 20, daysPerWeek: 5,
     notes: ["d4"], piece: "Toonladder G", pieceNote: "", remark: "", tasks: [], ...opts,
   };
 }
@@ -24,15 +24,26 @@ const session = (daysAgo: number, minutes: number): PracticeSession => ({
 });
 
 describe("currentHomework", () => {
-  it("houdt per gever alleen het nieuwste huiswerk", () => {
+  it("toont al het lopende huiswerk, ook twee van dezelfde gever (nieuwste eerst)", () => {
     const oud = hw({ id: "oud", createdAt: at(8), dueDate: day(0) });
     const nieuw = hw({ id: "nieuw" });
-    expect(currentHomework([nieuw, oud], now).map((h) => h.id)).toEqual(["nieuw"]);
+    expect(currentHomework([oud, nieuw], now).map((h) => h.id)).toEqual(["nieuw", "oud"]);
   });
 
   it("toont huiswerk van leraar en ouder naast elkaar", () => {
     const ouder = hw({ id: "ouder", givenBy: "olaf", givenByRole: "ouder", givenByName: "Olaf" });
     expect(currentHomework([hw(), ouder], now).map((h) => h.id).sort()).toEqual(["h1", "ouder"]);
+  });
+
+  it("een afgezegde (gestopte) les telt niet", () => {
+    expect(currentHomework([hw({ status: "afgezegd" })], now)).toEqual([]);
+    expect(upcomingHomework([hw({ status: "afgezegd", startDate: day(3), dueDate: day(9) })], now)).toEqual([]);
+  });
+
+  it("huiswerk voor de volgende les telt pas vanaf de startdatum", () => {
+    const volgende = hw({ id: "volgende", startDate: day(3), dueDate: day(9) });
+    expect(currentHomework([hw(), volgende], now).map((h) => h.id)).toEqual(["h1"]);
+    expect(upcomingHomework([hw(), volgende], now).map((h) => h.id)).toEqual(["volgende"]);
   });
 
   it("laat verlopen huiswerk weg, maar huiswerk dat vandaag afloopt niet", () => {
@@ -126,5 +137,20 @@ describe("recordingKeptUntil", () => {
   it("bewaart een opname tot 4 weken na de einddatum", () => {
     expect(recordingKeptUntil("2026-10-16")).toBe("2026-11-13");
     expect(recordingKeptUntil("2026-12-20")).toBe("2027-01-17");
+  });
+});
+
+describe("lessonPeriod", () => {
+  // now = zaterdag 10 oktober 2026
+  it("zonder lesdag: deze les vanaf vandaag, de volgende een week later", () => {
+    expect(lessonPeriod(null, "deze", now)).toEqual({ start: day(0), due: day(6) });
+    expect(lessonPeriod(null, "volgende", now)).toEqual({ start: day(7), due: day(13) });
+  });
+  it("met lesdag dinsdag: deze les liep vanaf dinsdag, de volgende begint komende dinsdag", () => {
+    expect(lessonPeriod(2, "deze", now)).toEqual({ start: day(-4), due: day(2) });
+    expect(lessonPeriod(2, "volgende", now)).toEqual({ start: day(3), due: day(9) });
+  });
+  it("op de lesdag zelf begint deze les vandaag", () => {
+    expect(lessonPeriod(6, "deze", now)).toEqual({ start: day(0), due: day(6) });
   });
 });

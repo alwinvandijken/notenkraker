@@ -52,15 +52,15 @@ export function Kinderen({ onPractice }: { onPractice(studentId: string): void }
     return (
       <div className="mt-5 flex flex-col gap-3">
         <button type="button" onClick={() => setIntake(null)} className="self-start text-sm font-semibold text-muted bg-transparent cursor-pointer -ml-1 px-1">← {rights.studentsTitle}</button>
-        <Kennismaking student={intake} statuses={{}} who="ouder" onDone={() => { setIntake(null); void loadStudents(); }} />
+        {/* eerst herladen: anders vraagt "Oefenen" het kind opnieuw naar leeftijd en ervaring */}
+        <Kennismaking student={intake} statuses={{}} who="ouder" onDone={() => void loadStudents().then(() => setIntake(null))} />
         <p className="text-sm text-muted text-center m-0">Welke noten {intake.name} al kent, vragen we {intake.name} zelf de eerste keer dat er geoefend wordt.</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-3 mt-5">
-      <h2 className="font-display font-bold text-2xl m-0">{rights.studentsTitle}</h2>
+    <div className="flex flex-col gap-3">
       {error && <p className="text-sm text-wrong m-0">{error}</p>}
       {students.length === 0 && !adding && <p className="text-muted m-0">{isOuder ? "Nog geen kinderen." : "Nog geen leerlingen."}</p>}
 

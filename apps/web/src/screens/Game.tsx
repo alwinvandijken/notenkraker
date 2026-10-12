@@ -3,9 +3,12 @@ import { ageProfile, instrumentNotes, makeSequence, nextNewNote, noteLadder, mid
 import { getInstrument } from "@notenkraker/instruments";
 import type { Round } from "@notenkraker/client";
 import { client, isAnonymous } from "@/lib/client";
+import { loadToday } from "@/lib/vandaagData";
+import { gainLabel, hardLabel, secondsLabel } from "@/lib/spelen";
 import { useApp } from "@/lib/store";
 import { StaffRow } from "@/components/Staff";
-import { Card, Chip, Segmented } from "@/components/ui";
+import { Chip, Segmented } from "@/components/ui";
+import { Focus } from "@/components/Focus";
 import { playMidi } from "@/audio/synth";
 import { MicListener } from "@/audio/mic";
 
@@ -14,7 +17,12 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 type Answer = { expected: NoteId; given: NoteId | null; correct: boolean };
 
-export function Game() {
+/**
+ * Spelen (AC-120 PR 3, mock-up docs/ux-review/vandaag.html): klaarzetten met één knop in het midden,
+ * spelen in focus over het hele scherm (geen tabbalk, geen avatar, alleen levens, tijd, de noot en
+ * grote knoppen) en een resultaat met wat de ronde oplevert voor vandaag.
+ */
+export function Game({ onDone }: { onDone?(): void }) {
   const { profile, students, studentId, statuses } = useApp();
   const student = students.find((s) => s.id === studentId);
   const instrument = getInstrument(student?.instrumentId ?? "altsax");
@@ -22,7 +30,7 @@ export function Game() {
   const all = useMemo(() => instrumentNotes(instrument), [instrument]);
   const name = (id: NoteId) => noteName(parseId(id), naming);
   // rondelengte, levens en stopwatch per leeftijdsgroep (AC-115)
-  const { roundLength: LENGTH, lives: LIVES, showTimer } = ageProfile(student?.ageBand);
+  const { roundLength: LENGTH, lives: LIVES, showTimer, dailyGoal } = ageProfile(student?.ageBand);
   const ladder = useMemo(() => noteLadder(instrument.range, instrument.starterNotes), [instrument]);
   // de noten die je kent of oefent, plus de eerstvolgende nieuwe noot
   const newNote = Object.keys(statuses).length ? nextNewNote(ladder, statuses) : null;
@@ -40,6 +48,10 @@ export function Game() {
   const t0 = useRef(0);
   const mic = useRef<MicListener | null>(null);
   const matcher = useRef(new NoteMatcher({ expectedMidi: 0 }));
+  /** minuten van vandaag vóór de ronde, om te tonen wat hij oplevert */
+  const before = useRef<Promise<number> | null>(null);
+  const [gain, setGain] = useState<string | null>(null);
+  const todayFor = (id: string) => loadToday(id, { withHomework: !isAnonymous, dailyGoal });
 
   const pool = useMemo(() => {
     const base = weightedPool(statuses, instrument.starterNotes.length ? instrument.starterNotes : all.slice(0, 5));
@@ -79,7 +91,8 @@ export function Game() {
   }, [input, running, pos, seq]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function start() {
-    setSeq(makeSequence(pool, LENGTH)); setAnswers([]); setResult(null); setMsg(""); setRunning(true); setMicError("");
+    if (studentId) before.current = todayFor(studentId).then((d) => d.today).catch(() => 0);
+    setSeq(makeSequence(pool, LENGTH)); setAnswers([]); setResult(null); setGain(null); setMsg(""); setRunning(true); setMicError("");
     t0.current = performance.now(); setElapsed(0);
   }
   function quit() { setRunning(false); setSeq([]); setAnswers([]); setMsg(""); mic.current?.stop(); }
@@ -101,7 +114,12 @@ export function Game() {
     const ms = Math.round(performance.now() - t0.current);
     const local = scoreRound({ mode: input, lives: LIVES, ms, answers: final }, statuses);
     setResult(local); setElapsed(ms);
-    if (studentId) { try { await client.rounds.submit({ studentId, mode: input, ms, answers: final }); } catch { /* offline: later */ } }
+    if (!studentId) return;
+    try {
+      await client.rounds.submit({ studentId, mode: input, ms, answers: final });
+      const [was, now] = await Promise.all([before.current ?? Promise.resolve(0), todayFor(studentId)]);
+      setGain(gainLabel(now.today - was, now.goal - now.today));
+    } catch { /* offline: later */ }
   }
 
   // knop per naam → eerste noot uit de pool met die naam (octaaf doet bij knoppen niet mee)
@@ -113,81 +131,101 @@ export function Game() {
     window.addEventListener("keydown", h); return () => window.removeEventListener("keydown", h);
   }); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const focus = [...new Set(all.filter((n) => statuses[n] === "les" || statuses[n] === "moet").map(name))];
+  const shown = names.filter((n) => !newNote || n !== name(newNote) || Object.keys(statuses).some((id) => name(id) === n));
+  const best = history.filter((x) => x.completed).reduce<Round | null>((b, x) => (!b || x.ms < b.ms ? x : b), null);
+  const today = new Date().toDateString();
+  const playedToday = history.filter((r) => new Date(r.playedAt).toDateString() === today).length;
+  const hearts = (
+    <span className="text-accent text-2xl tracking-[6px]" aria-label={`${lives} van ${LIVES} levens`}>
+      {"♥".repeat(Math.max(0, lives))}<span className="opacity-30">{"♥".repeat(LIVES - Math.max(0, lives))}</span>
+    </span>
+  );
 
+  // spelen en het resultaat: in focus, over het hele scherm; de rest van de app (tabbalk, avatar) is zolang weg
+  if (running || result) {
+    const good = answers.filter((a) => a.correct).length;
+    return (
+      <Focus label="Spelen">
+        {running ? (
+          <>
+            <div className="flex items-center gap-3 px-4 py-3">
+              <button type="button" onClick={quit} className="rounded-full border-2 border-line bg-surface px-4 py-2 font-display font-semibold cursor-pointer">✕ Klaar</button>
+              <div className="flex-1 text-center">{hearts}</div>
+              <div className="tabular-nums font-display font-bold text-muted min-w-16 text-right">{showTimer ? fmt(elapsed).slice(0, -4) : ""}</div>
+            </div>
+            <div className="flex-1 min-h-0 flex flex-col items-center justify-center px-4">
+              <div className="w-full max-w-[1000px] rounded-3xl bg-surface p-4">
+                <StaffRow clef={instrument.clef} naming={naming} height={220} cursor={pos}
+                  notes={seq.map((n, i) => {
+                    const a = answers[i];
+                    const col = a ? (a.correct ? "var(--color-kent)" : "var(--color-wrong)") : "currentColor";
+                    return { id: n, color: col, label: a ? cap(name(n)) : "", badge: a ? { text: cap(name(n)), color: col } : undefined };
+                  })} />
+              </div>
+              <div className="min-h-[1.6em] mt-3 font-display font-semibold text-lg text-muted" aria-live="polite">{msg}</div>
+              <div className="text-sm text-muted">Noot {Math.min(pos + 1, seq.length)} van {seq.length}</div>
+            </div>
+            {input === "buttons" ? (
+              // alle knoppen op één rij; op een smal scherm in twee gelijke rijen
+              <div className="w-full max-w-[1100px] mx-auto px-4 pb-4 grid gap-2 grid-cols-[repeat(var(--half),minmax(0,1fr))] sm:grid-cols-[repeat(var(--n),minmax(0,1fr))]"
+                style={{ "--n": names.length, "--half": Math.ceil(names.length / 2) } as React.CSSProperties}>
+                {names.map((n) => (
+                  <button key={n} type="button" onClick={() => answer(byName(n))}
+                    className="py-4 sm:py-5 rounded-2xl text-white bg-key cursor-pointer shadow-[0_4px_0_var(--color-key-shadow)] active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-key-shadow)]">
+                    {/* de grootte op een span: "button { font: inherit }" in index.css wint van tekstklassen op de knop */}
+                    <span className="font-display font-extrabold text-3xl">{cap(n)}</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center px-4 pb-6">
+                <div className={`font-display font-extrabold text-6xl min-h-[1.1em] ${reading && reading.midi === soundingMidi(seq[pos] ?? seq[0]!, instrument.transposition) ? "text-kent" : ""}`}>
+                  {reading ? cap(name(toId(midiToPitch(reading.midi - instrument.transposition)))) : "…"}
+                </div>
+                <div className="relative h-3.5 max-w-[320px] mx-auto my-2 rounded-full border-2 border-line bg-surface overflow-hidden">
+                  <div className="absolute top-0 bottom-0 w-2.5 rounded bg-accent -translate-x-1/2 transition-[left]" style={{ left: `${50 + (reading?.cents ?? 0)}%` }} />
+                  <div className="absolute top-0 bottom-0 left-1/2 w-0.5 bg-fg -translate-x-1/2" />
+                </div>
+                <div className="text-muted text-sm">Speel de noot op je {instrument.name.toLowerCase()}</div>
+              </div>
+            )}
+          </>
+        ) : result && (
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 px-4 text-center">
+            <div className="text-6xl text-key tracking-[8px]" aria-label={`${result.stars} van 3 sterren`}>{"★".repeat(result.stars)}{"☆".repeat(3 - result.stars)}</div>
+            <h2 className="font-display font-bold text-3xl m-0">{result.completed ? `${good} van ${seq.length} goed` : "Levens op!"}</h2>
+            <p className="text-muted m-0">
+              {[!result.completed && `${good} van ${seq.length} goed`, showTimer && result.completed && secondsLabel(elapsed), hardLabel(answers.filter((a) => !a.correct).map((a) => cap(name(a.expected))))].filter(Boolean).join(" · ")}
+            </p>
+            {gain && <div className="rounded-2xl bg-ok/15 text-ok font-semibold px-4 py-2">{gain}</div>}
+            <div className="flex flex-wrap justify-center gap-3 mt-3">
+              <Chip primary className="text-lg px-8 py-3" onClick={start}>Nog een keer</Chip>
+              {onDone && <Chip className="text-lg px-8 py-3" onClick={() => { setResult(null); onDone(); }}>Naar Vandaag</Chip>}
+              {!onDone && <Chip className="text-lg px-8 py-3" onClick={() => setResult(null)}>Klaar</Chip>}
+            </div>
+          </div>
+        )}
+      </Focus>
+    );
+  }
+
+  // klaarzetten: één knop in het midden; knoppen of sax is de enige keuze die op het scherm blijft
   return (
-    <div>
-      <Card className="mt-3">
-        <div className="flex items-center justify-between font-display font-extrabold text-xl">
-          <button type="button" onClick={quit} aria-label="Stoppen" className="bg-transparent border-0 text-xl px-2 py-1 cursor-pointer">✕</button>
-          <div className="text-[#e0506a] tracking-widest">{running ? `${lives} × ♥` : ""}</div>
-          <div className="tabular-nums text-muted">{showTimer ? fmt(elapsed) : ""}</div>
-        </div>
-        <StaffRow clef={instrument.clef} naming={naming} height={200} cursor={running ? pos : undefined}
-          notes={(seq.length ? seq : []).map((n, i) => {
-            const a = answers[i];
-            const col = a ? (a.correct ? "var(--color-kent)" : "var(--color-wrong)") : "currentColor";
-            return { id: n, color: col, label: a ? cap(name(n)) : "", badge: a ? { text: cap(name(n)), color: col } : undefined };
-          })} />
-        <div className="min-h-[1.6em] text-center font-display font-semibold text-muted mt-2">
-          {result ? (
-            <div className="py-2">
-              <div className="text-5xl text-key tracking-[6px]">{"★".repeat(result.stars)}{"☆".repeat(3 - result.stars)}</div>
-              <div className="text-3xl text-fg">{result.completed ? (showTimer ? fmt(elapsed) : "Gehaald!") : "Levens op!"}</div>
-              <div>{result.mistakes === 0 ? "Foutloos!" : `${result.mistakes} fout${result.mistakes === 1 ? "" : "en"}`} · +{result.xp} XP</div>
-            </div>
-          ) : msg}
-        </div>
-        {running && input === "buttons" && (
-          <div className="grid gap-2 mt-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(56px, 1fr))" }}>
-            {names.map((n) => (
-              <button key={n} type="button" onClick={() => answer(byName(n))}
-                className="font-display font-extrabold text-2xl py-4 rounded-xl text-white bg-key cursor-pointer shadow-[0_4px_0_var(--color-key-shadow)] active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-key-shadow)]">{cap(n)}</button>
-            ))}
-          </div>
-        )}
-        {running && input === "mic" && (
-          <div className="text-center mt-2">
-            <div className={`font-display font-extrabold text-5xl min-h-[1.1em] ${reading && reading.midi === soundingMidi(seq[pos] ?? seq[0]!, instrument.transposition) ? "text-kent" : ""}`}>
-              {reading ? cap(name(toId(midiToPitch(reading.midi - instrument.transposition)))) : "…"}
-            </div>
-            <div className="relative h-3.5 max-w-[320px] mx-auto my-2 rounded-full border-2 border-line bg-bg overflow-hidden">
-              <div className="absolute top-0 bottom-0 w-2.5 rounded bg-accent -translate-x-1/2 transition-[left]" style={{ left: `${50 + (reading?.cents ?? 0)}%` }} />
-              <div className="absolute top-0 bottom-0 left-1/2 w-0.5 bg-fg -translate-x-1/2" />
-            </div>
-            <div className="text-muted text-sm">Speel de noot op je {instrument.name.toLowerCase()}</div>
-          </div>
-        )}
-      </Card>
-
-      {!running && (
-        <div className="text-center mt-3">
-          <p className="text-muted my-3 max-w-[60ch] mx-auto">
-            {LENGTH === 8 ? "Acht" : LENGTH} noten op een rij. Tik {showTimer ? "zo snel mogelijk " : ""}de juiste naam. Je hebt <b className="text-fg">{LIVES} levens</b>.<br />
-            Noten voor {!student || isAnonymous || student.userId === profile?.id ? "jou" : student.name}: <b className="text-fg">{names.filter((n) => !newNote || n !== name(newNote) || Object.keys(statuses).some((id) => name(id) === n)).map(cap).join(" · ")}</b>
-            {focus.length > 0 && <><br />Extra vaak: <b className="text-fg">{focus.map(cap).join(" · ")}</b></>}
-            {newNote && <><br />Nieuw: <b className="text-accent">{cap(name(newNote))}</b></>}
-          </p>
-          <div className="mb-3"><Segmented value={input} options={[["buttons", "Knoppen"], ["mic", `🎤 ${instrument.name} (microfoon)`]]} onChange={(v) => { setInput(v); localStorage.setItem("nk.input", v); }} label="Antwoorden met" /></div>
-          {micError && <p className="text-sm text-muted border border-line rounded-lg p-2 inline-block">{micError}</p>}
-          <div><Chip primary className="text-xl px-8 py-3" onClick={start}>▶ Spelen</Chip></div>
-          {history.length > 0 && (
-            <div className="mt-4 flex flex-wrap justify-center gap-2">
-              {history.map((r) => {
-                const best = history.filter((x) => x.completed).reduce<Round | null>((b, x) => (!b || x.ms < b.ms ? x : b), null);
-                const d = new Date(r.playedAt);
-                return (
-                  <div key={r.id} className={`rounded-xl border-2 px-3 py-2 min-w-[110px] bg-surface ${r === best ? "border-accent" : "border-line"}`}>
-                    <div className="text-key text-lg tracking-widest">{"★".repeat(r.stars)}{"☆".repeat(3 - r.stars)}</div>
-                    <div className="tabular-nums font-bold text-[#e0506a]">{r.completed ? fmt(r.ms) : "–"}</div>
-                    <div className="text-xs text-muted">{d.toLocaleDateString("nl-NL", { day: "numeric", month: "short" })} {d.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" })}{r === best ? " · snelste" : ""}</div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
+    <div className="flex flex-col items-center gap-4 text-center py-4">
+      <div className="w-full max-w-[640px] rounded-3xl bg-surface p-4 flex flex-col items-center gap-2">
+        <div className="w-full"><StaffRow clef={instrument.clef} naming={naming} height={150}
+          notes={[...new Map(pool.map((n) => [name(n), n])).values()].slice(0, 8).map((id) => ({ id, color: newNote && name(id) === name(newNote) ? "var(--color-accent)" : "currentColor", label: "" }))} /></div>
+        <p className="text-muted m-0">
+          Noten voor {!student || isAnonymous || student.userId === profile?.id ? "jou" : student.name}: <b className="text-fg">{shown.map(cap).join(" ")}</b>
+          {newNote && <> · nieuw: <b className="text-accent">{cap(name(newNote))}</b></>}
+        </p>
+      </div>
+      <Chip primary className="text-xl px-12 py-4" onClick={start}>▶ Spelen</Chip>
+      <Segmented value={input} options={[["buttons", "Knoppen"], ["mic", `🎤 Met je ${instrument.name.toLowerCase()}`]]} onChange={(v) => { setInput(v); localStorage.setItem("nk.input", v); }} label="Antwoorden met" />
+      {micError && <p className="text-sm text-muted border border-line rounded-lg p-2 m-0">{micError}</p>}
+      <p className="text-sm text-muted m-0">
+        {[`${LENGTH} noten, ${LIVES} levens`, showTimer && best && `beste tijd: ${secondsLabel(best.ms).replace(" seconden", " s")}`, playedToday > 0 && `vandaag ${playedToday} keer gespeeld`].filter(Boolean).join(" · ")}
+      </p>
     </div>
   );
 }

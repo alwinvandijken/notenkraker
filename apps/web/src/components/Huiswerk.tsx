@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 import {
   currentHomework, dueLabel, homeworkProgress, STATUS_LABEL,
-  type Homework, type HomeworkProgress, type HomeworkTask, type HomeworkStatus, type PracticeSession, type Round,
+  type Homework, type HomeworkProgress, type HomeworkTask, type HomeworkStatus, type PracticeSession, type Round, type Student,
 } from "@notenkraker/client";
 import { client } from "@/lib/client";
 import { instrumentNotes } from "@notenkraker/core";
@@ -34,6 +34,11 @@ export function useHomework(studentId: string | null | undefined): CurrentHomewo
     return () => { stale = true; };
   }, [studentId]);
   return items;
+}
+
+/** de leerling mag opnames insturen: 18+, eigen profiel, of toestemming van de ouder (zelfde regel als may_record in 0011_opnames.sql) */
+export function mayRecord(s: Student): boolean {
+  return s.ageBand === "18+" || !!s.recordingConsent || (!!s.userId && s.ownerId === s.userId);
 }
 
 export function GiverAvatar({ h, small }: { h: Homework; small?: boolean }) {
@@ -120,7 +125,7 @@ export function HuiswerkKaart({ item: { h, p }, instrumentId, mine, pupil, onEdi
         <div className="flex flex-wrap gap-1.5">{h.notes.map((n) => <span key={n} className="rounded-xl px-2.5 py-1 font-bold bg-les text-fg text-sm">{labels[n] ?? n}</span>)}</div>
       )}
       {h.piece && <div className="text-sm">🎵 <b>{h.piece}</b>{h.pieceNote ? `, ${h.pieceNote}` : ""}</div>}
-      <OpdrachtenLijst tasks={h.tasks} viewer={pupil ? "pupil" : mine ? "giver" : "other"} mayRecord={mayRecord} onRecord={onRecord} dueDate={h.dueDate} />
+      <OpdrachtenLijst tasks={h.tasks} studentId={h.studentId} viewer={pupil ? "pupil" : mine ? "giver" : "other"} mayRecord={mayRecord} onRecord={onRecord} dueDate={h.dueDate} />
       {h.remark && <div className="text-sm rounded-xl bg-bg px-3 py-2 whitespace-pre-line">💬 “{h.remark}”</div>}
 
       {!pupil && (

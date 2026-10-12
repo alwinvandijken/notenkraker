@@ -44,21 +44,14 @@ export function LeerlingenTabel({ rows, onOpenChild, onGiveMany, onChanged }: {
   const maxWeek = Math.max(1, ...table.map((r) => r.weekMinutes));
   const allShown = shown.length > 0 && shown.every((r) => picked.has(r.id));
 
-  /** per leerling mijn laatste huiswerk opnieuw, met een nieuwe einddatum over een week */
+  /** per leerling mijn laatste les opnieuw: de volgende les, met dezelfde opdrachten die meegaan (AC-124) */
   const repeat = async () => {
-    const due = (() => { const d = new Date(); d.setDate(d.getDate() + 7); return dateKey(d); })();
     let done = 0, none = 0;
-    const myBooks = await client.books.list().catch(() => []);
     for (const id of picked) {
-      const prev = rows.find((r) => r.student.id === id)?.homeworkAll.find((h) => h.givenBy === profile?.id);
+      const prev = rows.find((r) => r.student.id === id)?.homeworkAll.find((h) => h.givenBy === profile?.id && h.status !== "afgezegd");
       if (!prev) { none++; continue; }
-      if (prev.tasks.length) {
-        // opdrachten mee; het boek vinden we terug op titel in de eigen boekenlijst
-        await client.homework.giveWithTasks([id], { notes: prev.notes, minutesPerDay: prev.minutesPerDay, daysPerWeek: prev.daysPerWeek, remark: prev.remark, dueDate: due },
-          prev.tasks.map((t) => ({ kind: t.kind, title: t.title, bookId: myBooks.find((b) => b.title === t.bookTitle)?.id ?? null, page: t.page, chapter: t.chapter, number: t.number, track: t.track })));
-      } else {
-        await client.homework.give({ studentId: id, notes: prev.notes, minutesPerDay: prev.minutesPerDay, daysPerWeek: prev.daysPerWeek, piece: prev.piece, pieceNote: prev.pieceNote, remark: prev.remark, dueDate: due });
-      }
+      await client.homework.give([id], "volgende", { notes: prev.notes, minutesPerDay: prev.minutesPerDay, daysPerWeek: prev.daysPerWeek, remark: prev.remark },
+        [], { [id]: prev.tasks.map((t) => t.id) });
       done++;
     }
     setNote(`${done} ${done === 1 ? "leerling heeft" : "leerlingen hebben"} het vorige huiswerk opnieuw gekregen${none ? `; ${none} had nog geen huiswerk van jou` : ""}.`);
