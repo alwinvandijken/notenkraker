@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
-import type { Homework, HomeworkProgress, HomeworkTask } from "@notenkraker/client";
+import type { Homework, HomeworkProgress, HomeworkTask, TaskRecording } from "@notenkraker/client";
 import { planVandaag, suggestion, todayGoal } from "./vandaag";
 
 const progress = (todayMinutes: number, p: Partial<HomeworkProgress> = {}): HomeworkProgress =>
   ({ days: [], goalDays: 5, doneDays: 2, daysLeft: 3, todayMinutes, status: "goed", ...p });
 const task = (t: Partial<HomeworkTask>): HomeworkTask => ({
   id: "t", homeworkId: "h", position: 0, kind: "opdracht", title: "Taak", bookTitle: "", bookAuthor: "", page: "", chapter: "", number: "", track: "",
-  doneAt: null, sheetPath: null, sheetName: "", examplePath: null, recording: false, recordingPath: null, submittedAt: null, recordingDeletedAt: null,
-  reactionEmoji: "", reaction: "", reactedAt: null, ...t,
+  doneAt: null, sheetPath: null, sheetName: "", examplePath: null, recording: false, recordings: [], ...t,
 });
+const rec = (submittedAt: string): TaskRecording => ({ id: submittedAt, taskId: "t", path: "p", submittedAt, deletedAt: null, reactionEmoji: "", reaction: "", reactedAt: null });
 const hw = (h: Partial<Homework>): Homework => ({
   id: "h", studentId: "s", givenBy: "u", givenByRole: "leraar", givenByName: "Marieke", createdAt: "2026-10-10T10:00:00Z", dueDate: "2026-10-17",
   minutesPerDay: 15, daysPerWeek: 5, notes: [], piece: "", pieceNote: "", remark: "", tasks: [], ...h,
@@ -41,7 +41,7 @@ describe("planVandaag", () => {
   });
 
   it("staat alleen de minuten nog open, dan start de knop Spelen", () => {
-    const plan = planVandaag([{ h: hw({ tasks: [task({ id: "op", kind: "stuk", recording: true, submittedAt: "2026-10-12" })] }), p: progress(4) }], { mayRecord: true })!;
+    const plan = planVandaag([{ h: hw({ tasks: [task({ id: "op", kind: "stuk", recording: true, recordings: [rec("2026-10-12T09:00:00Z")] })] }), p: progress(4) }], { mayRecord: true })!;
     expect(plan.next).toEqual({ kind: "spelen" });
     expect(plan.started).toBe(true);
   });

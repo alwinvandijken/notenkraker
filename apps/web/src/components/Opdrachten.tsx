@@ -7,7 +7,7 @@
  */
 import { useState } from "react";
 import clsx from "clsx";
-import { allCategories, recordingKeptUntil, taskReference, whenLabel, type BankTask, type Book, type HomeworkTask, type TaskInput, type TaskKind } from "@notenkraker/client";
+import { allCategories, recordingKeptUntil, taskReference, whenLabel, type BankTask, type Book, type HomeworkTask, type TaskInput, type TaskKind, type TaskRecording } from "@notenkraker/client";
 import { client } from "@/lib/client";
 
 export interface TaskDraft extends TaskInput {
@@ -158,8 +158,14 @@ function Upload({ label, accept, name, onUploaded, onClear }: { label: string; a
   );
 }
 
+/** bladmuziek in een nieuw venster; eerst een leeg venster openen (anders blokkeert Safari het), dan de tijdelijke link erin zetten */
+export function openSheet(path: string) {
+  const w = window.open("", "_blank");
+  void client.files.url("bladmuziek", path).then((url) => { if (w) w.location.href = url; else window.location.href = url; }).catch(() => w?.close());
+}
+
 /** speler die de tijdelijke link pas ophaalt als je erop tikt */
-function Play({ bucket, path, label }: { bucket: "bladmuziek" | "opnames"; path: string; label: string }) {
+export function Play({ bucket, path, label }: { bucket: "bladmuziek" | "opnames"; path: string; label: string }) {
   const [src, setSrc] = useState<string | null>(null);
   const [error, setError] = useState(false);
   if (src) return <audio controls autoPlay src={src} className="w-full h-10" />;
@@ -187,11 +193,6 @@ export function OpdrachtenLijst({ tasks, viewer = "other", mayRecord, onRecord, 
     setDone((d) => ({ ...d, [t.id]: next }));
     try { await client.homework.setTaskDone(t.id, next); } catch { setDone((d) => ({ ...d, [t.id]: !next })); }
   };
-  const openSheet = (t: HomeworkTask) => {
-    // eerst een leeg venster openen (anders blokkeert Safari het), dan de tijdelijke link erin zetten
-    const w = window.open("", "_blank");
-    void client.files.url("bladmuziek", t.sheetPath!).then((url) => { if (w) w.location.href = url; else window.location.href = url; }).catch(() => w?.close());
-  };
   return (
     <ul className="m-0 p-0 list-none flex flex-col gap-2.5">
       {tasks.map((t) => (
@@ -208,7 +209,7 @@ export function OpdrachtenLijst({ tasks, viewer = "other", mayRecord, onRecord, 
             </span>
             {(t.sheetPath || t.examplePath) && (
               <span className="flex flex-wrap gap-2">
-                {t.sheetPath && <button type="button" onClick={() => openSheet(t)} className="rounded-full border-2 border-line bg-surface px-3 py-1 text-sm font-semibold cursor-pointer">📄 Bladmuziek</button>}
+                {t.sheetPath && <button type="button" onClick={() => openSheet(t.sheetPath!)} className="rounded-full border-2 border-line bg-surface px-3 py-1 text-sm font-semibold cursor-pointer">📄 Bladmuziek</button>}
                 {t.examplePath && <Play bucket="bladmuziek" path={t.examplePath} label="Voorbeeld" />}
               </span>
             )}
@@ -223,50 +224,79 @@ export function OpdrachtenLijst({ tasks, viewer = "other", mayRecord, onRecord, 
 function Opname({ task: t, viewer, mayRecord, onRecord, dueDate }: {
   task: HomeworkTask; viewer: "pupil" | "giver" | "other"; mayRecord?: boolean; onRecord?(task: HomeworkTask): void; dueDate: string;
 }) {
-  const [emoji, setEmoji] = useState(t.reactionEmoji);
-  const [text, setText] = useState(t.reaction);
-  const [saved, setSaved] = useState(!!t.reactedAt);
-  const kept = recordingKeptUntil(dueDate).split("-").reverse().join("-");
-  const react = async (e: string, msg: string) => {
-    setEmoji(e); setSaved(false);
-    try { await client.homework.react(t.id, e, msg); setSaved(true); } catch { /* blijft "niet opgeslagen" */ }
-  };
   return (
     <span className="flex flex-col gap-1.5 rounded-xl bg-bg p-2.5">
-      {t.recordingPath ? (
-        <>
-          <Play bucket="opnames" path={t.recordingPath} label="Opname beluisteren" />
-          <span className="text-xs text-muted">ingestuurd {t.submittedAt ? whenLabel(t.submittedAt) : ""} · wordt verwijderd op {kept}</span>
-        </>
-      ) : t.recordingDeletedAt ? (
-        <span className="text-xs text-muted">De opname is verwijderd (de bewaartermijn is voorbij).</span>
-      ) : <span className="text-xs text-muted">🎙️ Nog geen opname ingestuurd.</span>}
-
-      {viewer !== "giver" && (emoji || text) && (
-        <span className="text-sm rounded-lg bg-surface px-2.5 py-1.5">{emoji} {text && <span className="whitespace-pre-line">“{text}”</span>}</span>
-      )}
-
+      <OpnameLijst recordings={t.recordings} viewer={viewer} dueDate={dueDate} />
       {viewer === "pupil" && (mayRecord
         ? <button type="button" onClick={() => onRecord?.(t)} className="self-start rounded-full bg-accent text-white px-4 py-1.5 font-semibold cursor-pointer">
-            🎙️ {t.recordingPath ? "Opnieuw opnemen" : "Opnemen en insturen"}</button>
+            🎙️ {t.recordings.length ? "Nog een opname" : "Opnemen en insturen"}</button>
         : <span className="text-xs text-muted">Vraag je ouder om opnames toe te staan (op jouw pagina bij je ouder).</span>)}
+    </span>
+  );
+}
 
-      {viewer === "giver" && t.recordingPath && (
+/**
+ * De ingestuurde opnames van een opdracht, nieuwste bovenaan, elk met een eigen reactie (AC-121).
+ * `giver` reageert, `pupil` kan met `onDelete` een opname weggooien.
+ */
+export function OpnameLijst({ recordings, viewer, dueDate, onDelete }: {
+  recordings: TaskRecording[]; viewer: "pupil" | "giver" | "other"; dueDate: string; onDelete?(r: TaskRecording): void;
+}) {
+  const kept = recordingKeptUntil(dueDate).split("-").reverse().join("-");
+  if (recordings.length === 0) return <span className="text-xs text-muted">🎙️ Nog geen opname ingestuurd.</span>;
+  const newest = [...recordings].reverse();
+  return (
+    <span className="flex flex-col gap-2">
+      <ul className="m-0 p-0 list-none flex flex-col gap-2" aria-label="Opnames">
+        {newest.map((r, i) => <OpnameRegel key={r.id} recording={r} viewer={viewer} label={newest.length > 1 ? `Opname ${newest.length - i}` : "Opname"} onDelete={onDelete} />)}
+      </ul>
+      {recordings.some((r) => r.path) && <span className="text-xs text-muted">Opnames worden verwijderd op {kept}.</span>}
+    </span>
+  );
+}
+
+function OpnameRegel({ recording: r, viewer, label, onDelete }: { recording: TaskRecording; viewer: "pupil" | "giver" | "other"; label: string; onDelete?(r: TaskRecording): void }) {
+  const [emoji, setEmoji] = useState(r.reactionEmoji);
+  const [text, setText] = useState(r.reaction);
+  const [saved, setSaved] = useState(!!r.reactedAt);
+  const [sure, setSure] = useState(false);
+  const react = async (e: string, msg: string) => {
+    setEmoji(e); setSaved(false);
+    try { await client.homework.reactToRecording(r.id, e, msg); setSaved(true); } catch { /* blijft "niet opgeslagen" */ }
+  };
+  return (
+    <li className="flex flex-col gap-1.5 rounded-xl bg-surface p-2.5">
+      <span className="flex items-center gap-2 text-sm">
+        <b>{label}</b><span className="text-muted">· {whenLabel(r.submittedAt)}</span>
+        {onDelete && r.path && (sure
+          ? <span className="ml-auto flex gap-1.5">
+              <button type="button" onClick={() => onDelete(r)} className="rounded-full bg-wrong text-white px-3 py-0.5 text-sm font-semibold cursor-pointer">Weggooien</button>
+              <button type="button" onClick={() => setSure(false)} className="rounded-full border-2 border-line px-3 py-0.5 text-sm cursor-pointer">Toch niet</button>
+            </span>
+          : <button type="button" onClick={() => setSure(true)} aria-label={`${label} weggooien`} className="ml-auto text-sm text-muted bg-transparent cursor-pointer">🗑️</button>)}
+      </span>
+      {r.path ? <Play bucket="opnames" path={r.path} label="Beluisteren" />
+        : <span className="text-xs text-muted">Verwijderd: de bewaartermijn is voorbij.</span>}
+
+      {viewer !== "giver" && (emoji || text) && (
+        <span className="text-sm rounded-lg bg-bg px-2.5 py-1.5">{emoji} {text && <span className="whitespace-pre-line">“{text}”</span>}</span>
+      )}
+      {viewer === "giver" && (
         <span className="flex flex-col gap-1.5">
-          <span className="flex flex-wrap gap-1.5" role="group" aria-label="Reactie">
+          <span className="flex flex-wrap gap-1.5" role="group" aria-label={`Reactie op ${label.toLowerCase()}`}>
             {REACTIONS.map((e) => (
               <button key={e} type="button" aria-pressed={emoji === e} onClick={() => void react(emoji === e ? "" : e, text)}
                 className={clsx("rounded-full border-2 px-2.5 py-0.5 cursor-pointer", emoji === e ? "border-les bg-les" : "border-line bg-surface")}>{e}</button>
             ))}
           </span>
           <span className="flex gap-1.5">
-            <input value={text} onChange={(e) => { setText(e.target.value); setSaved(false); }} maxLength={1000} placeholder="Schrijf een reactie…" aria-label="Reactie"
+            <input value={text} onChange={(e) => { setText(e.target.value); setSaved(false); }} maxLength={1000} placeholder="Schrijf een reactie…" aria-label={`Reactie bij ${label.toLowerCase()}`}
               className="flex-1 min-w-0 rounded-xl border-2 border-line bg-surface px-2.5 py-1.5 text-sm" />
             <button type="button" onClick={() => void react(emoji, text.trim())} className="rounded-full border-2 border-line bg-surface px-3 text-sm font-semibold cursor-pointer">
               {saved ? "✓" : "Opslaan"}</button>
           </span>
         </span>
       )}
-    </span>
+    </li>
   );
 }

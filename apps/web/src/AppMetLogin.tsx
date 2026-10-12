@@ -19,7 +19,7 @@ import { HuiswerkGeven } from "@/screens/HuiswerkGeven";
 import { HuiswerkKiezen } from "@/screens/HuiswerkKiezen";
 import { Sjablonen } from "@/screens/Sjablonen";
 import { Boeken } from "@/screens/Boeken";
-import { Opnemen } from "@/screens/Opnemen";
+import { Taak } from "@/screens/Taak";
 import { NieuweBankOpdracht, Opdrachtenbank, Toewijzen } from "@/screens/Opdrachtenbank";
 import { HuiswerkRegel, useHomework } from "@/components/Huiswerk";
 import { Vandaag, type Mode } from "@/screens/Vandaag";
@@ -31,7 +31,7 @@ import { Chip, Segmented } from "@/components/ui";
 import { FeedbackGeven } from "@/screens/FeedbackGeven";
 import { Beheer, FeedbackDetail, type BeheerTab } from "@/screens/Beheer";
 
-type Screen = "vandaag" | "overzicht" | "kind" | "dag" | "huiswerk" | "geven" | "oefenen" | "kinderen" | "profiel" | "feedback" | "beheer" | "feedbackdetail" | "sjablonen" | "boeken" | "bank" | "banknieuw" | "toewijzen" | "opnemen";
+type Screen = "vandaag" | "overzicht" | "kind" | "dag" | "huiswerk" | "geven" | "oefenen" | "kinderen" | "profiel" | "feedback" | "beheer" | "feedbackdetail" | "sjablonen" | "boeken" | "bank" | "banknieuw" | "toewijzen" | "taak";
 interface NavState {
   screen: Screen; childId: string | null; day: { date: string; back: "overzicht" | "kind" } | null;
   /** feedback: de pagina waar je "Feedback geven" koos; huiswerk: de tab waar je vandaan kwam; beheer: tabblad en geopende feedback */
@@ -40,7 +40,7 @@ interface NavState {
   studentIds?: string[];
   /** opdrachten uit de bank om toe te wijzen (AC-118) */
   bankIds?: string[];
-  /** opdracht om op te nemen (AC-118 stap 1b) */
+  /** de taak die open is (AC-120 PR 5) */
   taskId?: string;
 }
 /** na herladen blijft het scherm uit de browsergeschiedenis staan */
@@ -105,7 +105,7 @@ export function AppMetLogin() {
   /** een tab van de tabbalk; nog eens tikken op de tab waar je al bent doet niets */
   const practise = (m: Mode) => { if (current === "oefenen" && mode === m) return; setMode(m); go("oefenen"); };
   const studentsLabel = isOuder ? "Mijn kinderen" : "Leerlingen";
-  const tabs: Tab[] = hasDashboard && !practicing && current !== "opnemen" ? [
+  const tabs: Tab[] = hasDashboard && !practicing && current !== "taak" ? [
     { key: "leerlingen", label: studentsLabel, icon: "👥", onSelect: () => go("overzicht"), active: current === "overzicht" || current === "kinderen" || (onChildPage && !(current === "huiswerk" && extra.from === "Huiswerk")) },
     { key: "huiswerk", label: "Huiswerk", icon: "📝", onSelect: () => go("geven"), active: current === "geven" || (current === "huiswerk" && extra.from === "Huiswerk") },
     { key: "bibliotheek", label: "Bibliotheek", icon: "📚", onSelect: () => go("bank"), active: inLibrary || current === "banknieuw" || current === "toewijzen" },
@@ -119,7 +119,7 @@ export function AppMetLogin() {
   const pageName = ({
     vandaag: "Vandaag", overzicht: "Overzicht", kind: `Kindpagina (${child?.name ?? "?"})`, dag: `Dagpagina (${day?.date ?? "?"})`, huiswerk: "Huiswerk geven", geven: "Huiswerk: voor wie",
     oefenen: mode === "learn" ? "Grepen" : mode === "game" ? "Notenspel" : "Vrij oefenen", kinderen: rights.studentsTitle ?? "Kinderen",
-    profiel: "Mijn profiel", feedback: "Feedback geven", beheer: extra.tab === "mensen" ? "Beheer: accounts" : "Beheer", feedbackdetail: "Beheer: feedback", sjablonen: "Sjablonen", boeken: "Mijn boeken", bank: "Opdrachtenbank", banknieuw: "Nieuwe opdracht in de bank", toewijzen: "Opdrachten toewijzen", opnemen: "Opnemen",
+    profiel: "Mijn profiel", feedback: "Feedback geven", beheer: extra.tab === "mensen" ? "Beheer: accounts" : "Beheer", feedbackdetail: "Beheer: feedback", sjablonen: "Sjablonen", boeken: "Mijn boeken", bank: "Opdrachtenbank", banknieuw: "Nieuwe opdracht in de bank", toewijzen: "Opdrachten toewijzen", taak: "Taak",
   } satisfies Record<Screen, string>)[current];
   const items: MenuItem[] = [
     { key: "profiel", label: "Mijn profiel", onSelect: () => go("profiel"), active: current === "profiel" },
@@ -179,21 +179,21 @@ export function AppMetLogin() {
       {rights.studentsTitle && <Chip primary onClick={() => go("kinderen")}>{isOuder ? "+ kind" : "+ leerling"}</Chip>}
     </div>
   );
-  const backTo = onChildPage || current === "feedback" || current === "feedbackdetail" || current === "banknieuw" || current === "toewijzen" || current === "opnemen"
-    ? current === "feedback" ? (extra.from ?? "Terug") : current === "feedbackdetail" ? "Beheer" : current === "banknieuw" || current === "toewijzen" ? "Bibliotheek" : current === "opnemen" ? "Terug"
+  const backTo = onChildPage || current === "feedback" || current === "feedbackdetail" || current === "banknieuw" || current === "toewijzen" || current === "taak"
+    ? current === "feedback" ? (extra.from ?? "Terug") : current === "feedbackdetail" ? "Beheer" : current === "banknieuw" || current === "toewijzen" ? "Bibliotheek" : current === "taak" ? "Vandaag"
       : current === "huiswerk" && extra.from ? extra.from : (current === "huiswerk" && !many) || (current === "dag" && day?.back === "kind") ? (child?.name ?? "Terug") : studentsLabel
     : null;
-  const title: ReactNode = current === "vandaag" ? `Hoi ${(student?.userId === profile.id ? profile.displayName : student?.name ?? profile.displayName).split(" ")[0]}`
+  const title: ReactNode | null = current === "vandaag" ? `Hoi ${(student?.userId === profile.id ? profile.displayName : student?.name ?? profile.displayName).split(" ")[0]}`
     : current === "oefenen" ? MODE_TITLE[mode]
     : current === "overzicht" ? greeting(profile.displayName) : current === "huiswerk" ? `Huiswerk voor ${many ? `${homeworkFor.length} leerlingen` : (students.find((s) => s.id === homeworkFor[0])?.name ?? "")}` : onChildPage ? (child?.name ?? "")
     : current === "geven" ? "Huiswerk" : current === "kinderen" ? (rights.studentsTitle ?? "Kinderen") : current === "profiel" ? "Mijn profiel"
     : inLibrary ? "Bibliotheek"
-    : current === "banknieuw" ? "Nieuwe opdracht" : current === "opnemen" ? "Opnemen" : current === "toewijzen" ? `${extra.bankIds?.length ?? 0} ${extra.bankIds?.length === 1 ? "opdracht" : "opdrachten"} toewijzen` : current === "feedback" ? "Feedback geven" : current === "beheer" ? "Beheer" : current === "feedbackdetail" ? "Feedback" : "Notenkraker";
+    : current === "banknieuw" ? "Nieuwe opdracht" : current === "taak" ? null : current === "toewijzen" ? `${extra.bankIds?.length ?? 0} ${extra.bankIds?.length === 1 ? "opdracht" : "opdrachten"} toewijzen` : current === "feedback" ? "Feedback geven" : current === "beheer" ? "Beheer" : current === "feedbackdetail" ? "Feedback" : "Notenkraker";
   /** tussen de tabbladen van de Bibliotheek wisselen vervangt het scherm in de geschiedenis */
   const swap = (s: Screen) => { window.history.replaceState({ ...window.history.state, screen: s }, ""); setScreen(s); };
 
   return (
-    <div className={`${current === "overzicht" || current === "kind" || current === "dag" || current === "vandaag" ? "max-w-[1240px]" : "max-w-[900px]"} mx-auto px-4 pt-6 pb-12`}>
+    <div className={`${current === "overzicht" || current === "kind" || current === "dag" || current === "taak" ? "max-w-[1240px]" : "max-w-[900px]"} mx-auto px-4 pt-6 pb-12`}>
       <header className="flex items-start justify-between gap-3 mb-4">
         <div className="min-w-0">
           {backTo && (
@@ -202,7 +202,8 @@ export function AppMetLogin() {
               ← {backTo}
             </button>
           )}
-          <h1 className="font-display font-extrabold text-3xl sm:text-4xl leading-none">{title}</h1>
+          {/* de taakpagina zet zelf de titel van de taak neer */}
+          {title !== null && <h1 className="font-display font-extrabold text-3xl sm:text-4xl leading-none">{title}</h1>}
           {current === "vandaag" && <p className="text-muted mt-1">{new Date().toLocaleDateString("nl-NL", { weekday: "long", day: "numeric", month: "long" })}</p>}
           {current === "overzicht" && <p className="text-muted mt-1">Zo ging het oefenen deze week</p>}
           {current === "oefenen" && mode === "vrij" && <p className="text-muted mt-1">Speel wat je wilt. Ik tel mee hoe lang ik je hoor.</p>}
@@ -219,7 +220,7 @@ export function AppMetLogin() {
         <>
           {!hasBackend && <p className="text-xs text-muted border border-line rounded-lg px-3 py-2 mb-2">Zonder backend: gegevens staan alleen in deze browser. Zet VITE_SUPABASE_URL en VITE_SUPABASE_ANON_KEY in .env voor de echte database.</p>}
           {student
-            ? <Vandaag key={student.id} student={student} onPlay={practise} onRecord={(t) => go("opnemen", { taskId: t.id, studentIds: [student.id] })} />
+            ? <Vandaag key={student.id} student={student} onPlay={practise} onOpenTask={(t) => go("taak", { taskId: t.id, studentIds: [student.id] })} />
             : noStudent}
         </>
       )}
@@ -243,7 +244,7 @@ export function AppMetLogin() {
       {current === "bank" && <Opdrachtenbank onNew={() => go("banknieuw")} onAssign={(ids) => go("toewijzen", { bankIds: ids })} />}
       {current === "banknieuw" && <NieuweBankOpdracht onDone={() => window.history.back()} />}
       {current === "toewijzen" && extra.bankIds && <Toewijzen bankIds={extra.bankIds} onDone={() => go("overzicht")} />}
-      {current === "opnemen" && extra.taskId && extra.studentIds?.[0] && <Opnemen studentId={extra.studentIds[0]} taskId={extra.taskId} onDone={() => window.history.back()} />}
+      {current === "taak" && extra.taskId && extra.studentIds?.[0] && <Taak studentId={extra.studentIds[0]} taskId={extra.taskId} />}
       {current === "feedback" && <FeedbackGeven screen={extra.from ?? "onbekend"} onDone={() => window.history.back()} />}
       {current === "beheer" && profile.role === "admin" && (
         <Beheer tab={extra.tab ?? "feedback"} onOpen={(id) => go("feedbackdetail", { feedbackId: id })}

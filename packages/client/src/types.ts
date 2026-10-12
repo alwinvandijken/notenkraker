@@ -88,8 +88,8 @@ export interface PracticeSession {
   playedSeconds: number;
   minutes: PracticeMinute[];
   notes: NoteId[];
-  /** twijfel: minuten lang steeds dezelfde noot */
-  label: "sax" | "twijfel";
+  /** twijfel: minuten lang steeds dezelfde noot; opname: een ingestuurde opname van huiswerk (AC-121) */
+  label: "sax" | "twijfel" | "opname";
 }
 
 /**
@@ -152,10 +152,17 @@ export interface HomeworkTask {
   sheetName: string;
   examplePath: string | null;
   recording: boolean;
-  /** de ingestuurde opname (bucket "opnames"); null na verwijderen of nog niet ingestuurd */
-  recordingPath: string | null;
-  submittedAt: string | null;
-  recordingDeletedAt: string | null;
+  /** ingestuurde opnames, oudste eerst (AC-121: meer dan één per opdracht) */
+  recordings: TaskRecording[];
+}
+/** één ingestuurde opname, met een eigen reactie van wie het huiswerk gaf (AC-121) */
+export interface TaskRecording {
+  id: string;
+  taskId: string;
+  /** bestand in bucket "opnames"; null zodra de bewaartermijn voorbij is */
+  path: string | null;
+  submittedAt: string;
+  deletedAt: string | null;
   reactionEmoji: string;
   reaction: string;
   reactedAt: string | null;
@@ -256,10 +263,12 @@ export interface HomeworkApi {
   giveWithTasks(studentIds: string[], input: Omit<HomeworkInput, "studentId" | "piece" | "pieceNote">, tasks: TaskInput[]): Promise<number>;
   /** afvinken door de leerling (of ouder/leraar) */
   setTaskDone(taskId: string, done: boolean): Promise<void>;
-  /** opname insturen (eerst uploaden met files.uploadRecording) */
-  submitRecording(taskId: string, path: string): Promise<void>;
-  /** reactie van wie het huiswerk gaf */
-  react(taskId: string, emoji: string, text: string): Promise<void>;
+  /** opname insturen (eerst uploaden met files.uploadRecording); de lengte telt mee als oefentijd */
+  submitRecording(taskId: string, path: string, seconds: number): Promise<void>;
+  /** reactie van wie het huiswerk gaf, op één opname */
+  reactToRecording(recordingId: string, emoji: string, text: string): Promise<void>;
+  /** de leerling gooit een opname weg; daarna ook het bestand (files.removeRecording) */
+  deleteRecording(recordingId: string): Promise<string | null>;
 }
 
 /** bestanden (AC-118 stap 1b): bladmuziek en voorbeelden van de leraar, opnames van de leerling */

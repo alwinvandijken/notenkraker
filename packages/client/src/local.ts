@@ -113,14 +113,14 @@ export function createLocalNotenkraker(storageKey = "notenkraker-local", opts: {
             const b = state.books?.find((x) => x.id === t.bookId);
             return { id: uid(), homeworkId: h.id, position: i, kind: t.kind, title: t.title, bookTitle: b?.title ?? "", bookAuthor: b?.author ?? "",
               page: t.page, chapter: t.chapter, number: t.number, track: t.track, doneAt: null,
-              sheetPath: null, sheetName: "", examplePath: null, recording: false, recordingPath: null, submittedAt: null, recordingDeletedAt: null,
-              reactionEmoji: "", reaction: "", reactedAt: null };
+              sheetPath: null, sheetName: "", examplePath: null, recording: t.kind === "stuk" && !!t.recording, recordings: [] };
           });
         }
         save(); return ids.length;
       },
       async submitRecording() { throw new Error("niet beschikbaar zonder backend"); },
-      async react() { throw new Error("niet beschikbaar zonder backend"); },
+      async reactToRecording() { throw new Error("niet beschikbaar zonder backend"); },
+      async deleteRecording() { throw new Error("niet beschikbaar zonder backend"); },
       async setTaskDone(taskId, done) {
         for (const h of state.homework ?? []) for (const t of h.tasks ?? []) if (t.id === taskId) t.doneAt = done ? now() : null;
         save();

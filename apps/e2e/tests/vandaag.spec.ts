@@ -26,14 +26,15 @@ test("ouder geeft huiswerk, het kind ziet het op Vandaag als takenlijst", async 
   await expect(page.getByRole("button", { name: "Begin met oefenen" })).toBeVisible();
 
   // afvinken blijft bewaard, en dan heet de knop "Verder oefenen"
-  const opdracht = lijst.getByRole("button", { name: /Notenalfabet achteruit/ });
+  const opdracht = lijst.getByRole("button", { name: /Notenalfabet achteruit .*gedaan/ });
   await opdracht.click();
   await expect(opdracht).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("button", { name: "Verder oefenen" })).toBeVisible();
   await page.reload();
-  await expect(lijst.getByRole("button", { name: /Notenalfabet achteruit/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(lijst.getByRole("button", { name: /Notenalfabet achteruit .*gedaan/ })).toHaveAttribute("aria-pressed", "true");
 
-  // de knop start de eerstvolgende open taak: het stuk opnemen
+  // de knop start de eerstvolgende open taak: de taakpagina van het stuk, met opnemen
   await page.getByRole("button", { name: "Verder oefenen" }).click();
-  await expect(page.getByRole("heading", { name: "Opnemen" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Lang zal ze leven" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Begin met opnemen" })).toBeVisible();
 });

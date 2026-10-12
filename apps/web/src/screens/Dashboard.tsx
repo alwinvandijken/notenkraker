@@ -171,8 +171,10 @@ export function activityOf(r: Row, withName: boolean): ActivityItem[] {
     }),
     ...r.summary.sessions.map((p): ActivityItem => ({
       id: p.id, at: p.startedAt, studentId: r.student.id, kind: "vrij",
-      text: <>{who}{withName ? "oefende vrij" : "Vrij oefenen"}: <b>{playedOfTotal(p.playedSeconds, p.totalSeconds)}</b></>,
-      short: `Vrij oefenen: ${playedOfTotal(p.playedSeconds, p.totalSeconds)}`,
+      text: p.label === "opname"
+        ? <>{who}{withName ? "nam huiswerk op" : "🎙️ Opname"}: <b>{playedOfTotal(p.playedSeconds, p.totalSeconds)}</b></>
+        : <>{who}{withName ? "oefende vrij" : "Vrij oefenen"}: <b>{playedOfTotal(p.playedSeconds, p.totalSeconds)}</b></>,
+      short: `${p.label === "opname" ? "Opname" : "Vrij oefenen"}: ${playedOfTotal(p.playedSeconds, p.totalSeconds)}`,
       sub: "",
       end: <Donut percent={p.percent} size={34}><span className="text-[9px] font-bold">{p.percent}%</span></Donut>,
     })),
@@ -238,7 +240,8 @@ export function SessionRow({ session: p, onOpen }: { session: SessionSummary; on
       <Donut percent={p.percent} size={40}><span className="text-[10px] font-bold">{p.percent}%</span></Donut>
       <span className="flex-1 min-w-0"><b>{playedOfTotal(p.playedSeconds, p.totalSeconds)}</b> gespeeld
         <span className="block text-xs text-muted truncate">{whenLabel(p.startedAt)}</span></span>
-      {p.label === "twijfel"
+      {p.label === "opname" ? <span className="rounded-xl px-2 py-1 text-xs font-semibold bg-accent-soft shrink-0">🎙️ opname</span>
+        : p.label === "twijfel"
         ? <span className="rounded-xl px-2 py-1 text-xs font-semibold bg-les/25 shrink-0" title="Minuten lang steeds dezelfde noot">twijfel&shy;achtig</span>
         : <span className="rounded-xl px-2 py-1 text-xs font-semibold bg-ok/15 text-ok shrink-0">sax ✓</span>}
     </button>
