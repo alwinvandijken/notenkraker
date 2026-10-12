@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Homework, HomeworkProgress, HomeworkTask } from "@notenkraker/client";
-import { planVandaag, suggestion } from "./vandaag";
+import { planVandaag, suggestion, todayGoal } from "./vandaag";
 
 const progress = (todayMinutes: number, p: Partial<HomeworkProgress> = {}): HomeworkProgress =>
   ({ days: [], goalDays: 5, doneDays: 2, daysLeft: 3, todayMinutes, status: "goed", ...p });
@@ -74,5 +74,15 @@ describe("suggestion", () => {
   });
   it("nog geen noten: eerst Grepen", () => {
     expect(suggestion({}, labels)).toEqual({ text: "Kijk bij Grepen welke kleppen bij een noot horen.", mode: "learn" });
+  });
+});
+
+describe("todayGoal", () => {
+  it("zonder huiswerk: het dagdoel en de minuten van vandaag", () => {
+    expect(todayGoal([], { summaryToday: 4, dailyGoal: 10 })).toEqual({ today: 4, goal: 10 });
+  });
+  it("met huiswerk: het hoogste doel en de minuten van het huiswerk", () => {
+    expect(todayGoal([{ h: hw({ minutesPerDay: 15 }), p: progress(6) }, { h: hw({ minutesPerDay: 10 }), p: progress(6) }], { summaryToday: 5, dailyGoal: 10 }))
+      .toEqual({ today: 6, goal: 15 });
   });
 });
