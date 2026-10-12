@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { instrumentNotes, type NoteId, type StatusMap } from "@notenkraker/core";
 import { getInstrument } from "@notenkraker/instruments";
-import { dateKey, type Homework } from "@notenkraker/client";
+import { dateKey, type Homework, type HomeworkTemplate } from "@notenkraker/client";
 import { client } from "@/lib/client";
 import { useApp } from "@/lib/store";
 import { Chip } from "@/components/ui";
@@ -12,12 +12,16 @@ import { useNoteLabels } from "@/components/Huiswerk";
  * Huiswerk geven (AC-113, mock-up docs/mockups/Leraar-Huiswerk.html stap 3), een eigen pagina. Het
  * vorige huiswerk van dezelfde gever staat al ingevuld: alleen aanpassen wat verandert. Opslaan
  * maakt een nieuwe opgave die de vorige van deze gever vervangt; die van een ander blijft staan.
+ * Voor meerdere leerlingen tegelijk (AC-117, desktop) krijgt elke leerling een eigen kopie. Bovenaan
+ * staan de eigen sjablonen: één tik vult het formulier; onderaan kun je de opgave als sjabloon bewaren.
  */
 const inDays = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n); return dateKey(d); };
 
-export function HuiswerkGeven({ studentId, onDone }: { studentId: string; onDone(): void }) {
+export function HuiswerkGeven({ studentIds, onDone }: { studentIds: string[]; onDone(): void }) {
   const { profile, students } = useApp();
-  const student = students.find((s) => s.id === studentId);
+  const chosen = students.filter((s) => studentIds.includes(s.id));
+  const student = chosen[0];
+  const studentId = studentIds.length === 1 ? studentIds[0]! : null;
   const labels = useNoteLabels(student?.instrumentId ?? "altsax");
   const [statuses, setStatuses] = useState<StatusMap>({});
   const [notes, setNotes] = useState<NoteId[]>([]);
@@ -30,8 +34,13 @@ export function HuiswerkGeven({ studentId, onDone }: { studentId: string; onDone
   const [picking, setPicking] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [templates, setTemplates] = useState<HomeworkTemplate[]>([]);
+  const [asTemplate, setAsTemplate] = useState(false);
+  const [templateName, setTemplateName] = useState("");
 
+  useEffect(() => { void client.homework.templates().then(setTemplates).catch(() => setTemplates([])); }, []);
   useEffect(() => {
+    if (!studentId) return;
     void client.notes.list(studentId).then((ns) => setStatuses(Object.fromEntries(ns.map((n) => [n.noteId, n.status]))));
     // het vorige huiswerk van mij als begin; de einddatum begint opnieuw over een week
     void client.homework.list(studentId).then((list) => {
@@ -43,6 +52,10 @@ export function HuiswerkGeven({ studentId, onDone }: { studentId: string; onDone
   }, [studentId, profile?.id]);
 
   if (!student) return <p className="text-muted">Laden…</p>;
+  const who = studentId ? student.name : `${chosen.length} leerlingen`;
+  const use = (t: HomeworkTemplate) => {
+    setNotes(t.notes); setMinutes(t.minutesPerDay); setDays(t.daysPerWeek); setPiece(t.piece); setPieceNote(t.pieceNote); setRemark(t.remark);
+  };
   const instrument = getInstrument(student.instrumentId);
   const all = instrumentNotes(instrument);
   const toggle = (n: NoteId) => setNotes((cur) => (cur.includes(n) ? cur.filter((x) => x !== n) : all.filter((x) => x === n || cur.includes(x))));
@@ -50,7 +63,13 @@ export function HuiswerkGeven({ studentId, onDone }: { studentId: string; onDone
   const save = async () => {
     setBusy(true); setError(null);
     try {
-      await client.homework.give({ studentId, notes, minutesPerDay: minutes, daysPerWeek: days, piece: piece.trim(), pieceNote: pieceNote.trim(), remark: remark.trim(), dueDate: due });
+      const input = { notes, minutesPerDay: minutes, daysPerWeek: days, piece: piece.trim(), pieceNote: pieceNote.trim(), remark: remark.trim(), dueDate: due };
+      if (studentId) await client.homework.give({ ...input, studentId });
+      else await client.homework.giveMany(studentIds, input);
+      if (asTemplate) {
+        const name = templateName.trim() || `${input.piece || "Huiswerk"}, ${minutes} min`;
+        await client.homework.saveTemplate({ name, notes, minutesPerDay: minutes, daysPerWeek: days, piece: input.piece, pieceNote: input.pieceNote, remark: input.remark });
+      }
       onDone();
     } catch {
       setError("Opslaan lukte niet. Probeer het nog een keer.");
@@ -60,6 +79,18 @@ export function HuiswerkGeven({ studentId, onDone }: { studentId: string; onDone
 
   return (
     <div className="flex flex-col gap-4 max-w-[640px]">
+      {!studentId && <p className="m-0 text-muted">Voor {chosen.map((c) => c.name).join(", ")}. Iedereen krijgt een eigen kopie.</p>}
+      {templates.length > 0 && (
+        <section className="rounded-3xl bg-surface p-4 flex flex-col gap-2.5">
+          <Caption>Sjabloon gebruiken</Caption>
+          <div className="flex flex-wrap gap-1.5">
+            {templates.map((t) => (
+              <button key={t.id} type="button" onClick={() => use(t)} title={`${t.minutesPerDay} min × ${t.daysPerWeek} dagen`}
+                className="rounded-full border-2 border-line bg-surface px-3 py-1.5 text-sm font-semibold cursor-pointer hover:border-kent">{t.name}</button>
+            ))}
+          </div>
+        </section>
+      )}
       <section className="rounded-3xl bg-surface p-4 flex flex-col gap-2.5">
         <Caption>Noten om te oefenen</Caption>
         <div className="flex flex-wrap gap-1.5">
@@ -80,7 +111,7 @@ export function HuiswerkGeven({ studentId, onDone }: { studentId: string; onDone
                 {labels[n]}{statuses[n] === "kent" ? " ✓" : ""}
               </button>
             ))}
-            <span className="basis-full text-xs text-muted">✓ = kent {student.name} al</span>
+            {studentId && <span className="basis-full text-xs text-muted">✓ = kent {student.name} al</span>}
           </div>
         )}
       </section>
@@ -101,7 +132,7 @@ export function HuiswerkGeven({ studentId, onDone }: { studentId: string; onDone
       <section className="rounded-3xl bg-surface p-4 flex flex-col gap-2.5">
         <Caption>Opmerking</Caption>
         <textarea value={remark} onChange={(e) => setRemark(e.target.value)} rows={3} aria-label="Opmerking" maxLength={1000}
-          placeholder={`Iets voor ${student.name}, bijv. “Let op je ademhaling”`} className={clsx(field, "resize-y")} />
+          placeholder={`Iets voor ${studentId ? student.name : "de leerlingen"}, bijv. “Let op je ademhaling”`} className={clsx(field, "resize-y")} />
       </section>
 
       <section className="rounded-3xl bg-surface p-4 flex items-center justify-between gap-3">
@@ -110,8 +141,16 @@ export function HuiswerkGeven({ studentId, onDone }: { studentId: string; onDone
       </section>
       <p className="text-xs text-muted text-center -mt-2 m-0">Standaard over een week. Verschuift de les? Pas de datum aan.</p>
 
+      <section className="rounded-3xl bg-surface p-4 flex flex-col gap-2.5">
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input type="checkbox" checked={asTemplate} onChange={(e) => setAsTemplate(e.target.checked)} className="w-5 h-5 accent-[var(--color-ok)]" />
+          Ook bewaren als sjabloon
+        </label>
+        {asTemplate && <input value={templateName} onChange={(e) => setTemplateName(e.target.value)} maxLength={100} aria-label="Naam van het sjabloon"
+          placeholder={`${piece.trim() || "Huiswerk"}, ${minutes} min`} className={field} />}
+      </section>
       {error && <p className="text-sm text-wrong m-0">{error}</p>}
-      <Chip primary disabled={busy} onClick={() => void save()} className="py-3 text-lg">{busy ? "Opslaan…" : `Opslaan en naar ${student.name} sturen`}</Chip>
+      <Chip primary disabled={busy} onClick={() => void save()} className="py-3 text-lg">{busy ? "Opslaan…" : `Opslaan en naar ${who} sturen`}</Chip>
     </div>
   );
 }
