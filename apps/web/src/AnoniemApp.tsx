@@ -1,12 +1,11 @@
 /**
  * Notenkraker zonder account op /oefenen (AC-114, mock-up docs/mockups/Welkom-Twee-Routes.html).
- * Dezelfde tabbalk als met account (AC-120): Vandaag, Spelen, Grepen en Vrij spelen. Alles staat in
+ * Dezelfde tabbalk en hetzelfde Vandaag als met account (AC-120), zonder huiswerk: Vandaag, Spelen, Grepen en Vrij spelen. Alles staat in
  * deze browser (lokale client, zie lib/client.ts); geen ouder, leraar of huiswerk. Een gratis account
  * maken kan altijd via het avatarmenu en op momenten waar het uitmaakt.
  */
 import { useEffect, useState } from "react";
-import { childSummary } from "@notenkraker/client";
-import { ageProfile, instrumentNotes, type StatusMap } from "@notenkraker/core";
+import type { StatusMap } from "@notenkraker/core";
 import { getInstrument } from "@notenkraker/instruments";
 import { client } from "@/lib/client";
 import { useApp } from "@/lib/store";
@@ -16,13 +15,14 @@ import { Grepentabel } from "@/screens/Grepentabel";
 import { Game } from "@/screens/Game";
 import { VrijOefenen } from "@/screens/VrijOefenen";
 import { Kennismaking } from "@/screens/Kennismaking";
-import { Donut } from "@/components/Donut";
+import { Vandaag, type Mode } from "@/screens/Vandaag";
 import { Menu, type MenuItem } from "@/components/Menu";
 import { TabBalk, type Tab } from "@/components/TabBalk";
 
 type Screen = "start" | "grepen" | "spel" | "vrij";
 const SCREENS: Screen[] = ["start", "grepen", "spel", "vrij"];
 const TITLES: Record<Exclude<Screen, "start">, string> = { grepen: "Grepen", spel: "Spelen", vrij: "Vrij spelen" };
+const SCREEN_FOR: Record<Mode, Exclude<Screen, "start">> = { learn: "grepen", game: "spel", vrij: "vrij" };
 /** het proefconcept (AC-107) bewaarde de notenstatus hier; die nemen we één keer over */
 const POC_KEY = "nk.poc.altsax.status";
 
@@ -97,75 +97,32 @@ export function AnoniemApp() {
       <>
       <Grepentabel instrument={getInstrument(student.instrumentId)} title="Grepen"
         student={{ statuses, setStatus: (n, st) => void setStatus(n, st) }}
-        menu={menu} notice={<Banner onAccount={() => toAccount("/app?nieuw")} />} />
+        menu={menu} />
       {tabBalk}
       </>
     );
   }
 
   return (
-    <div className="max-w-[900px] mx-auto px-4 pt-5 pb-12 flex flex-col gap-4">
-      <header className="flex items-center justify-between gap-3">
-        {screen === "start"
-          ? <div className="flex items-center gap-2.5 font-display font-extrabold text-xl"><span className="w-9 h-9 rounded-xl bg-fg text-bg flex items-center justify-center" aria-hidden="true">♪</span>Notenkraker</div>
-          : <h1 className="font-display font-extrabold text-3xl sm:text-4xl leading-none m-0">{TITLES[screen]}</h1>}
+    <div className={`${screen === "start" ? "max-w-[1240px]" : "max-w-[900px]"} mx-auto px-4 pt-5 pb-12 flex flex-col gap-4`}>
+      <header className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="font-display font-extrabold text-3xl sm:text-4xl leading-none m-0">{screen === "start" ? "Hoi!" : TITLES[screen]}</h1>
+          {screen === "start" && <p className="text-muted mt-1 mb-0">{new Date().toLocaleDateString("nl-NL", { weekday: "long", day: "numeric", month: "long" })}</p>}
+        </div>
         {menu}
       </header>
-      <Banner onAccount={() => toAccount("/app?nieuw")} />
 
-      {screen === "start" && <Start onGo={go} />}
+      {screen === "start" && (
+        <Vandaag student={student} withHomework={false} onPlay={(m) => go(SCREEN_FOR[m])}
+          footer={<div className="rounded-3xl bg-accent-soft p-4 text-sm flex flex-col gap-1.5">
+            <span>Met een gratis account bewaar je je voortgang en kijken ouder en leraar mee.</span>
+            <button type="button" onClick={() => toAccount("/app?nieuw")} className="self-start font-semibold text-accent bg-transparent cursor-pointer p-0">Account maken →</button>
+          </div>} />
+      )}
       {screen === "spel" && <Game />}
       {screen === "vrij" && <VrijOefenen after={nudge("Wil je dat je ouder of leraar dit ziet? Met een gratis account bewaar je je oefentijd en kijken zij mee.")} />}
       {tabBalk}
     </div>
-  );
-}
-
-function Banner({ onAccount }: { onAccount(): void }) {
-  return (
-    <div className="flex items-center gap-3 rounded-2xl bg-accent-soft px-4 py-2.5 text-sm">
-      <span className="flex-1">Je speelt zonder account. Alles staat alleen op dit apparaat.</span>
-      <button type="button" onClick={onAccount} className="font-semibold text-accent bg-transparent cursor-pointer whitespace-nowrap">Account →</button>
-    </div>
-  );
-}
-
-function Start({ onGo }: { onGo(s: Screen): void }) {
-  const { students, studentId, statuses } = useApp();
-  const student = students.find((s) => s.id === studentId)!;
-  const [today, setToday] = useState<number | null>(null);
-  useEffect(() => {
-    void Promise.all([client.rounds.recent(student.id, 50), client.practice.recent(student.id, 20)]).then(([rounds, sessions]) => {
-      setToday(childSummary({ rounds, sessions, statuses: {}, noteIds: [] }).days[6]!.minutes);
-    });
-  }, [student.id]);
-  const known = instrumentNotes(getInstrument(student.instrumentId)).filter((n) => statuses[n] === "kent").length;
-  const goal = ageProfile(student.ageBand).dailyGoal;
-
-  const tiles: Array<{ s: Exclude<Screen, "start">; icon: string; text: string; tint: string }> = [
-    { s: "grepen", icon: ICON.vrij, text: "Zie welke kleppen bij een noot horen", tint: "bg-kent-soft" },
-    { s: "spel", icon: ICON.spel, text: `${ageProfile(student.ageBand).roundLength} noten, ${ageProfile(student.ageBand).lives} levens`, tint: "bg-kent-soft" },
-    { s: "vrij", icon: "🎙️", text: "De app telt mee als je speelt", tint: "bg-accent-soft" },
-  ];
-  return (
-    <>
-      <h2 className="font-display font-bold text-2xl m-0 mt-1">Wat ga je doen?</h2>
-      <div className="grid gap-3 sm:grid-cols-3">
-        {tiles.map((t) => (
-          <button key={t.s} type="button" onClick={() => onGo(t.s)}
-            className="rounded-3xl bg-surface p-4 flex sm:flex-col items-center sm:items-start gap-3 text-left cursor-pointer border-2 border-transparent hover:border-line">
-            <span className={`w-14 h-14 rounded-2xl ${t.tint} flex items-center justify-center text-3xl shrink-0`} aria-hidden="true">{t.icon}</span>
-            <span><b className="font-display text-lg block">{TITLES[t.s]}</b><span className="text-sm text-muted">{t.text}</span></span>
-          </button>
-        ))}
-      </div>
-      <div className="rounded-3xl bg-surface p-4 flex items-center gap-4">
-        <Donut percent={Math.round((100 * (today ?? 0)) / goal)} size={56} stroke={7}><span className="text-[10px] font-bold">{today ?? 0}/{goal}</span></Donut>
-        <div className="min-w-0">
-          <b className="block">Dagdoel: {goal} minuten</b>
-          <span className="text-sm text-muted">{today ? `Vandaag ${today} min geoefend` : "Vandaag nog niet geoefend"} · {known} {known === 1 ? "noot" : "noten"} die je kent</span>
-        </div>
-      </div>
-    </>
   );
 }
