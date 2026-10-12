@@ -30,10 +30,10 @@ Tabelnamen in het Engels, zoals de rest van de database. Tussen haakjes de naam 
 
 | Tabel | Wat | Kolommen |
 |---|---|---|
-| `lesson_groups` (LESGROEP) | een docent of ouder met een of meer leerlingen | `id`, `teacher_id` (de gever: leraar of ouder), `kind` (`les`, `thuis`), `name`, `created_at` |
-| `group_members` (GROEPSLID) | wie in de groep zit, en wanneer | `group_id`, `student_id`, `from` (date), `until` (date, null = nog lid) |
+| `lesson_groups` (LESGROEP) | een docent of ouder met een of meer leerlingen | `id`, `teacher_id` (de gever: leraar of ouder), `teacher_name` (een leerling mag andermans profiel niet lezen), `kind` (`les`, `thuis`), `name`, `created_at` |
+| `group_members` (GROEPSLID) | wie in de groep zit, en wanneer | `group_id`, `student_id`, `joined_on` (date), `left_on` (date, null = nog lid) |
 | `schedule_rules` (ROOSTERREGEL) | wanneer de groep les heeft | `id`, `group_id`, `weekday` (0 = zondag … 6 = zaterdag), `start_time` (null mag), `valid_from`, `valid_until` (null = open) |
-| `lessons` (LES) | één les, of voor een thuis-groep één week | `id`, `group_id`, `schedule_rule_id` (null mag), `date`, `start_time`, `end_time`, `status` (`gepland`, `gegeven`, `afgezegd`), `notes` (noten van deze les, jsonb), `days_per_week`, `remark`, `created_at` |
+| `lessons` (LES) | één les, of voor een thuis-groep één week | `id`, `group_id`, `schedule_rule_id` (null mag), `date`, `start_time`, `end_time`, `status` (`gepland`, `gegeven`, `afgezegd`), `notes` (noten van deze les, jsonb), `minutes_per_day` (het dagdoel, tot AC-122 het per opdracht verdeelt), `days_per_week`, `remark`, `created_at`; uniek (`group_id`, `date`) |
 | `assignments` (OPDRACHT) | een opdracht van de groep | `id`, `group_id`, `created_by`, `kind` (`stuk`, `opdracht`), `title`, `book_title`, `book_author`, `page`, `chapter`, `number`, `track`, `bank_id`, `sheet_path`, `sheet_name`, `example_path`, `recording`, `start_date`, `deadline` (beide null mag), `created_at` |
 | `homework` (HUISWERK) | een opdracht als huiswerk in een les | `id`, `lesson_id`, `assignment_id`, `position`, `description` (bijv. "week 2: tot maat 16"); uniek (`lesson_id`, `assignment_id`). AC-122 voegt hier `minutes_per_day` toe. |
 | `homework_done` (vinkje per leerling) | afgevinkt in deze les, per leerling | `homework_id`, `student_id`, `done_at` |
@@ -84,7 +84,7 @@ Schrijven gaat alleen via functies, zoals nu. Elke functie controleert dat de aa
 | `submit_recording(p_assignment, p_path, p_seconds)`, `delete_recording(p_recording)`, `react_to_recording(p_recording, …)` | zoals nu, maar per opdracht en leerling; de opnametijd telt als oefensessie, zoals in 0012 |
 | `expired_recordings()`, `mark_recordings_deleted(…)` | op basis van de laatste les van de opdracht; `purge-recordings` volgt dat |
 | `assign_tasks(p_students, p_bank_ids)` | opdrachten uit de bibliotheek als huiswerk in de lopende les |
-| `end_lesson(p_lesson)` | een les als afgezegd markeren; die telt dan niet als huiswerkperiode |
+| `end_lesson(p_lesson)` | een les als afgezegd markeren ("Huiswerk stoppen"); die telt dan niet meer als lopende les |
 
 ## Client (`@notenkraker/client`)
 
