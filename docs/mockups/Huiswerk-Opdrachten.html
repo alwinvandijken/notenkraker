@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Opdrachten en opnames</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EDF2F7;--card:#FFFFFF;--ink:#172440;--muted:#4A5873;--line:#DCE3EC;--blue:#2459C9;--blue-soft:#DCE6FA;--orange:#F4A261;--orange-soft:#FDEBDD;--accent:#C2531A;--ok:#1F7A4D;--ok-soft:#DDF2E5;--grey:#8592AA;--wrong:#C4362B;--wrong-soft:#F8E0DD;--warn-soft:#FCEBD6;--warn:#9A5B12}
+*{box-sizing:border-box}
+body{margin:0;background:#DDE5EF;color:var(--ink);font-family:Lexend,sans-serif}
+a{color:var(--blue)}
+.page{max-width:1500px;margin:0 auto;padding:32px 16px 64px}
+.intro{max-width:820px}
+.intro h1{margin:0 0 8px;font-size:32px}
+.intro p{margin:0 0 6px;color:var(--muted);line-height:1.5}
+.who{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:40px 0 0}
+.row{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start;margin-top:20px}
+.step{display:flex;flex-direction:column;gap:10px;max-width:100%}
+.label{display:flex;gap:10px;align-items:baseline;max-width:340px}
+.num{flex:none;width:28px;height:28px;border-radius:14px;background:var(--ink);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+.label b{font-size:16px}
+.label span{display:block;font-size:13px;color:var(--muted);line-height:1.4;margin-top:2px}
+.phone{width:340px;height:720px;background:var(--bg);border-radius:40px;border:10px solid #172440;padding:34px 14px 14px;overflow:hidden;display:flex;flex-direction:column;gap:12px}
+.ipad{width:1000px;max-width:100%;background:var(--bg);border-radius:28px;border:12px solid #172440;padding:24px;display:flex;flex-direction:column;gap:16px}
+.card{background:var(--card);border-radius:18px;padding:14px}
+.back{font-size:13px;font-weight:600;color:var(--muted)}
+h2.t{margin:0;font-size:26px;line-height:1.05}
+.sub{font-size:13px;color:var(--muted)}
+.muted{color:var(--muted)}
+.small{font-size:13px;line-height:1.4}
+.xs{font-size:11px}
+.cap{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:#fff;border-radius:14px;padding:10px 12px}
+.stat b{display:block;font-size:20px}
+.stat span{font-size:11px;color:var(--muted);line-height:1.3;display:block}
+.lrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.lrow:first-of-type{border-top:0}
+.av{width:36px;height:36px;border-radius:18px;background:var(--blue);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
+.av.sm{width:26px;height:26px;font-size:13px}
+.av.ouder{background:var(--accent)}
+.who-hw{display:flex;align-items:center;gap:8px}
+.grow{flex:1;min-width:0}
+.name{font-weight:700;font-size:15px}
+.bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:5px}
+.bar i{display:block;height:100%;background:var(--ok);border-radius:4px}
+.bar i.low{background:var(--orange)}
+.badge{font-size:11px;font-weight:600;border-radius:10px;padding:3px 8px;white-space:nowrap;background:var(--ok-soft);color:var(--ok)}
+.badge.warn{background:var(--warn-soft);color:var(--warn)}
+.badge.bad{background:var(--wrong-soft);color:#8E2A22}
+.chev{color:var(--muted);font-size:20px}
+.tabs{display:flex;gap:4px;background:#fff;border-radius:22px;padding:4px}
+.tabs span{flex:1;text-align:center;font-size:13px;padding:8px 0;border-radius:18px;color:var(--muted)}
+.tabs span.on{background:var(--ink);color:#fff;font-weight:600}
+.note{min-width:34px;height:30px;padding:0 9px;border-radius:10px;font-weight:700;font-size:14px;display:inline-flex;align-items:center;justify-content:center;background:var(--blue-soft)}
+.note.les{background:var(--orange);color:var(--ink)}
+.note.add{background:#fff;border:2px dashed var(--line);color:var(--muted);font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;align-items:end;height:70px}
+.day{display:flex;flex-direction:column;align-items:center;justify-content:end;gap:3px;font-size:10px;color:var(--muted);height:100%}
+.day .st{width:100%;display:flex;flex-direction:column;border-radius:6px;overflow:hidden}
+.day.goal .st{outline:2px solid var(--ok);outline-offset:1px}
+.weeks{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;align-items:end;height:80px}
+.wk{display:flex;flex-direction:column;align-items:center;justify-content:end;gap:3px;font-size:11px;color:var(--muted);height:100%}
+.wk i{display:block;width:100%;border-radius:8px;background:var(--blue)}
+.goal-line{position:relative}
+.check{display:flex;gap:8px;align-items:center;font-size:14px;padding:6px 0}
+.box{width:20px;height:20px;border-radius:6px;border:2px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff}
+.box.on{background:var(--ok);border-color:var(--ok)}
+.field{border:2px solid var(--line);border-radius:12px;padding:9px 11px;font-size:14px;background:#fff}
+.stepper{display:flex;align-items:center;gap:10px}
+.stepper b{font-size:22px;min-width:64px;text-align:center}
+.pm{width:36px;height:36px;border-radius:18px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-weight:700}
+.btn{display:flex;align-items:center;justify-content:center;height:48px;border-radius:24px;font-size:16px;font-weight:700;background:var(--accent);color:#fff;margin-top:auto}
+.btn.line{background:#fff;color:var(--ink);border:2px solid var(--line)}
+.dots{display:flex;gap:4px}
+.dots i{width:18px;height:18px;border-radius:5px;background:var(--line)}
+.dots i.ok{background:var(--ok)}
+.dots i.half{background:#9ccdb3}
+.dots i.today{outline:2px solid var(--ink);outline-offset:1px}
+.mark{outline:3px solid var(--accent);outline-offset:3px;border-radius:14px}
+.grid2{display:grid;grid-template-columns:1.25fr 1fr;gap:16px}
+.rules{max-width:1000px;margin-top:44px;background:#fff;border-radius:24px;padding:22px 26px}
+.rules h2{margin:0 0 10px;font-size:22px}
+.rules h3{margin:18px 0 6px;font-size:16px}
+.rules p,.rules li{color:var(--muted);line-height:1.5;font-size:15px;margin:0 0 6px}
+.rules ul{margin:0;padding-left:20px}
+.rules code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
+
+.task{border:2px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:#fff}
+.task .hd{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px}
+.kind{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-radius:8px;padding:2px 7px;background:var(--blue-soft);color:var(--blue)}
+.kind.op{background:var(--orange-soft);color:var(--accent)}
+.seg{display:flex;gap:4px;background:var(--bg);border-radius:12px;padding:3px}
+.seg span{flex:1;text-align:center;font-size:12px;padding:6px 0;border-radius:9px;color:var(--muted)}
+.seg span.on{background:#fff;color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.rec{width:96px;height:96px;border-radius:48px;background:var(--wrong);margin:0 auto;display:flex;align-items:center;justify-content:center;color:#fff;font-size:34px;box-shadow:0 0 0 10px var(--wrong-soft)}
+.wave{display:flex;align-items:center;gap:2px;height:36px}
+.wave i{display:block;width:3px;border-radius:2px;background:var(--blue)}
+.player{display:flex;align-items:center;gap:10px;background:var(--bg);border-radius:12px;padding:8px 10px}
+.play{width:32px;height:32px;border-radius:16px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;flex:none}
+.pdf{display:flex;align-items:center;gap:10px;border:2px dashed var(--line);border-radius:12px;padding:10px;font-size:13px;color:var(--muted)}
+.tick{width:22px;height:22px;border-radius:6px;border:2px solid var(--line);flex:none}
+.tick.on{background:var(--ok);border-color:var(--ok);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px}
+.react{display:flex;gap:6px;flex-wrap:wrap}
+.react span{border:2px solid var(--line);border-radius:14px;padding:4px 10px;font-size:13px;background:#fff}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="intro">
+    <h1>Huiswerk met opdrachten en opnames</h1>
+    <p>Mock-up voor AC-118. Huiswerk bestaat naast noten en oefentijd uit <b>opdrachten</b>. Eerste stap (keuze Alwin): <b>Stuk spelen</b> (boek met pagina, of eigen bladmuziek als pdf of foto, eventueel een voorbeeldopname) met een <b>geluidsopname</b> als bewijs, en een <b>Opdracht</b> met afvinken. De leraar luistert terug en reageert. Video komt later.</p>
+    <p>Opnames worden <b>automatisch verwijderd</b> (stap 6). Een back-up elders of alles downloaden als zip is een volgende fase.</p>
+    <p><a href="index.html">← alle mock-ups</a> · bouwt voort op <a href="Leraar-Huiswerk.html">Huiswerk: leraar en ouder</a></p>
+  </div>
+
+  <p class="who">Leraar · iPhone staand</p>
+  <div class="row">
+    <div class="step">
+      <div class="label"><div class="num">1</div><div><b>Huiswerk geven: opdrachten</b><span>Onder noten en oefendoel staan de opdrachten. “+ Opdracht” kiest de soort. Per stuk: waar de noten staan (boek of eigen upload) en of de leerling een opname maakt.</span></div></div>
+      <div class="phone" style="height:auto">
+        <div class="back">← Lotte</div>
+        <h2 class="t">Huiswerk voor Lotte</h2>
+        <div class="card small muted">Noten · oefendoel · tot vr 16 okt (zoals nu)</div>
+        <div class="card" style="display:flex;flex-direction:column;gap:10px">
+          <span class="cap">Opdrachten</span>
+          <div class="task">
+            <div class="hd"><span class="kind">Stuk spelen</span><span class="grow"></span><span class="xs muted">✕</span></div>
+            <div class="field">🎵 Lang zal ze leven</div>
+            <div class="seg"><span class="on">Uit een boek</span><span>Eigen bladmuziek</span></div>
+            <div style="display:flex;gap:6px"><div class="field grow">📖 Saxofoon Methode 1</div><div class="field" style="width:84px">blz. 23</div></div>
+            <div class="pdf">🎧 Voorbeeldopname toevoegen <span class="xs">(mag)</span></div>
+            <div class="check"><span class="box on">✓</span> Lotte neemt het op en stuurt het in</div>
+          </div>
+          <div class="task">
+            <div class="hd"><span class="kind op">Opdracht</span><span class="grow"></span><span class="xs muted">✕</span></div>
+            <div class="field">Zeg het notenalfabet achteruit: G F E D C B A</div>
+            <div class="check"><span class="box on">✓</span> Lotte vinkt af als het gelukt is</div>
+          </div>
+          <div class="field muted" style="text-align:center;border-style:dashed">+ Opdracht: Stuk spelen · Opdracht</div>
+        </div>
+        <div class="btn">Opslaan en naar Lotte sturen</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="label"><div class="num">1b</div><div><b>Eigen bladmuziek</b><span>In plaats van een boek: een pdf of foto uploaden (bijv. een foto van een kopie). De leerling opent die op zijn telefoon of iPad.</span></div></div>
+      <div class="phone" style="height:auto">
+        <div class="task">
+          <div class="hd"><span class="kind">Stuk spelen</span></div>
+          <div class="field">🎵 Etude in G</div>
+          <div class="seg"><span>Uit een boek</span><span class="on">Eigen bladmuziek</span></div>
+          <div class="pdf" style="border-style:solid;color:var(--ink)">📄 <b>etude-in-g.pdf</b> <span class="grow"></span><span class="xs muted">2 blz · vervangen</span></div>
+          <div class="player"><span class="play">▶</span><div class="wave"><i style="height:6px"></i><i style="height:23px"></i><i style="height:30px"></i><i style="height:24px"></i><i style="height:11px"></i><i style="height:10px"></i><i style="height:10px"></i><i style="height:7px"></i><i style="height:10px"></i><i style="height:6px"></i><i style="height:18px"></i><i style="height:28px"></i><i style="height:28px"></i><i style="height:14px"></i><i style="height:16px"></i><i style="height:29px"></i><i style="height:29px"></i><i style="height:18px"></i><i style="height:6px"></i><i style="height:12px"></i><i style="height:9px"></i><i style="height:8px"></i><i style="height:8px"></i><i style="height:11px"></i><i style="height:23px"></i><i style="height:29px"></i><i style="height:22px"></i><i style="height:7px"></i><i style="height:24px"></i><i style="height:31px"></i><i style="height:25px"></i><i style="height:11px"></i><i style="height:11px"></i><i style="height:12px"></i><i style="height:6px"></i><i style="height:9px"></i><i style="height:6px"></i><i style="height:17px"></i></div><span class="xs muted">0:42</span></div>
+          <div class="xs muted">voorbeeldopname van Marieke</div>
+          <div class="check"><span class="box on">✓</span> Lotte neemt het op en stuurt het in</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="who">Leerling · iPhone staand</p>
+  <div class="row">
+    <div class="step">
+      <div class="label"><div class="num">2</div><div><b>Het huiswerk bij het oefenen</b><span>De huiswerkkaart (bestaat al) krijgt de opdrachten eronder. Een stuk: open de bladmuziek of luister het voorbeeld, dan “Opnemen”. Een opdracht: afvinken.</span></div></div>
+      <div class="phone" style="height:auto">
+        <div class="card" style="display:flex;flex-direction:column;gap:10px;border:2px solid var(--orange)">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span class="who-hw"><span class="av sm">M</span><span class="cap">Huiswerk van Marieke</span></span><span class="xs muted">tot vr</span></div>
+          <div class="small"><b>Vandaag 10 van 20 min</b> · 4 van 5 dagen</div>
+          <div class="task">
+            <div class="hd"><span class="kind">Stuk</span>Lang zal ze leven</div>
+            <div class="xs muted">📖 Saxofoon Methode 1, blz. 23</div>
+            <div class="btn" style="margin:0;height:40px;font-size:14px">🎙️ Opnemen en insturen</div>
+          </div>
+          <div class="task">
+            <div class="hd"><span class="kind">Stuk</span>Etude in G</div>
+            <div style="display:flex;gap:6px"><span class="pill" style="font-size:12px">📄 Bladmuziek openen</span><span class="pill" style="font-size:12px">🎧 Voorbeeld</span></div>
+            <div class="player"><span class="play">▶</span><span class="small grow"><b>Ingestuurd</b> · wo 1:12</span><span class="badge">✓</span></div>
+          </div>
+          <div class="task">
+            <div class="hd"><span class="tick on">✓</span>Notenalfabet achteruit zeggen</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="label"><div class="num">3</div><div><b>Opnemen</b><span>Een eigen pagina. Grote rode knop, de tijd loopt mee (hooguit 5 minuten). Daarna terugluisteren, opnieuw of insturen. De eerste keer vraagt de telefoon om de microfoon.</span></div></div>
+      <div class="phone">
+        <div class="back">← Huiswerk</div>
+        <h2 class="t">Lang zal ze leven</h2>
+        <div class="sub">📖 Saxofoon Methode 1, blz. 23</div>
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:18px;text-align:center">
+          <div class="wave"><i style="height:6px"></i><i style="height:23px"></i><i style="height:30px"></i><i style="height:24px"></i><i style="height:11px"></i><i style="height:10px"></i><i style="height:10px"></i><i style="height:7px"></i><i style="height:10px"></i><i style="height:6px"></i><i style="height:18px"></i><i style="height:28px"></i><i style="height:28px"></i><i style="height:14px"></i><i style="height:16px"></i><i style="height:29px"></i><i style="height:29px"></i><i style="height:18px"></i><i style="height:6px"></i><i style="height:12px"></i><i style="height:9px"></i><i style="height:8px"></i><i style="height:8px"></i><i style="height:11px"></i><i style="height:23px"></i><i style="height:29px"></i><i style="height:22px"></i><i style="height:7px"></i><i style="height:24px"></i><i style="height:31px"></i><i style="height:25px"></i><i style="height:11px"></i><i style="height:11px"></i><i style="height:12px"></i><i style="height:6px"></i><i style="height:9px"></i><i style="height:6px"></i><i style="height:17px"></i></div>
+          <div style="font-size:34px;font-weight:700">0:48</div>
+          <div class="rec">■</div>
+          <div class="small muted">Tik om te stoppen · hooguit 5 minuten</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="label"><div class="num">4</div><div><b>Terugluisteren en insturen</b><span>Tevreden? Insturen. Anders opnieuw. Alleen de ingestuurde opname komt bij leraar en ouder.</span></div></div>
+      <div class="phone">
+        <div class="back">← Huiswerk</div>
+        <h2 class="t">Lang zal ze leven</h2>
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:16px">
+          <div class="player"><span class="play">▶</span><div class="wave"><i style="height:6px"></i><i style="height:23px"></i><i style="height:30px"></i><i style="height:24px"></i><i style="height:11px"></i><i style="height:10px"></i><i style="height:10px"></i><i style="height:7px"></i><i style="height:10px"></i><i style="height:6px"></i><i style="height:18px"></i><i style="height:28px"></i><i style="height:28px"></i><i style="height:14px"></i><i style="height:16px"></i><i style="height:29px"></i><i style="height:29px"></i><i style="height:18px"></i><i style="height:6px"></i><i style="height:12px"></i><i style="height:9px"></i><i style="height:8px"></i><i style="height:8px"></i><i style="height:11px"></i><i style="height:23px"></i><i style="height:29px"></i><i style="height:22px"></i><i style="height:7px"></i><i style="height:24px"></i><i style="height:31px"></i><i style="height:25px"></i><i style="height:11px"></i><i style="height:11px"></i><i style="height:12px"></i><i style="height:6px"></i><i style="height:9px"></i><i style="height:6px"></i><i style="height:17px"></i></div><span class="xs muted">1:12</span></div>
+          <div class="small muted" style="text-align:center">Klinkt het goed?</div>
+        </div>
+        <div class="btn">Insturen naar Marieke</div>
+        <div class="btn line" style="margin-top:0">Opnieuw opnemen</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="who">Leraar (en ouder) · iPhone staand</p>
+  <div class="row">
+    <div class="step">
+      <div class="label"><div class="num">5</div><div><b>Luisteren en reageren</b><span>Op de leerlingpagina, in de huiswerkkaart. Luisteren, een snelle reactie (duim, ster) of een korte tekst. De leerling ziet de reactie bij zijn opname. De ouder kan meeluisteren maar niet reageren.</span></div></div>
+      <div class="phone" style="height:auto">
+        <div class="back">← Leerlingen</div>
+        <h2 class="t">Lotte</h2>
+        <div class="card" style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span class="cap">Jij · tot vr</span><span class="badge">gaat goed</span></div>
+          <div class="task">
+            <div class="hd"><span class="kind">Stuk</span>Lang zal ze leven <span class="grow"></span><span class="badge warn">nieuw</span></div>
+            <div class="player"><span class="play">▶</span><div class="wave"><i style="height:6px"></i><i style="height:23px"></i><i style="height:30px"></i><i style="height:24px"></i><i style="height:11px"></i><i style="height:10px"></i><i style="height:10px"></i><i style="height:7px"></i><i style="height:10px"></i><i style="height:6px"></i><i style="height:18px"></i><i style="height:28px"></i><i style="height:28px"></i><i style="height:14px"></i><i style="height:16px"></i><i style="height:29px"></i><i style="height:29px"></i><i style="height:18px"></i><i style="height:6px"></i><i style="height:12px"></i><i style="height:9px"></i><i style="height:8px"></i><i style="height:8px"></i><i style="height:11px"></i><i style="height:23px"></i><i style="height:29px"></i><i style="height:22px"></i><i style="height:7px"></i><i style="height:24px"></i><i style="height:31px"></i><i style="height:25px"></i><i style="height:11px"></i><i style="height:11px"></i><i style="height:12px"></i><i style="height:6px"></i><i style="height:9px"></i><i style="height:6px"></i><i style="height:17px"></i></div><span class="xs muted">1:12</span></div>
+            <div class="xs muted">ingestuurd wo 9 okt · wordt verwijderd op 13 nov</div>
+            <div class="react"><span>👍</span><span>⭐</span><span>🎉</span><span>💪 Nog een keer</span></div>
+            <div class="field muted">Schrijf een reactie…</div>
+          </div>
+          <div class="task"><div class="hd"><span class="tick on">✓</span>Notenalfabet achteruit <span class="grow"></span><span class="xs muted">afgevinkt di</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="label"><div class="num">6</div><div><b>Opnames verdwijnen vanzelf</b><span>Elke nacht verwijdert de server opnames die over hun bewaartermijn zijn. Bij elke opname staat wanneer. Eerst één vaste termijn voor iedereen.</span></div></div>
+      <div class="phone" style="height:auto">
+        <div class="card" style="display:flex;flex-direction:column;gap:8px">
+          <span class="cap">Bewaren van opnames</span>
+          <div class="small">Opnames worden <b>4 weken na de einddatum</b> van het huiswerk verwijderd.</div>
+          <div class="small muted">Daarna blijft staan dát er iets is ingestuurd, en de reactie van de leraar. Alleen het geluid is weg.</div>
+        </div>
+        <div class="card" style="display:flex;flex-direction:column;gap:8px">
+          <span class="cap">Eerste keer opnemen (kind jonger dan 18)</span>
+          <div class="small">De ouder geeft één keer toestemming op de kindpagina: <b>“Lotte mag opnames insturen”</b>. Zonder toestemming ziet het kind de opneemknop niet.</div>
+          <div class="check"><span class="box on">✓</span> Lotte mag opnames insturen</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rules">
+    <h2>Keuzes in dit ontwerp</h2>
+    <h3>Opdrachten</h3>
+    <ul>
+      <li>Huiswerk houdt noten, oefendoel, einddatum en opmerking (bestaat). Daaronder nul of meer opdrachten.</li>
+      <li><b>Stuk spelen:</b> titel; bron is een boek (naam + pagina/nummer) óf eigen bladmuziek (pdf of foto, door de leraar geüpload); eventueel een voorbeeldopname van de leraar; vinkje “neemt het op en stuurt het in”.</li>
+      <li><b>Opdracht:</b> vrije tekst; de leerling vinkt af.</li>
+      <li>Het oude veld “Stuk of oefening” wordt een opdracht “Stuk spelen” zonder opname.</li>
+      <li>Sjablonen (AC-117) bewaren de opdrachten mee, zonder de bestanden.</li>
+    </ul>
+    <h3>Opnames</h3>
+    <ul>
+      <li>Geluid opnemen in de browser (MediaRecorder, ongeveer 1 MB per minuut), hooguit 5 minuten. Video later.</li>
+      <li>Alleen de ingestuurde opname telt; opnieuw insturen vervangt de vorige.</li>
+      <li>Zien en luisteren: de leerling zelf, zijn ouder en zijn leraren. Reageren: alleen wie het huiswerk gaf.</li>
+      <li>Kind jonger dan 18: eerst toestemming van de ouder.</li>
+    </ul>
+    <h3>Bewaren</h3>
+    <ul>
+      <li>Automatisch verwijderen: 4 weken na de einddatum van het huiswerk. Een nachtelijke taak op de server ruimt op.</li>
+      <li><b>Volgende fase:</b> back-up elders, of alle opnames van een leerling downloaden als zip; video; een bewaartermijn per leraar.</li>
+    </ul>
+    <h3>Techniek (voor later)</h3>
+    <ul>
+      <li>Tabel <code>homework_tasks</code> (huiswerk, soort, titel, boek, pagina, bestand, voorbeeld, opname gevraagd) en <code>task_submissions</code> (leerling, afgevinkt, opname, ingestuurd, reactie, verwijderd op).</li>
+      <li>Privé Storage-buckets <code>bladmuziek</code> en <code>opnames</code>, met regels die dezelfde toegang volgen als het huiswerk.</li>
+      <li>Opruimen: <code>pg_cron</code> (of een geplande Edge Function) verwijdert elke nacht verlopen opnames uit Storage.</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>
