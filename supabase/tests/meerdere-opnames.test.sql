@@ -3,7 +3,7 @@
 -- Draaien: supabase start && supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(19);
+select plan(23);
 
 delete from auth.users;
 create function pg_temp.als(uid uuid) returns void language plpgsql as $$
@@ -45,7 +45,7 @@ select lives_ok($$ select submit_recording((select id from ids where naam = 'taa
 reset role;
 update task_recordings set submitted_at = now() - interval '5 days';
 select pg_temp.als((select id from ids where naam = 'lotte'));
-select lives_ok($$ select submit_recording((select id from ids where naam = 'taak'), pg_temp.pad('zaterdag')) $$, 'Tweede opname insturen');
+select lives_ok($$ select submit_recording((select id from ids where naam = 'taak'), pg_temp.pad('zaterdag'), 95) $$, 'Tweede opname insturen, 95 seconden');
 select is((select count(*)::int from task_recordings), 2, 'Allebei bewaard: de tweede vervangt de eerste niet');
 select is((select recording_path from homework_tasks where id = (select id from ids where naam = 'taak')), pg_temp.pad('zaterdag'),
   'homework_tasks volgt de laatste opname (app op productie)');
@@ -54,6 +54,17 @@ select pg_temp.als((select id from ids where naam = 'marieke'));
 select is((select count(*)::int from task_recordings), 2, 'De leraar ziet beide opnames');
 select pg_temp.als((select id from ids where naam = 'vreemd'));
 select is((select count(*)::int from task_recordings), 0, 'Een vreemde niet');
+
+-- ── Opnemen telt als oefenen ─────────────────────────────────────────
+select pg_temp.als((select id from ids where naam = 'lotte'));
+select is((select count(*)::int from practice_sessions where label = 'opname'), 1, 'Een opname met lengte wordt een oefensessie (de eerste had geen lengte)');
+select is((select played_seconds from practice_sessions where label = 'opname'), 95, 'Met de lengte van de opname als gespeelde tijd');
+insert into storage.objects (bucket_id, name, owner) values ('opnames', pg_temp.pad('lang'), auth.uid());
+select lives_ok($$ select submit_recording((select id from ids where naam = 'taak'), pg_temp.pad('lang'), 9999) $$, 'Een te lange opname insturen');
+select is((select max(played_seconds) from practice_sessions where label = 'opname'), 300, 'Telt hooguit 5 minuten');
+reset role;
+delete from task_recordings where path = pg_temp.pad('lang');
+update task_recordings set submitted_at = now() where path = pg_temp.pad('zaterdag');
 
 -- ── Reageren per opname ──────────────────────────────────────────────
 reset role;

@@ -104,7 +104,7 @@ export function AnoniemApp() {
   }
 
   return (
-    <div className={`${screen === "start" ? "max-w-[1240px]" : "max-w-[900px]"} mx-auto px-4 pt-5 pb-12 flex flex-col gap-4`}>
+    <div className="max-w-[900px] mx-auto px-4 pt-5 pb-12 flex flex-col gap-4">
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="font-display font-extrabold text-3xl sm:text-4xl leading-none m-0">{screen === "start" ? "Hoi!" : TITLES[screen]}</h1>

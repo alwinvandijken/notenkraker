@@ -39,9 +39,9 @@ export function DagPagina({ studentId, date, onDate }: { studentId: string; date
           <Donut percent={it.percent} size={60} stroke={8}><b className="font-display text-sm">{it.percent}%</b></Donut>
           <div className="flex-1 min-w-0 flex flex-col gap-2">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-display font-bold text-lg">{ICON.vrij} Vrij oefenen</span>
+              <span className="font-display font-bold text-lg">{it.label === "opname" ? "🎙️ Opname van huiswerk" : `${ICON.vrij} Vrij oefenen`}</span>
               <span className="text-sm text-muted">{time(it.startedAt)}</span>
-              {it.label === "twijfel"
+              {it.label === "opname" ? null : it.label === "twijfel"
                 ? <span className="ml-auto rounded-xl px-2.5 py-1 text-xs font-semibold bg-les/25" title="Minuten lang steeds dezelfde noot">twijfelachtig</span>
                 : <span className="ml-auto rounded-xl px-2.5 py-1 text-xs font-semibold bg-ok/15 text-ok">sax gehoord</span>}
             </div>

@@ -5,6 +5,8 @@
 -- - Weggooien: de leerling (of de ouder die het profiel beheert) gooit een mislukte opname weg.
 -- - Reageren: alleen wie het huiswerk gaf, per opname.
 -- - Bewaren: zoals in 0011, 4 weken na de einddatum (purge-recordings).
+-- - Oefentijd: een opname telt mee als oefenen. Bij insturen komt er een oefensessie bij met de lengte
+--   van de opname en het label 'opname', zodat de minuten van huiswerk, Vandaag en dashboard meetellen.
 --
 -- Achterwaarts: develop en productie delen deze database, en de app op productie leest nog
 -- homework_tasks.recording_path. Die kolommen blijven de laatste opname volgen. Een bestand dat nog in
@@ -16,6 +18,8 @@ create table public.task_recordings (
   -- null zodra de bewaartermijn voorbij is (het bestand is dan weg)
   path text,
   submitted_at timestamptz not null default now(),
+  -- lengte van de opname; telt mee als oefentijd (hooguit 5 minuten, zoals de opnameknop)
+  seconds integer not null default 0 check (seconds between 0 and 300),
   deleted_at timestamptz,
   reaction_emoji text not null default '',
   reaction text not null default '',
@@ -53,10 +57,16 @@ returns void language sql security definer set search_path = public as $$
 $$;
 revoke execute on function public.sync_latest_recording(uuid) from public, anon, authenticated;
 
--- ── Insturen: een nieuwe opname komt erbij (vervangt niets meer) ──────
-create or replace function public.submit_recording(p_task uuid, p_path text)
+-- ── Opnemen telt als oefenen ─────────────────────────────────────────
+alter table public.practice_sessions drop constraint practice_sessions_label_check;
+alter table public.practice_sessions add constraint practice_sessions_label_check check (label in ('sax','twijfel','opname'));
+
+-- ── Insturen: een nieuwe opname komt erbij (vervangt niets meer), en de opnametijd telt als oefenen ──
+-- p_seconds heeft een standaardwaarde, zodat de app op productie (twee argumenten) blijft werken
+drop function public.submit_recording(uuid, text);
+create function public.submit_recording(p_task uuid, p_path text, p_seconds integer default 0)
 returns void language plpgsql security definer set search_path = public as $$
-declare t public.homework_tasks; s public.students;
+declare t public.homework_tasks; s public.students; sec integer := least(greatest(coalesce(p_seconds, 0), 0), 300);
 begin
   select tt.* into t from public.homework_tasks tt where tt.id = p_task;
   select ss.* into s from public.students ss join public.homework h on h.student_id = ss.id where h.id = t.homework_id;
@@ -64,7 +74,11 @@ begin
   if not t.recording then raise exception 'geen opname gevraagd'; end if;
   if not public.may_record(s.id) then raise exception 'geen toestemming'; end if;
   if p_path is null or not starts_with(p_path, s.id::text || '/' || t.id::text || '/') then raise exception 'ongeldige opname'; end if;
-  insert into public.task_recordings (task_id, path) values (p_task, p_path);
+  insert into public.task_recordings (task_id, path, seconds) values (p_task, p_path, sec);
+  if sec > 0 then
+    insert into public.practice_sessions (student_id, started_at, ended_at, done, played_seconds, label)
+    values (s.id, now() - make_interval(secs => sec), now(), true, sec, 'opname');
+  end if;
   perform public.sync_latest_recording(p_task);
 end $$;
 
@@ -125,6 +139,8 @@ returns void language sql security definer set search_path = public as $$
   update public.homework_tasks set recording_path = null, recording_deleted_at = now() where id = any (p_tasks);
 $$;
 
+revoke execute on function public.submit_recording(uuid, text, integer) from public, anon;
+grant execute on function public.submit_recording(uuid, text, integer) to authenticated;
 revoke execute on function public.delete_recording(uuid) from public, anon;
 revoke execute on function public.react_to_recording(uuid, text, text) from public, anon;
 grant execute on function public.delete_recording(uuid) to authenticated;

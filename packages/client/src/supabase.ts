@@ -296,8 +296,8 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
       const { error } = await sb.rpc("set_task_done", { p_task: taskId, p_done: done });
       if (error) throw error;
     },
-    async submitRecording(taskId, path) {
-      const { error } = await sb.rpc("submit_recording", { p_task: taskId, p_path: path });
+    async submitRecording(taskId, path, seconds) {
+      const { error } = await sb.rpc("submit_recording", { p_task: taskId, p_path: path, p_seconds: Math.round(seconds) });
       if (error) throw error;
     },
     async deleteRecording(recordingId) {

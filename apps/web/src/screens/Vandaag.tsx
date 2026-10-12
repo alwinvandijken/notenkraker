@@ -16,7 +16,7 @@ export type Mode = "learn" | "game" | "vrij";
 /**
  * Vandaag, het startscherm van de leerling (AC-120 PR 2, mock-up docs/ux-review/vandaag.html).
  * Links het huiswerk van ouder en leraar als één takenlijst met één oranje knop; zonder huiswerk het
- * dagdoel en een voorstel. Rechts de drie dingen die je altijd kunt doen.
+ * dagdoel en een voorstel. Spelen, Grepen en Vrij spelen staan in de tabbalk, niet nog eens hier.
  */
 export function Vandaag({ student, withHomework = true, onPlay, onOpenTask, footer }: {
   student: Student;
@@ -73,7 +73,7 @@ export function Vandaag({ student, withHomework = true, onPlay, onOpenTask, foot
           </div>
         ))}
         {plan.allDone && <p className="m-0 font-semibold text-ok">Alles af voor vandaag. Goed gedaan! 🎉</p>}
-        <Chip primary onClick={start} className="mt-auto py-3 text-lg">
+        <Chip primary onClick={start} className="py-3 text-lg">
           {plan.allDone ? "Nog meer spelen" : plan.started ? "Verder oefenen" : "Begin met oefenen"}
         </Chip>
       </>
@@ -86,36 +86,19 @@ export function Vandaag({ student, withHomework = true, onPlay, onOpenTask, foot
         <Ring today={data.today} goal={goal} title={`Dagdoel: ${goal} minuten`}
           sub={`${data.today ? `vandaag ${data.today} min geoefend` : "nog niet geoefend vandaag"} · ${known} ${known === 1 ? "noot" : "noten"} die je kent`} />
         <div className="rounded-2xl bg-bg p-4"><b className="block">Voorstel</b><span className="text-muted">{idea.text}</span></div>
-        <Chip primary onClick={() => onPlay(idea.mode)} className="mt-auto py-3 text-lg">{data.today ? "Verder oefenen" : "Begin met oefenen"}</Chip>
+        <Chip primary onClick={() => onPlay(idea.mode)} className="py-3 text-lg">{data.today ? "Verder oefenen" : "Begin met oefenen"}</Chip>
       </>
     );
   }
 
-  const tiles: Array<{ m: Mode; icon: string; title: string; text: string; tint: string }> = [
-    { m: "game", icon: "🎮", title: "Spelen", text: `${profile.roundLength} noten, ${profile.lives} levens`, tint: "bg-kent-soft" },
-    { m: "learn", icon: "🎷", title: "Grepen", text: "welke kleppen bij een noot horen", tint: "bg-kent-soft" },
-    { m: "vrij", icon: "🎙️", title: "Vrij spelen", text: "de app luistert en telt mee", tint: "bg-accent-soft" },
-  ];
+  // Spelen, Grepen en Vrij spelen staan al in de tabbalk; hier alleen wat er vandaag moet
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,58fr)_minmax(0,42fr)]">
-      <section aria-label="Vandaag" className="rounded-3xl bg-surface p-5 flex flex-col gap-4 min-w-0">{card}</section>
-      <div className="flex flex-col gap-3 min-w-0">
-        <div className="grid grid-cols-2 lg:grid-cols-1 gap-3">
-          {tiles.map((t) => (
-            <button key={t.m} type="button" onClick={() => onPlay(t.m)}
-              className="rounded-3xl bg-surface p-4 flex items-center gap-3 text-left cursor-pointer border-2 border-transparent hover:border-line min-w-0">
-              <span className={`w-12 h-12 rounded-2xl ${t.tint} flex items-center justify-center text-2xl shrink-0`} aria-hidden="true">{t.icon}</span>
-              <span className="min-w-0"><b className="font-display text-lg block">{t.title}</b><span className="text-sm text-muted hidden sm:block">{t.text}</span></span>
-            </button>
-          ))}
-          {data.streak > 0 && (
-            <div className="rounded-3xl bg-surface p-4 flex items-center gap-2 text-muted lg:mt-2">
-              <span aria-hidden="true" className="text-2xl">🔥</span>{data.streak} {data.streak === 1 ? "dag" : "dagen"} op rij geoefend
-            </div>
-          )}
-        </div>
-        {footer}
-      </div>
+    <div className="flex flex-col gap-3 max-w-[760px]">
+      <section aria-label="Vandaag" className="rounded-3xl bg-surface p-5 flex flex-col gap-4 min-w-0">
+        {card}
+        {data.streak > 0 && <p className="m-0 text-sm text-muted text-center"><span aria-hidden="true">🔥 </span>{data.streak} {data.streak === 1 ? "dag" : "dagen"} op rij geoefend</p>}
+      </section>
+      {footer}
     </div>
   );
 }
@@ -159,7 +142,7 @@ function Row({ row: r, labels, onTick, onOpen }: {
     return (
       <li className={line}>
         <Box done={r.done} />
-        {text(`${r.goal} minuten oefenen`, `spelen en vrij spelen tellen mee · ${r.doneDays} van ${r.goalDays} dagen`)}
+        {text(`${r.goal} minuten oefenen`, `spelen, vrij spelen en opnemen tellen mee · ${r.doneDays} van ${r.goalDays} dagen`)}
         {r.notes.length > 0 && <span className="flex flex-wrap justify-end gap-1">{r.notes.map((n) => <span key={n} className="rounded-lg px-2 py-0.5 font-bold bg-les text-fg text-sm">{labels[n] ?? n}</span>)}</span>}
       </li>
     );

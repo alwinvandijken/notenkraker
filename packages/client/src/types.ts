@@ -88,8 +88,8 @@ export interface PracticeSession {
   playedSeconds: number;
   minutes: PracticeMinute[];
   notes: NoteId[];
-  /** twijfel: minuten lang steeds dezelfde noot */
-  label: "sax" | "twijfel";
+  /** twijfel: minuten lang steeds dezelfde noot; opname: een ingestuurde opname van huiswerk (AC-121) */
+  label: "sax" | "twijfel" | "opname";
 }
 
 /**
@@ -263,8 +263,8 @@ export interface HomeworkApi {
   giveWithTasks(studentIds: string[], input: Omit<HomeworkInput, "studentId" | "piece" | "pieceNote">, tasks: TaskInput[]): Promise<number>;
   /** afvinken door de leerling (of ouder/leraar) */
   setTaskDone(taskId: string, done: boolean): Promise<void>;
-  /** opname insturen (eerst uploaden met files.uploadRecording) */
-  submitRecording(taskId: string, path: string): Promise<void>;
+  /** opname insturen (eerst uploaden met files.uploadRecording); de lengte telt mee als oefentijd */
+  submitRecording(taskId: string, path: string, seconds: number): Promise<void>;
   /** reactie van wie het huiswerk gaf, op één opname */
   reactToRecording(recordingId: string, emoji: string, text: string): Promise<void>;
   /** de leerling gooit een opname weg; daarna ook het bestand (files.removeRecording) */

@@ -140,7 +140,7 @@ function Recorder({ studentId, task, onSent }: { studentId: string; task: Homewo
     setFase("insturen"); setError("");
     try {
       const path = await client.files.uploadRecording(studentId, task.id, blob, type.current.ext);
-      await client.homework.submitRecording(task.id, path);
+      await client.homework.submitRecording(task.id, path, seconds);
       await onSent();
       setBlob(null); setSeconds(0); setFase("klaar"); setSent(true);
     } catch {
@@ -160,7 +160,7 @@ function Recorder({ studentId, task, onSent }: { studentId: string; task: Homewo
             {fase === "opnemen" ? "■" : "●"}
           </button>
           <p className="text-sm text-muted m-0">
-            {sent ? "Ingestuurd! ✓ Je kunt het later in de week nog een keer opnemen." : fase === "opnemen" ? "Tik om te stoppen" : `Tik en speel · hooguit ${MAX_SECONDS / 60} minuten`}
+            {sent ? "Ingestuurd! ✓ Telt mee als oefentijd. Je kunt het later in de week nog een keer opnemen." : fase === "opnemen" ? "Tik om te stoppen" : `Tik en speel · hooguit ${MAX_SECONDS / 60} minuten`}
           </p>
         </>
       )}

@@ -7,7 +7,7 @@ import type { CurrentHomework } from "@/components/Huiswerk";
  * leraar als één takenlijst, en welke taak de oranje knop start.
  */
 export type VandaagRow =
-  /** de minuten oefenen; spelen en vrij spelen tellen mee */
+  /** de minuten oefenen; spelen, vrij spelen en opnemen tellen mee */
   | { kind: "minuten"; key: string; goal: number; today: number; doneDays: number; goalDays: number; notes: NoteId[]; done: boolean }
   /** af te vinken opdracht */
   | { kind: "opdracht"; key: string; task: HomeworkTask; done: boolean }

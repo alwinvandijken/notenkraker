@@ -133,7 +133,7 @@ export function HuiswerkGeven({ studentIds, onDone }: { studentIds: string[]; on
         <Caption>Oefendoel</Caption>
         <Stepper label="Minuten per dag" value={minutes} min={5} max={120} step={5} onChange={setMinutes} />
         <Stepper label="Dagen per week" value={days} min={1} max={7} step={1} onChange={setDays} />
-        <span className="text-xs text-muted">Telt: notenspel en vrij oefenen (de gespeelde tijd)</span>
+        <span className="text-xs text-muted">Telt: notenspel, vrij oefenen en opnames (de gespeelde tijd)</span>
       </section>
 
       <section className="rounded-3xl bg-surface p-4 flex flex-col gap-2.5">
