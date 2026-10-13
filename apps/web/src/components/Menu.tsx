@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
+import { VERSIE, versieLabel } from "@/lib/versie";
 
 /** `apart`: met een lijntje erboven, voor Welkomstpagina en Uitloggen */
 export interface MenuItem { key: string; label: string; onSelect(): void; active?: boolean; apart?: boolean }
@@ -45,6 +46,7 @@ export function Menu({ name, subtitle, items }: { name: string; subtitle?: strin
               {it.label}
             </button>
           ))}
+          <p className="m-0 mt-1 px-3 pt-2 border-t border-line text-xs text-muted">{versieLabel(VERSIE)}</p>
         </nav>
       )}
     </div>
