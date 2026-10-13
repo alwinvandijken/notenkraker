@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
+import pkg from "./package.json" with { type: "json" };
 
 export default defineConfig({
   plugins: [
@@ -37,8 +38,14 @@ export default defineConfig({
       },
     }),
   ],
-  // versie voor feedback (AC-116): de commit die Netlify bouwt, lokaal "dev"
-  define: { "import.meta.env.VITE_APP_VERSION": JSON.stringify((process.env.COMMIT_REF ?? "dev").slice(0, 7)) },
+  // versie (lib/versie.ts, feedback AC-116): de commit die Netlify bouwt (lokaal "dev"), het versienummer,
+  // de bouwdatum en de branch (Netlify: main = productie, develop = testsite, anders een preview)
+  define: {
+    "import.meta.env.VITE_APP_VERSION": JSON.stringify((process.env.COMMIT_REF ?? "dev").slice(0, 7)),
+    "import.meta.env.VITE_APP_SEMVER": JSON.stringify(pkg.version),
+    "import.meta.env.VITE_APP_BUILT": JSON.stringify(new Date().toISOString()),
+    "import.meta.env.VITE_APP_BRANCH": JSON.stringify(process.env.BRANCH ?? ""),
+  },
   resolve: { alias: { "@": "/src" } },
   server: { port: 5173 },
 });

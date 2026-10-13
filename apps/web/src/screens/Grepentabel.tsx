@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { instrumentNotes, midiToPitch, noteName, parseId, soundingMidi, toId, type Instrument, type NoteId, type NoteStatus, type StatusMap } from "@notenkraker/core";
 import { playSound, type Sound } from "@/audio/sax";
 import { useStatuses, usePref } from "@/lib/poc";
@@ -95,7 +95,20 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu,
     setSel(n); setAlt(0);
     if (auto === "aan") playSound(soundingMidi(n, instrument.transposition), sound);
   };
+  // De gekozen noot staat altijd midden in de notenrij (letters én notenbalk). Alleen de rij scrolt,
+  // niet de pagina: op de telefoon staat de rij onder de sax, en vegen over de noot moet daar niet heen springen.
+  const picker = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const kies = picker.current?.querySelector<Element>('[aria-pressed="true"]');
+    let rij = kies?.parentElement ?? null;
+    while (rij && rij !== picker.current && getComputedStyle(rij).overflowX !== "auto") rij = rij.parentElement;
+    if (!kies || !rij) return;
+    const r = kies.getBoundingClientRect(), c = rij.getBoundingClientRect();
+    const still = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    rij.scrollTo({ left: rij.scrollLeft + (r.left + r.width / 2) - (c.left + c.width / 2), behavior: still ? "auto" : "smooth" });
+  }, [current, view, visible.length]);
   const step = (d: number) => { if (!visible.length) return; const i = visible.indexOf(current); select(visible[(i + d + visible.length) % visible.length]!); };
+  const swipe = useSwipe((dir) => step(dir === "left" ? 1 : -1));
 
   return (
     <div className="flex flex-col gap-3 p-4 md:p-5 md:h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-var(--ruimte-onder,0px))] md:overflow-hidden">
@@ -141,7 +154,8 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu,
           </div>
         </section>
 
-        <section aria-label="Noot" className={`${panel} order-1 md:order-2 p-4 md:p-5 flex flex-col gap-3 md:min-h-0`}>
+        {/* naar links of rechts vegen: volgende of vorige noot, zonder naar de notenrij te scrollen; omhoog en omlaag scrolt de pagina gewoon */}
+        <section aria-label="Noot" {...swipe.handlers} className={`${panel} order-1 md:order-2 p-4 md:p-5 flex flex-col gap-3 md:min-h-0 touch-pan-y select-none overflow-hidden`}>
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
               {statuses[current] && (
@@ -158,7 +172,7 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu,
             <span className="text-muted text-sm">Geschreven {withOctave(current)} · klinkt als {withOctave(toId(midiToPitch(sounding)))}</span>
           </div>
 
-          <div className="flex items-center gap-4 md:flex-1 md:min-h-0">
+          <div data-veeg style={swipe.style} className="flex items-center gap-4 md:flex-1 md:min-h-0">
             <div className="flex-1 min-w-0 h-full flex items-center [&_svg]:max-w-none md:[&_svg]:max-h-full">
               <StaffNote note={current} clef={instrument.clef} color="var(--color-kent)" />
             </div>
@@ -185,7 +199,7 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu,
 
       <nav aria-label="Kies een noot" className={`${panel} shrink-0 p-2 flex items-center gap-2`}>
         <button type="button" onClick={() => step(-1)} aria-label="Vorige noot" className="shrink-0 w-12 h-16 rounded-2xl bg-bg font-bold text-lg cursor-pointer">◀</button>
-        <div className="flex-1 min-w-0">
+        <div ref={picker} className="flex-1 min-w-0">
           {visible.length === 0 ? (
             <p className="text-muted m-0 px-2">Nog geen noten in deze lijst. Kies bij Weergave "Alle".</p>
           ) : view === "buttons" ? (
@@ -206,13 +220,55 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu,
   );
 }
 
+/**
+ * Horizontaal vegen (vinger, pen of muis): minstens 50 px en duidelijk meer opzij dan omhoog of omlaag.
+ * Tijdens het vegen schuift de noot mee (offset); bij een veeg glijdt hij weg en komt de nieuwe noot
+ * van de andere kant binnen. Met "minder beweging" aan wisselt de noot meteen.
+ */
+function useSwipe(onSwipe: (dir: "left" | "right") => void) {
+  const start = useRef<{ id: number; x: number; y: number } | null>(null);
+  const [offset, setOffset] = useState(0);
+  const [glide, setGlide] = useState(false);
+  const still = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const back = () => { setGlide(true); setOffset(0); };
+  const handlers = {
+    onPointerDown: (e: ReactPointerEvent) => { if (e.isPrimary) { start.current = { id: e.pointerId, x: e.clientX, y: e.clientY }; setGlide(false); } },
+    onPointerMove: (e: ReactPointerEvent) => {
+      const s = start.current;
+      if (!s || s.id !== e.pointerId || still()) return;
+      const dx = e.clientX - s.x, dy = e.clientY - s.y;
+      if (Math.abs(dx) > Math.abs(dy)) setOffset(dx);
+    },
+    onPointerUp: (e: ReactPointerEvent) => {
+      const s = start.current; start.current = null;
+      if (!s || s.id !== e.pointerId) return;
+      const dx = e.clientX - s.x, dy = e.clientY - s.y;
+      if (!(Math.abs(dx) >= 50 && Math.abs(dx) > 1.5 * Math.abs(dy))) { back(); return; }
+      const dir = dx < 0 ? "left" : "right";
+      if (still()) { setOffset(0); onSwipe(dir); return; }
+      const w = (e.currentTarget as HTMLElement).clientWidth || 320;
+      // wegglijden, wisselen, van de andere kant binnenkomen
+      setGlide(true); setOffset(dir === "left" ? -w : w);
+      setTimeout(() => {
+        onSwipe(dir);
+        setGlide(false); setOffset(dir === "left" ? w / 2 : -w / 2);
+        requestAnimationFrame(() => requestAnimationFrame(back));
+      }, 140);
+    },
+    onPointerCancel: () => { start.current = null; back(); },
+  };
+  const style = {
+    transform: offset ? `translateX(${offset}px)` : undefined,
+    opacity: offset ? Math.max(0.2, 1 - Math.abs(offset) / 400) : undefined,
+    transition: glide ? "transform 140ms ease-out, opacity 140ms ease-out" : "none",
+  };
+  return { handlers, style };
+}
+
 function NoteButtons({ notes, current, statuses, range, onSelect }:
   { notes: NoteId[]; current: NoteId; statuses: Record<NoteId, NoteStatus>; range: [string, string]; onSelect: (n: NoteId) => void }) {
-  const row = useRef<HTMLDivElement>(null);
-  // Houd de gekozen noot in beeld als je met Vorige/Volgende door de rij gaat.
-  useEffect(() => { row.current?.querySelector<HTMLElement>('[aria-pressed="true"]')?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" }); }, [current]);
   return (
-    <div ref={row} className="flex gap-2 overflow-x-auto py-1.5 px-1 [scrollbar-width:thin]">
+    <div className="flex gap-2 overflow-x-auto py-1.5 px-1 [scrollbar-width:thin]">
       {notes.map((n) => (
         <button key={n} type="button" aria-pressed={n === current} onClick={() => onSelect(n)}
           className={`shrink-0 w-14 h-14 p-0 rounded-2xl border-2 font-display font-bold cursor-pointer grid place-content-center justify-items-center gap-0.5 aria-pressed:outline-3 aria-pressed:outline-fg aria-pressed:outline-offset-2 ${statusClass(statuses[n])}`}>
