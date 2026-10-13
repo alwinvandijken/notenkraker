@@ -2,7 +2,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { promotionCandidates, scoreRound } from "@notenkraker/core";
 import { lessonEnd, weekOf } from "./lessons.js";
 import type {
-  AdminApi, AdminUser, AuthApi, BankApi, FilesApi, BankTask, Book, BooksApi, HomeworkTask, LessonSpan, TaskInput, TaskRecording, Guardian, Feedback, FeedbackApi, Homework, HomeworkApi, HomeworkTemplate, InvitePurpose, NotenkrakerClient, NotesApi, PracticeApi, PracticeSession, Profile, Progress, Role, Round, RoundsApi, RoundSubmission,
+  AdminApi, AdminUser, AuthApi, BankApi, FilesApi, BankTask, Book, BooksApi, GroupLesson, GroupLessonItem, GroupsApi, HomeworkTask, LessonGroup, LessonSpan, TaskInput, TaskRecording, Guardian, Feedback, FeedbackApi, Homework, HomeworkApi, HomeworkTemplate, InvitePurpose, NotenkrakerClient, NotesApi, PracticeApi, PracticeSession, Profile, Progress, Role, Round, RoundsApi, RoundSubmission,
   SelfRole, Song, SongsApi, Student, StudentNote, StudentsApi,
 } from "./types.js";
 
@@ -215,8 +215,8 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
   /** opdracht met zijn huiswerkregel in deze les, voor één leerling (gemaksvorm, AC-124) */
   const rowToTask = (h: Row, lessonId: string, studentId: string): HomeworkTask => {
     const a = h.assignments as Row;
-    // de lessen van de opdracht (niet afgezegd), oudste eerst; een week loopt tot de dag vóór de volgende
-    const starts = ((a.homework ?? []) as Row[]).map((x) => x.lessons as Row | null).filter((x): x is Row => !!x && x.status !== "afgezegd")
+    // de lessen van de opdracht die doorgaan, oudste eerst; een week loopt tot de dag vóór de volgende
+    const starts = ((a.homework ?? []) as Row[]).map((x) => x.lessons as Row | null).filter((x): x is Row => !!x && (x.status === "gepland" || x.status === "gegeven"))
       .map((x) => ({ lessonId: x.id as string, start: x.date as string })).sort((p, q) => p.start.localeCompare(q.start));
     const weeks: LessonSpan[] = starts.map((x, k) => ({ ...x, end: lessonEnd(starts[k + 1] ? [starts[k + 1]!.start] : [], x.start) }));
     const progress = ((a.progress ?? []) as Row[]).find((x) => x.student_id === studentId);
@@ -261,7 +261,7 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
     /** alle lessen van alle groepen van de leerling, nieuwste eerst (0014) */
     async list(studentId, limit = 50) {
       const { data, error } = await sb.from("group_members")
-        .select("lesson_groups(id, teacher_id, teacher_name, kind, lessons(*, homework(id, position, homework_done(student_id, done_at), assignments(*, recordings(*), progress(*), homework(lessons(id, date, status))))))")
+        .select("lesson_groups(id, teacher_id, teacher_name, kind, name, lessons(*, end_date, homework(id, position, homework_done(student_id, done_at), assignments(*, recordings(*), progress(*), homework(lessons(id, date, status))))))")
         .eq("student_id", studentId);
       if (error) throw error;
       const out: Homework[] = [];
@@ -269,11 +269,10 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
         const g = m.lesson_groups as Row | null;
         if (!g) continue;
         const lessons = (g.lessons ?? []) as Row[];
-        const dates = lessons.filter((l) => l.status !== "afgezegd").map((l) => l.date as string);
         for (const l of lessons) {
           out.push({
             id: l.id, groupId: g.id, studentId, givenBy: g.teacher_id, givenByRole: g.kind === "les" ? "leraar" : "ouder", givenByName: g.teacher_name,
-            createdAt: l.created_at, startDate: l.date, dueDate: lessonEnd(dates, l.date), status: l.status,
+            createdAt: l.created_at, startDate: l.date, dueDate: l.end_date as string, status: l.status, groupName: (g.name as string) ?? "",
             minutesPerDay: l.minutes_per_day, daysPerWeek: l.days_per_week, notes: l.notes ?? [], remark: l.remark ?? "", piece: "", pieceNote: "",
             tasks: ((l.homework ?? []) as Row[]).filter((h) => h.assignments).map((h) => rowToTask(h, l.id, studentId)).sort((a, b) => a.position - b.position),
           });
@@ -308,6 +307,13 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
       }
       return studentIds.length;
     },
+    async giveToGroup(groupId, which, input, tasks, carry) {
+      const { error } = await sb.rpc("give_homework", {
+        p_group: groupId, p_which: which, p_notes: input.notes, p_minutes: input.minutesPerDay, p_days: input.daysPerWeek,
+        p_remark: input.remark, p_tasks: tasks.map(taskToJson), p_carry: carry,
+      });
+      if (error) throw error;
+    },
     async update(lessonId, input, tasks) {
       const { error } = await sb.rpc("update_lesson", {
         p_lesson: lessonId, p_notes: input.notes, p_minutes: input.minutesPerDay, p_days: input.daysPerWeek,
@@ -334,7 +340,7 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
       return ((data ?? [])[0]?.weekday as number | undefined) ?? null;
     },
     async setSchedule(studentId, weekday) {
-      const { error } = await sb.rpc("set_schedule", { p_group: await ensureGroup(studentId), p_weekday: weekday });
+      const { error } = await sb.rpc("set_schedule", { p_group: await ensureGroup(studentId), p_weekday: weekday, p_start_time: null });
       if (error) throw error;
     },
     async setProgress(assignmentId, studentId, status, grade) {
@@ -497,7 +503,72 @@ export function createSupabaseNotenkraker(opts: SupabaseClientOptions): Notenkra
     async remove(id) { const { error } = await sb.from("songs").delete().eq("id", id); if (error) throw error; },
   };
 
-  return { auth, students, notes, rounds, practice, homework, books, files, bank, feedback, admin, songs };
+  // groepen van een leraar (AC-124 stap 2)
+  const rpc = async (fn: string, args: Record<string, unknown>) => { const { data, error } = await sb.rpc(fn, args); if (error) throw error; return data; };
+  const toLesson = (l: Row): GroupLesson => {
+    const items = ((l.homework ?? []) as Row[]).filter((h) => h.assignments).map((h) => {
+      const a = h.assignments as Row;
+      const starts = ((a.homework ?? []) as Row[]).map((x) => x.lessons as Row | null)
+        .filter((x): x is Row => !!x && (x.status === "gepland" || x.status === "gegeven")).map((x) => x.date as string).sort();
+      const recs = ((a.recordings ?? []) as Row[]).filter((r) => r.path);
+      return {
+        homeworkItemId: h.id, assignmentId: a.id, title: a.title, kind: a.kind, recording: a.recording === true, position: h.position,
+        week: starts.indexOf(l.date as string) + 1 || 1,
+        doneBy: ((h.homework_done ?? []) as Row[]).map((d) => d.student_id as string),
+        recordingsBy: recs.reduce<Record<string, number>>((m, r) => ({ ...m, [r.student_id as string]: (m[r.student_id as string] ?? 0) + 1 }), {}),
+      } satisfies GroupLessonItem;
+    }).sort((p, q) => p.position - q.position);
+    return {
+      id: l.id, date: l.date, startTime: l.start_time ? String(l.start_time).slice(0, 5) : null, status: l.status, reason: l.reason ?? "",
+      originalDate: l.original_date ?? null, endDate: l.end_date, notes: l.notes ?? [], minutesPerDay: l.minutes_per_day,
+      daysPerWeek: l.days_per_week, remark: l.remark ?? "", items,
+    };
+  };
+  const toGroup = (g: Row): LessonGroup => {
+    const members = ((g.group_members ?? []) as Row[]).map((m) => ({
+      studentId: m.student_id, name: (m.students as Row | null)?.name ?? "", joinedOn: m.joined_on, leftOn: m.left_on ?? null,
+    }));
+    const rule = ((g.schedule_rules ?? []) as Row[]).filter((r) => !r.valid_until).sort((p, q) => String(q.valid_from).localeCompare(String(p.valid_from)))[0];
+    return {
+      id: g.id, name: g.name ?? "", kind: g.kind, endedOn: g.ended_on ?? null, members,
+      displayName: g.name || members.find((m) => !m.leftOn)?.name || "",
+      schedule: { weekday: rule ? Number(rule.weekday) : null, startTime: rule?.start_time ? String(rule.start_time).slice(0, 5) : null },
+      lessons: ((g.lessons ?? []) as Row[]).map(toLesson).sort((p, q) => q.date.localeCompare(p.date)),
+    };
+  };
+  const GROUP_SELECT = "*, group_members(student_id, joined_on, left_on, students(name)), schedule_rules(weekday, start_time, valid_from, valid_until)";
+  const groups: GroupsApi = {
+    async mine() {
+      const { data: me } = await sb.auth.getUser();
+      const { data, error } = await sb.from("lesson_groups").select(`${GROUP_SELECT}, lessons(id, date, start_time, status, reason, original_date, end_date, notes, minutes_per_day, days_per_week, remark)`)
+        .eq("teacher_id", me.user?.id ?? "").eq("kind", "les").is("ended_on", null);
+      if (error) throw error;
+      return ((data ?? []) as Row[]).map(toGroup);
+    },
+    async get(groupId) {
+      const { data, error } = await sb.from("lesson_groups").select(`${GROUP_SELECT}, lessons(*, end_date, homework(id, position, homework_done(student_id), assignments(id, title, kind, recording, recordings(student_id, path), homework(lessons(date, status)))))`)
+        .eq("id", groupId).single();
+      if (error) throw error;
+      return toGroup(data as Row);
+    },
+    async create(name, studentIds, s) { return (await rpc("create_group", { p_name: name, p_students: studentIds, p_weekday: s.weekday, p_start_time: s.startTime })) as string; },
+    async rename(groupId, name) { await rpc("rename_group", { p_group: groupId, p_name: name }); },
+    async addMember(groupId, studentId) { await rpc("add_member", { p_group: groupId, p_student: studentId }); },
+    async removeMember(groupId, studentId) { await rpc("remove_member", { p_group: groupId, p_student: studentId }); },
+    async end(groupId) { await rpc("end_group", { p_group: groupId }); },
+    async setSchedule(groupId, s) { await rpc("set_schedule", { p_group: groupId, p_weekday: s.weekday, p_start_time: s.startTime }); },
+    async cancelLesson(groupId, date, reason) { await rpc("cancel_lesson", { p_group: groupId, p_date: date, p_reason: reason }); },
+    async moveLesson(groupId, date, newDate, time) { await rpc("move_lesson", { p_group: groupId, p_date: date, p_new_date: newDate, p_start_time: time }); },
+    async holidays() {
+      const { data, error } = await sb.from("holidays").select("*").order("start_date");
+      if (error) throw error;
+      return ((data ?? []) as Row[]).map((h) => ({ id: h.id, name: h.name, startDate: h.start_date, endDate: h.end_date }));
+    },
+    async addHoliday(name, from, to) { return (await rpc("add_holiday", { p_name: name, p_from: from, p_to: to })) as string; },
+    async removeHoliday(id) { await rpc("remove_holiday", { p_id: id }); },
+  };
+
+  return { auth, students, notes, rounds, practice, homework, groups, books, files, bank, feedback, admin, songs };
 }
 
 /** Lokale scorefunctie, voor optimistische UI en voor de Edge Function (zelfde core). */

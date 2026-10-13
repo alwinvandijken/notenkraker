@@ -1,5 +1,5 @@
 import { lessonPeriod } from "./homework.js";
-import { lessonEnd, weekOf } from "./lessons.js";
+import { isRunning, lessonEnd, weekOf } from "./lessons.js";
 import { ageProfile, scoreRound, type StatusMap } from "@notenkraker/core";
 import type { BankTask, Book, Homework, HomeworkTask, HomeworkTemplate, TaskInput, NotenkrakerClient, PracticeSession, Profile, Round, Song, Student, StudentNote } from "./types.js";
 
@@ -106,7 +106,7 @@ export function createLocalNotenkraker(storageKey = "notenkraker-local", opts: {
     homework: {
       /** zelfde gemaksvorm als de Supabase-client: één les per Homework; week en weeks uit de lessen van de leerling */
       async list(sid, limit = 50) {
-        const mine = (state.homework ?? []).filter((h) => h.studentId === sid && h.status !== "afgezegd");
+        const mine = (state.homework ?? []).filter((h) => h.studentId === sid && isRunning(h));
         return (state.homework ?? []).filter((h) => h.studentId === sid).map((h) => ({
           ...h,
           tasks: h.tasks.map((t) => {
@@ -120,12 +120,12 @@ export function createLocalNotenkraker(storageKey = "notenkraker-local", opts: {
         const today = now().slice(0, 10);
         for (const sid of ids) {
           const per = lessonPeriod(state.schedule?.[sid] ?? null, which);
-          let h = (state.homework ?? []).find((x) => x.studentId === sid && x.givenBy === profile.id && x.status !== "afgezegd" && x.dueDate >= today
+          let h = (state.homework ?? []).find((x) => x.studentId === sid && x.givenBy === profile.id && isRunning(x) && x.dueDate >= today
             && (which === "deze" ? x.startDate <= today : x.startDate > today));
           if (h) h.notes = [...new Set([...h.notes, ...input.notes])];
           else {
             h = { id: uid(), groupId: `lokaal-${sid}`, studentId: sid, givenBy: profile.id, givenByRole: profile.role === "leraar" ? "leraar" : "ouder",
-              givenByName: profile.displayName, createdAt: now(), startDate: per.start, dueDate: per.due, status: per.start <= today ? "gegeven" : "gepland",
+              givenByName: profile.displayName, groupName: "", createdAt: now(), startDate: per.start, dueDate: per.due, status: per.start <= today ? "gegeven" : "gepland",
               ...input, piece: "", pieceNote: "", tasks: [] };
             (state.homework ??= []).unshift(h);
           }
@@ -144,6 +144,7 @@ export function createLocalNotenkraker(storageKey = "notenkraker-local", opts: {
       async templates() { return [...(state.templates ?? [])].sort((a, b) => a.name.localeCompare(b.name)); },
       async saveTemplate(t) { const x = { ...t, id: uid() }; (state.templates ??= []).push(x); save(); return x; },
       async removeTemplate(id) { state.templates = (state.templates ?? []).filter((t) => t.id !== id); save(); },
+      async giveToGroup() { throw new Error("geen groepen zonder account"); },
       async update(lessonId, input, tasks) {
         const h = state.homework?.find((x) => x.id === lessonId);
         if (!h) throw new Error("onbekend huiswerk");
@@ -160,7 +161,7 @@ export function createLocalNotenkraker(storageKey = "notenkraker-local", opts: {
       async end(lessonId) {
         const h = state.homework?.find((x) => x.id === lessonId);
         if (!h) return;
-        h.status = "afgezegd"; save(); emit(h.studentId);
+        h.status = "gestopt"; save(); emit(h.studentId);
       },
       async submitRecording() { throw new Error("niet beschikbaar zonder backend"); },
       async reactToRecording() { throw new Error("niet beschikbaar zonder backend"); },
@@ -182,6 +183,22 @@ export function createLocalNotenkraker(storageKey = "notenkraker-local", opts: {
       async uploadRecording() { throw new Error("niet beschikbaar zonder backend"); },
       async removeRecording() { /* niets */ },
       async url() { throw new Error("niet beschikbaar zonder backend"); },
+    },
+    // groepen bestaan alleen met een account
+    groups: {
+      async mine() { return []; },
+      async holidays() { return []; },
+      async get() { throw new Error("geen groepen zonder account"); },
+      async create() { throw new Error("geen groepen zonder account"); },
+      async rename() { throw new Error("geen groepen zonder account"); },
+      async addMember() { throw new Error("geen groepen zonder account"); },
+      async removeMember() { throw new Error("geen groepen zonder account"); },
+      async end() { throw new Error("geen groepen zonder account"); },
+      async setSchedule() { throw new Error("geen groepen zonder account"); },
+      async cancelLesson() { throw new Error("geen groepen zonder account"); },
+      async moveLesson() { throw new Error("geen groepen zonder account"); },
+      async addHoliday() { throw new Error("geen groepen zonder account"); },
+      async removeHoliday() { throw new Error("geen groepen zonder account"); },
     },
     books: {
       async list() { return [...(state.books ?? [])].sort((a, b) => a.title.localeCompare(b.title)); },

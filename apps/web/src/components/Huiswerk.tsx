@@ -104,7 +104,7 @@ export function HuiswerkKaart({ item: { h, p }, instrumentId, mine, pupil, onEdi
       <div className="flex items-center gap-2.5 min-w-0">
         <GiverAvatar h={h} small />
         <span className="flex-1 min-w-0 text-xs font-semibold uppercase tracking-wider text-muted truncate">
-          {pupil ? `Huiswerk van ${h.givenByName}` : mine ? "Jij" : h.givenByName} · tot {dueLabel(h.dueDate)}
+          {pupil ? `Huiswerk van ${h.givenByName}` : h.groupName || (mine ? "Jij" : h.givenByName)} · tot {dueLabel(h.dueDate)}
         </span>
         {pupil ? null : <StatusBadge status={p.status} />}
       </div>

@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getInstrument } from "@notenkraker/instruments";
-import { dateKey, homeworkProgress, upcomingHomework } from "@notenkraker/client";
+import { dateKey, homeworkProgress, upcomingHomework, type LessonGroup } from "@notenkraker/client";
 import { client, hasBackend } from "@/lib/client";
 import { useApp } from "@/lib/store";
 import { KindUitnodigen } from "@/components/KindUitnodigen";
@@ -20,10 +20,19 @@ const tabFromHistory = (): Tab => (TABS.some(([t]) => t === window.history.state
  * notenspel; tik op een dag of sessie voor de dagpagina. Noten: wat het kind kent, in de les heeft en
  * nog lastig vindt.
  */
-export function KindPagina({ studentId, onPractice, onOpenDay, onGiveHomework, onEditHomework }: {
+export function KindPagina({ studentId, onPractice, onOpenDay, onGiveHomework, onEditHomework, onOpenGroup }: {
   studentId: string; onPractice(): void; onOpenDay(date: string): void; onGiveHomework(): void; onEditHomework(homeworkId: string): void;
+  /** leraar: naar een groep waarin het kind ook zit (AC-124 stap 2) */
+  onOpenGroup?(groupId: string): void;
 }) {
   const { profile, loadStudents } = useApp();
+  /** groepen (met naam) van deze leraar waarin het kind nu zit */
+  const [groepen, setGroepen] = useState<LessonGroup[]>([]);
+  useEffect(() => {
+    if (profile?.role !== "leraar") return;
+    void client.groups.mine().then((mine) => setGroepen(mine.filter((g) => g.name && g.members.some((m) => m.studentId === studentId && !m.leftOn))))
+      .catch(() => setGroepen([]));
+  }, [profile?.role, studentId]);
   const row = useChildRows()?.find((r) => r.student.id === studentId);
   const [invite, setInvite] = useState<string | null>(null);
   /** direct tonen wat je aanklikt; daarna komt het via loadStudents uit de database */
@@ -69,6 +78,9 @@ export function KindPagina({ studentId, onPractice, onOpenDay, onGiveHomework, o
         )}
       </section>
 
+      {groepen.map((g) => (
+        <button key={g.id} type="button" onClick={() => onOpenGroup?.(g.id)} className="self-start text-sm font-semibold text-kent bg-transparent cursor-pointer p-0">Ook in: {g.name} →</button>
+      ))}
       <div><Segmented value={tab} onChange={setTab} label="Tabbladen" options={TABS} /></div>
 
       {tab === "huiswerk" && (
@@ -77,7 +89,8 @@ export function KindPagina({ studentId, onPractice, onOpenDay, onGiveHomework, o
         <div className="grid gap-4 lg:grid-cols-2 min-w-0 items-start -mt-2">
           {row.homework.map((x) => (
             // aanpassen verandert dit huiswerk zelf: vinkjes, opnames en voortgang blijven (0013)
-            <HuiswerkKaart key={x.h.id} item={x} instrumentId={student.instrumentId} mine={x.h.givenBy === profile?.id} onEdit={() => onEditHomework(x.h.id)} />
+            // groepshuiswerk pas je aan op de groepspagina (stap 2): hier alleen bekijken
+            <HuiswerkKaart key={x.h.id} item={x} instrumentId={student.instrumentId} mine={x.h.givenBy === profile?.id} onEdit={x.h.groupName ? undefined : () => onEditHomework(x.h.id)} />
           ))}
           {row.homework.length === 0 && (
             <p className="text-muted m-0">{canGive && !mine ? `Nog geen huiswerk. Met "Huiswerk geven" geef je ${student.name} noten, opdrachten en een doel per dag.` : "Nog geen huiswerk."}</p>
@@ -89,7 +102,7 @@ export function KindPagina({ studentId, onPractice, onOpenDay, onGiveHomework, o
             <div className="grid gap-4 lg:grid-cols-2 min-w-0 items-start -mt-2">
               {upcoming.map((h) => (
                 <HuiswerkKaart key={h.id} item={{ h, p: homeworkProgress(h, { rounds: row.rounds, sessions: row.sessions }) }} instrumentId={student.instrumentId}
-                  mine={h.givenBy === profile?.id} onEdit={() => onEditHomework(h.id)} />
+                  mine={h.givenBy === profile?.id} onEdit={h.groupName ? undefined : () => onEditHomework(h.id)} />
               ))}
             </div>
           </>

@@ -112,8 +112,10 @@ export interface Homework {
   /** de lesdatum; het huiswerk loopt t/m dueDate (de dag vóór de volgende les); de leerling ziet het pas vanaf startDate */
   startDate: string;
   dueDate: string;
-  /** afgezegd = gestopt; telt dan niet als lopende les */
-  status: "gepland" | "gegeven" | "afgezegd";
+  /** afgezegd = de les gaat niet door, gestopt = huiswerk gestopt; beide tellen niet als lopende les */
+  status: LessonStatus;
+  /** naam van de lesgroep; leeg bij privéles en thuis */
+  groupName: string;
   minutesPerDay: number;
   daysPerWeek: number;
   notes: NoteId[];
@@ -123,6 +125,31 @@ export interface Homework {
   /** de opdrachten die in deze les als huiswerk staan */
   tasks: HomeworkTask[];
 }
+
+export type LessonStatus = "gepland" | "gegeven" | "afgezegd" | "gestopt";
+
+/** lesgroepen beheren (AC-124 stap 2): groepen, rooster, lessen en vakanties van een leraar */
+export interface GroupMember { studentId: string; name: string; joinedOn: string; leftOn: string | null }
+/** weekday 0 = zondag … 6 = zaterdag; startTime "16:30" */
+export interface Schedule { weekday: number | null; startTime: string | null }
+export interface Holiday { id: string; name: string; startDate: string; endDate: string }
+/** een opdracht in een groepsles, met per leerling vinkje en aantal opnames */
+export interface GroupLessonItem {
+  homeworkItemId: string; assignmentId: string; title: string; kind: TaskKind; recording: boolean; position: number; week: number;
+  doneBy: string[]; recordingsBy: Record<string, number>;
+}
+export interface GroupLesson {
+  id: string; date: string; startTime: string | null; status: LessonStatus; reason: string; originalDate: string | null; endDate: string;
+  notes: NoteId[]; minutesPerDay: number; daysPerWeek: number; remark: string; items: GroupLessonItem[];
+}
+/** displayName: de naam, of bij een privéles de naam van de leerling */
+export interface LessonGroup {
+  id: string; name: string; displayName: string; kind: "les" | "thuis"; endedOn: string | null;
+  members: GroupMember[]; schedule: Schedule; lessons: GroupLesson[];
+}
+export type OverviewStatus = "gegeven" | "gepland" | "afgezegd" | "gestopt" | "vakantie";
+/** een regel in het lessenoverzicht: een echte les of een roosterdag (lesson null) */
+export interface OverviewRow { date: string; time: string | null; status: OverviewStatus; lesson: GroupLesson | null; label: string }
 
 /** een les waarin een opdracht als huiswerk stond (voor "2e week" en opnames per week) */
 export interface LessonSpan { lessonId: string; start: string; end: string }
@@ -288,7 +315,9 @@ export interface HomeworkApi {
   give(studentIds: string[], which: Lesson, input: LessonInput, tasks: TaskInput[], carry?: Record<string, string[]>): Promise<number>;
   /** één les aanpassen zonder opnieuw te beginnen: opdrachten met id houden vinkje en opnames */
   update(lessonId: string, input: LessonInput & { startDate: string }, tasks: TaskInput[]): Promise<void>;
-  /** huiswerk stoppen: de les wordt afgezegd */
+  /** groepshuiswerk: één keer voor de hele groep (alleen leraar) */
+  giveToGroup(groupId: string, which: Lesson, input: LessonInput, tasks: TaskInput[], carry: string[]): Promise<void>;
+  /** huiswerk stoppen: de les krijgt status gestopt */
   end(lessonId: string): Promise<void>;
   /** afvinken in deze les, voor één leerling (de leerling zelf, of ouder/leraar namens hem) */
   setTaskDone(homeworkItemId: string, studentId: string, done: boolean): Promise<void>;
@@ -331,6 +360,26 @@ export interface BankApi {
   assign(studentIds: string[], bankIds: string[], dueDate: string): Promise<number>;
 }
 
+/** groepen van een leraar (AC-124 stap 2) */
+export interface GroupsApi {
+  /** mijn lesgroepen (ook privélessen), zonder opgeheven groepen */
+  mine(): Promise<LessonGroup[]>;
+  /** één groep met leden (ook vertrokken) en lessen met huiswerk */
+  get(groupId: string): Promise<LessonGroup>;
+  create(name: string, studentIds: string[], schedule: Schedule): Promise<string>;
+  rename(groupId: string, name: string): Promise<void>;
+  addMember(groupId: string, studentId: string): Promise<void>;
+  removeMember(groupId: string, studentId: string): Promise<void>;
+  end(groupId: string): Promise<void>;
+  setSchedule(groupId: string, schedule: Schedule): Promise<void>;
+  /** afzeggen: klaargezet huiswerk schuift naar de eerstvolgende les die doorgaat */
+  cancelLesson(groupId: string, date: string, reason: string): Promise<void>;
+  moveLesson(groupId: string, date: string, newDate: string, time: string | null): Promise<void>;
+  holidays(): Promise<Holiday[]>;
+  addHoliday(name: string, from: string, to: string): Promise<string>;
+  removeHoliday(id: string): Promise<void>;
+}
+
 export interface FeedbackApi {
   /** alleen als het profiel canGiveFeedback heeft */
   send(input: FeedbackInput): Promise<void>;
@@ -362,6 +411,7 @@ export interface NotenkrakerClient {
   rounds: RoundsApi;
   practice: PracticeApi;
   homework: HomeworkApi;
+  groups: GroupsApi;
   books: BooksApi;
   files: FilesApi;
   bank: BankApi;

@@ -4,7 +4,7 @@
  * huiswerk gaat. Vink leerlingen aan om ze samen huiswerk te geven of hun vorige huiswerk te herhalen.
  */
 import { useMemo, useState } from "react";
-import { dateKey, dueLabel, STATUS_LABEL, worstStatus } from "@notenkraker/client";
+import { dateKey, dueLabel, isRunning, STATUS_LABEL, worstStatus } from "@notenkraker/client";
 import { client } from "@/lib/client";
 import { useApp } from "@/lib/store";
 import { filterRows, sortRows, type SortKey, type StatusFilter, type TableRow } from "@/lib/leerlingen";
@@ -44,17 +44,25 @@ export function LeerlingenTabel({ rows, onOpenChild, onGiveMany, onChanged }: {
   const maxWeek = Math.max(1, ...table.map((r) => r.weekMinutes));
   const allShown = shown.length > 0 && shown.every((r) => picked.has(r.id));
 
-  /** per leerling mijn laatste les opnieuw: de volgende les, met dezelfde opdrachten die meegaan (AC-124) */
+  /**
+   * per leerling mijn laatste privéles opnieuw: de volgende les, met dezelfde opdrachten die meegaan (AC-124).
+   * Stond de volgende les al klaar, dan komen de opdrachten erbij; dat staat er dan ook (stap 2).
+   */
   const repeat = async () => {
-    let done = 0, none = 0;
+    const today = dateKey(new Date());
+    const said: string[] = [];
+    let none = 0;
     for (const id of picked) {
-      const prev = rows.find((r) => r.student.id === id)?.homeworkAll.find((h) => h.givenBy === profile?.id && h.status !== "afgezegd");
-      if (!prev) { none++; continue; }
+      const row = rows.find((r) => r.student.id === id);
+      const mine = (row?.homeworkAll ?? []).filter((h) => h.givenBy === profile?.id && !h.groupName && isRunning(h));
+      const prev = mine.find((h) => h.startDate <= today) ?? mine[0];
+      if (!row || !prev) { none++; continue; }
+      const ready = mine.some((h) => h.startDate > today);
       await client.homework.give([id], "volgende", { notes: prev.notes, minutesPerDay: prev.minutesPerDay, daysPerWeek: prev.daysPerWeek, remark: prev.remark },
         [], { [id]: prev.tasks.map((t) => t.id) });
-      done++;
+      said.push(`${row.student.name}: ${ready ? "opdrachten erbij gezet in de volgende les" : "volgende les klaargezet"}`);
     }
-    setNote(`${done} ${done === 1 ? "leerling heeft" : "leerlingen hebben"} het vorige huiswerk opnieuw gekregen${none ? `; ${none} had nog geen huiswerk van jou` : ""}.`);
+    setNote([...said, none ? `${none} had nog geen huiswerk van jou` : ""].filter(Boolean).join(" · ") + ".");
     setPicked(new Set()); onChanged();
   };
 

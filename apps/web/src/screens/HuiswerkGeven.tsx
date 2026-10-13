@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import clsx from "clsx";
 import { instrumentNotes, type NoteId, type StatusMap } from "@notenkraker/core";
 import { getInstrument } from "@notenkraker/instruments";
-import { dateKey, dueLabel, lessonPeriod, type BankTask, type Book, type Homework, type HomeworkTemplate, type Lesson } from "@notenkraker/client";
+import { dateKey, dueLabel, isRunning, plannedLesson, type BankTask, type Book, type GroupLesson, type Holiday, type Homework, type HomeworkTask, type HomeworkTemplate, type Lesson, type LessonGroup } from "@notenkraker/client";
 import { client } from "@/lib/client";
 import { useApp } from "@/lib/store";
 import { useWide } from "@/lib/useWide";
@@ -20,6 +20,8 @@ import { BankLijst, draftFromBank, draftFromTask, newDraft, OpdrachtenEditor, to
  *   blijft, houdt zijn vinkje en opnames. Stoppen zet de einddatum op gisteren.
  * - Een les loopt van de vaste lesdag van de leerling tot de dag vóór de volgende lesdag.
  *
+ * - Groep (`groupId`, AC-124 stap 2): één keer voor de hele groep; iedereen ziet dezelfde opdrachten.
+ *
  * Huiswerk geven gebeurt vooral op de laptop: vanaf 1024 breed staat alles op één pagina naast elkaar
  * (Wat · Bibliotheek · Doel en versturen); smaller in drie stappen.
  */
@@ -28,11 +30,25 @@ const STAPPEN: Array<[Stap, string]> = [[1, "Wat"], [2, "Doel"], [3, "Versturen"
 const WEEKDAGEN = ["zondag", "maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag"];
 const kort = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" });
 
-export function HuiswerkGeven({ studentIds, homeworkId, onDone }: { studentIds: string[]; homeworkId?: string; onDone(): void }) {
+/** de velden van een opdracht die het blok "Loopt nog" en het overzicht lezen */
+type LopendeTaak = Pick<HomeworkTask, "id" | "kind" | "title" | "week" | "recordings" | "doneAt">;
+/** een groepsles als "lopend" huiswerk: de opdrachten zonder vinkjes en opnames per leerling */
+function looptNogUitGroep(l: GroupLesson): { tasks: LopendeTaak[] } {
+  return { tasks: l.items.map((it) => ({ id: it.assignmentId, kind: it.kind, title: it.title, week: it.week, recordings: [], doneAt: null })) };
+}
+
+export function HuiswerkGeven({ studentIds, homeworkId, groupId, onDone }: { studentIds: string[]; homeworkId?: string; groupId?: string; onDone(): void }) {
   const { profile, students } = useApp();
-  const chosen = students.filter((s) => studentIds.includes(s.id));
+  /** groepshuiswerk: de groep met leden en lessen */
+  const [group, setGroup] = useState<LessonGroup | null>(null);
+  useEffect(() => { if (groupId) void client.groups.get(groupId).then(setGroup).catch(() => setGroup(null)); }, [groupId]);
+  /** vakanties van de leraar: de volgende les springt eroverheen */
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
+  useEffect(() => { if (profile?.role === "leraar") void client.groups.holidays().then(setHolidays).catch(() => setHolidays([])); }, [profile?.role]);
+  const memberIds = group ? group.members.filter((m) => !m.leftOn).map((m) => m.studentId) : studentIds;
+  const chosen = students.filter((s) => memberIds.includes(s.id));
   const student = chosen[0];
-  const studentId = studentIds.length === 1 ? studentIds[0]! : null;
+  const studentId = !groupId && studentIds.length === 1 ? studentIds[0]! : null;
   const labels = useNoteLabels(student?.instrumentId ?? "altsax");
   const wide = useWide("(min-width: 1024px)");
   const [statuses, setStatuses] = useState<StatusMap>({});
@@ -78,21 +94,36 @@ export function HuiswerkGeven({ studentIds, homeworkId, onDone }: { studentIds: 
     }).catch(() => { /* niets om in te vullen */ });
   }, [studentId, homeworkId]);
 
-  if (!student) return <p className="text-muted">Laden…</p>;
+  if (!student || (groupId && !group)) return <p className="text-muted">Laden…</p>;
   const editing = homeworkId ? list.find((h) => h.id === homeworkId) : undefined;
   if (homeworkId && !editing) return <p className="text-muted">Laden…</p>;
-  const who = studentId ? student.name : `${chosen.length} leerlingen`;
+  const who = group ? group.displayName : studentId ? student.name : `${chosen.length} leerlingen`;
   const today = dateKey(new Date());
-  const period = lessonPeriod(weekday, lesson);
+  /** mijn privélessen met deze leerling, als lessen: afgezegde lessen tellen dan ook mee */
+  const privateLessons: GroupLesson[] = list.filter((h) => h.givenBy === profile?.id && !h.groupName).map((h) => ({
+    id: h.id, date: h.startDate, startTime: null, status: h.status, reason: "", originalDate: null, endDate: h.dueDate,
+    notes: h.notes, minutesPerDay: h.minutesPerDay, daysPerWeek: h.daysPerWeek, remark: h.remark, items: [],
+  }));
+  /** de les en periode zoals de database ze kiest (vakanties, afgezegde en verzette lessen) */
+  const plan = (which: Lesson) => group ? plannedLesson(group.lessons, group.schedule, holidays, which, today)
+    : plannedLesson(privateLessons, { weekday, startTime: null }, holidays, which, today);
+  /** de data van de les zijn bekend bij één leerling of een groep */
+  const dated = !!studentId || !!group;
+  const period = plan(lesson);
   /** al huiswerk van mij voor de gekozen les: dan komen de opdrachten erbij */
   /** mijn lopende les met deze leerling: daaruit kun je opdrachten meenemen naar de volgende les */
-  const lopend = !editing && studentId && lesson === "volgende"
-    ? list.find((h) => h.givenBy === profile?.id && h.status !== "afgezegd" && h.startDate <= today && h.dueDate >= today) : undefined;
+  const lopendeGroepsles = group && lesson === "volgende" ? group.lessons.find((l) => isRunning(l) && l.date <= today && l.endDate >= today) : undefined;
+  const lopend: { tasks: LopendeTaak[] } | undefined = lopendeGroepsles ? looptNogUitGroep(lopendeGroepsles) : !editing && studentId && lesson === "volgende"
+    ? list.find((h) => h.givenBy === profile?.id && !h.groupName && isRunning(h) && h.startDate <= today && h.dueDate >= today) : undefined;
   const meegaand = lopend ? lopend.tasks.filter((t) => carry.includes(t.id)) : [];
-  const existing = !editing && studentId
-    ? list.find((h) => h.givenBy === profile?.id && h.status !== "afgezegd" && h.dueDate >= today && (lesson === "deze" ? h.startDate <= today : h.startDate > today))
+  // een les zonder opdrachten (bijv. net verzet) is nog leeg: dan kies je het doel zelf
+  const bestaand = group && period.lesson && period.lesson.items.length > 0 ? period.lesson : undefined;
+  const existing: { minutesPerDay: number; daysPerWeek: number; dueDate: string } | undefined = bestaand
+    ? { minutesPerDay: bestaand.minutesPerDay, daysPerWeek: bestaand.daysPerWeek, dueDate: bestaand.endDate }
+    : !editing && studentId
+    ? list.find((h) => h.givenBy === profile?.id && !h.groupName && isRunning(h) && h.dueDate >= today && (lesson === "deze" ? h.startDate <= today : h.startDate > today))
     : undefined;
-  const previous = list.find((h) => h.givenBy === profile?.id);
+  const previous = list.find((h) => h.givenBy === profile?.id && !h.groupName);
   const instrument = getInstrument(student.instrumentId);
   const all = instrumentNotes(instrument);
   const toggle = (n: NoteId) => setNotes((cur) => (cur.includes(n) ? cur.filter((x) => x !== n) : all.filter((x) => x === n || cur.includes(x))));
@@ -110,6 +141,7 @@ export function HuiswerkGeven({ studentIds, homeworkId, onDone }: { studentIds: 
         ? { ...t, bankId: (await client.bank.save({ ...toInput(t), categories: t.categories })).id } : t)));
       const input = { notes, minutesPerDay: minutes, daysPerWeek: days, remark: remark.trim() };
       if (editing) await client.homework.update(editing.id, { ...input, startDate: start }, withBank.map(toInput));
+      else if (groupId) await client.homework.giveToGroup(groupId, lesson, input, withBank.map(toInput), meegaand.map((t) => t.id));
       else await client.homework.give(studentIds, lesson, input, withBank.map(toInput), studentId ? { [studentId]: meegaand.map((t) => t.id) } : {});
       if (asTemplate) {
         const name = templateName.trim() || `${filled[0]?.title.trim() || "Huiswerk"}, ${minutes} min`;
@@ -132,13 +164,13 @@ export function HuiswerkGeven({ studentIds, homeworkId, onDone }: { studentIds: 
     <section aria-label="Voor welke les" className="rounded-3xl bg-surface p-4 flex flex-col gap-2.5">
       <Caption>Voor welke les</Caption>
       <Segmented value={lesson} onChange={setLesson} label="Les" options={(["deze", "volgende"] as Lesson[]).map((l) => {
-        const p = lessonPeriod(weekday, l);
-        return [l, `${l === "deze" ? "Deze les" : "Volgende les"}${studentId ? ` · ${kort(p.start)} – ${kort(p.due)}` : ""}`] as [Lesson, string];
+        const p = plan(l);
+        return [l, `${l === "deze" ? "Deze les" : "Volgende les"}${dated ? ` · ${kort(p.start)} – ${kort(p.due)}` : ""}`] as [Lesson, string];
       })} />
       {studentId && <Lesdag key={String(weekday)} studentId={studentId} name={student.name} weekday={weekday} onSaved={setWeekday} />}
       {existing
         ? <p className="text-sm m-0 rounded-xl bg-ok/10 px-3 py-2">Je hebt voor deze les al huiswerk gegeven. Wat je hier toevoegt, komt erbij; het doel, de vinkjes en de opnames blijven zoals ze zijn.</p>
-        : lesson === "volgende" && <p className="text-sm text-muted m-0">{studentId ? student.name : "De leerling"} ziet dit huiswerk vanaf {studentId ? kort(period.start) : "de volgende lesdag"}.</p>}
+        : lesson === "volgende" && <p className="text-sm text-muted m-0">{group ? "De groep" : studentId ? student.name : "De leerling"} ziet dit huiswerk vanaf {dated ? kort(period.start) : "de volgende lesdag"}.</p>}
     </section>
   );
 
@@ -219,7 +251,7 @@ export function HuiswerkGeven({ studentIds, homeworkId, onDone }: { studentIds: 
     <section className="rounded-3xl bg-surface p-4 flex flex-col gap-1.5">
       <Caption>Doel</Caption>
       <span className="text-sm">{existing.minutesPerDay} min per dag, {existing.daysPerWeek} {existing.daysPerWeek === 1 ? "dag" : "dagen"} per week · tot {dueLabel(existing.dueDate)}</span>
-      <span className="text-xs text-muted">Het doel van het lopende huiswerk blijft. Wil je het veranderen? Pas dat huiswerk aan op de pagina van {student.name}.</span>
+      <span className="text-xs text-muted">Het doel van het lopende huiswerk blijft.{group ? "" : ` Wil je het veranderen? Pas dat huiswerk aan op de pagina van ${student.name}.`}</span>
     </section>
   ) : (
     <>
@@ -236,7 +268,7 @@ export function HuiswerkGeven({ studentIds, homeworkId, onDone }: { studentIds: 
             <span className="text-xs text-muted">Het huiswerk loopt tot de dag vóór de volgende les{editing ? ` (nu tot ${dueLabel(editing.dueDate)})` : ""}.</span>
           </>
         ) : (
-          <span className="text-sm">Loopt van <b>{studentId ? kort(period.start) : "de lesdag"}</b> tot en met <b>{studentId ? kort(period.due) : "de dag voor de volgende les"}</b></span>
+          <span className="text-sm">Loopt van <b>{dated ? kort(period.start) : "de lesdag"}</b> tot en met <b>{dated ? kort(period.due) : "de dag voor de volgende les"}</b></span>
         )}
       </section>
     </>
@@ -256,7 +288,7 @@ export function HuiswerkGeven({ studentIds, homeworkId, onDone }: { studentIds: 
         <section className="rounded-3xl bg-surface p-4 flex flex-col gap-2.5">
           <Caption>Opmerking</Caption>
           <textarea value={remark} onChange={(e) => setRemark(e.target.value)} rows={3} aria-label="Opmerking" maxLength={1000}
-            placeholder={`Iets voor ${studentId ? student.name : "de leerlingen"}, bijv. “Let op je ademhaling”`} className={clsx(field, "resize-y")} />
+            placeholder={`Iets voor ${studentId ? student.name : group ? "de groep" : "de leerlingen"}, bijv. “Let op je ademhaling”`} className={clsx(field, "resize-y")} />
         </section>
       )}
       <section className="rounded-3xl bg-surface p-4 flex flex-col gap-2.5">
@@ -312,7 +344,7 @@ export function HuiswerkGeven({ studentIds, homeworkId, onDone }: { studentIds: 
           </li>
         ))}
       </ol>
-      {!studentId && <p className="m-0 text-muted">Voor {chosen.map((c) => c.name).join(", ")}. Iedereen krijgt een eigen kopie.</p>}
+      {!studentId && <p className="m-0 text-muted">Voor {chosen.map((c) => c.name).join(", ")}. {group ? "Iedereen ziet dezelfde opdrachten; je ziet per leerling wie klaar is." : "Iedereen krijgt een eigen kopie."}</p>}
       {stap === 1 && <>{lesKeuze}{looptNog}{wat}<Chip primary onClick={() => naar(2)} className="py-3 text-lg">Volgende: doel</Chip></>}
       {stap === 2 && (
         <>{doel}

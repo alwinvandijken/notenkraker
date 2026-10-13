@@ -10,7 +10,7 @@ const task = (t: Partial<HomeworkTask>): HomeworkTask => ({
 });
 const rec = (submittedAt: string): TaskRecording => ({ id: submittedAt, taskId: "t", path: "p", submittedAt, deletedAt: null, reactionEmoji: "", reaction: "", reactedAt: null });
 const hw = (h: Partial<Homework>): Homework => ({
-  id: "h", groupId: "g", status: "gegeven", studentId: "s", givenBy: "u", givenByRole: "leraar", givenByName: "Marieke", createdAt: "2026-10-10T10:00:00Z", startDate: "2026-10-10", dueDate: "2026-10-17",
+  id: "h", groupId: "g", groupName: "", status: "gegeven", studentId: "s", givenBy: "u", givenByRole: "leraar", givenByName: "Marieke", createdAt: "2026-10-10T10:00:00Z", startDate: "2026-10-10", dueDate: "2026-10-17",
   minutesPerDay: 15, daysPerWeek: 5, notes: [], piece: "", pieceNote: "", remark: "", tasks: [], ...h,
 });
 
@@ -28,9 +28,9 @@ describe("planVandaag", () => {
     expect(plan.today).toBe(6);
     expect(plan.givers).toEqual(["Marieke", "papa"]);
     expect(plan.due).toBe("2026-10-15");
-    expect(plan.rows.map((r) => r.kind)).toEqual(["minuten", "opname", "opdracht"]);
+    expect(plan.rows.map((r) => r.kind === "groep" ? r.title : r.kind)).toEqual(["minuten", "Privéles", "opname", "Van papa", "opdracht"]);
     expect(plan.rows[0]).toMatchObject({ kind: "minuten", goal: 15, notes: ["g4", "a4"], done: false });
-    expect(plan.rows[2]).toMatchObject({ done: true });
+    expect(plan.rows[4]).toMatchObject({ done: true });
   });
 
   it("de knop start de eerstvolgende open taak: eerst opnemen", () => {
@@ -92,5 +92,28 @@ describe("todayGoal", () => {
   it("met huiswerk: het hoogste doel en de minuten van het huiswerk", () => {
     expect(todayGoal([{ h: hw({ minutesPerDay: 15 }), p: progress(6) }, { h: hw({ minutesPerDay: 10 }), p: progress(6) }], { summaryToday: 5, dailyGoal: 10 }))
       .toEqual({ today: 6, goal: 15 });
+  });
+});
+
+describe("planVandaag met meer groepen", () => {
+  const item = (h: Partial<Homework>) => ({ h: hw(h), p: progress(0) });
+  it("een kopje per les als er meer dan één lopende les is", () => {
+    const plan = planVandaag([
+      item({ id: "a", groupName: "", givenByRole: "leraar", minutesPerDay: 10, dueDate: "2026-10-19" }),
+      item({ id: "b", groupName: "Samenspel zaterdag", givenByRole: "leraar", minutesPerDay: 10, dueDate: "2026-10-30" }),
+    ], { mayRecord: true })!;
+    expect(plan.rows.filter((r) => r.kind === "groep").map((r) => r.kind === "groep" && r.title)).toEqual(["Privéles", "Samenspel zaterdag"]);
+  });
+  it("één les: geen kopje", () => {
+    const plan = planVandaag([item({ id: "a", groupName: "" })], { mayRecord: true })!;
+    expect(plan.rows.some((r) => r.kind === "groep")).toBe(false);
+  });
+  it("lessen tellen op, de ouder telt als hoogste", () => {
+    const plan = planVandaag([
+      item({ id: "a", givenByRole: "leraar", minutesPerDay: 10 }),
+      item({ id: "b", givenByRole: "leraar", minutesPerDay: 15 }),
+      item({ id: "c", givenByRole: "ouder", minutesPerDay: 20 }),
+    ], { mayRecord: true })!;
+    expect(plan.goal).toBe(25);
   });
 });

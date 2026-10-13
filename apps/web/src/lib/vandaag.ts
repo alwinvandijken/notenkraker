@@ -14,12 +14,14 @@ export type VandaagRow =
   /** stuk om op te nemen en in te sturen */
   | { kind: "opname"; key: string; task: HomeworkTask; done: boolean }
   /** stuk om te spelen (een opdracht uit de bank, of het oude veld "stuk" van het huiswerk) */
-  | { kind: "stuk"; key: string; title: string; detail: string; task?: HomeworkTask };
+  | { kind: "stuk"; key: string; title: string; detail: string; task?: HomeworkTask }
+  /** kopje boven de taken van een les, als er meer dan één lopende les is (stap 2) */
+  | { kind: "groep"; key: string; title: string; due: string };
 
 export type VandaagNext = { kind: "opname"; task: HomeworkTask } | { kind: "spelen" };
 
 export interface VandaagPlan {
-  /** minuten per dag: het hoogste doel, want dezelfde minuten tellen voor elk huiswerk */
+  /** minuten per dag: de lessen opgeteld; een ouder geeft een doel voor alles samen (het hoogste telt) */
   goal: number;
   today: number;
   givers: string[];
@@ -36,7 +38,10 @@ export interface VandaagPlan {
 export function planVandaag(items: CurrentHomework[], { mayRecord }: { mayRecord: boolean }): VandaagPlan | null {
   if (items.length === 0) return null;
   const main = items.reduce((a, b) => (b.h.minutesPerDay > a.h.minutesPerDay ? b : a));
-  const goal = main.h.minutesPerDay;
+  // lessen (leraar) tellen op; een ouder geeft een doel voor alles samen: het hoogste telt (stap 2, besluit 8)
+  const lesGoal = items.filter((x) => x.h.givenByRole === "leraar").reduce((s, x) => s + x.h.minutesPerDay, 0);
+  const homeGoal = Math.max(0, ...items.filter((x) => x.h.givenByRole !== "leraar").map((x) => x.h.minutesPerDay));
+  const goal = Math.max(lesGoal, homeGoal);
   const today = Math.max(...items.map((x) => x.p.todayMinutes));
   const notes = [...new Set(items.flatMap((x) => x.h.notes))];
 
@@ -44,6 +49,7 @@ export function planVandaag(items: CurrentHomework[], { mayRecord }: { mayRecord
     { kind: "minuten", key: "minuten", goal, today, doneDays: main.p.doneDays, goalDays: main.p.goalDays, notes, done: today >= goal },
   ];
   for (const { h } of items) {
+    if (items.length > 1) rows.push({ kind: "groep", key: `${h.id}-kop`, title: h.groupName || (h.givenByRole === "leraar" ? "Privéles" : `Van ${h.givenByName}`), due: h.dueDate });
     if (h.piece) rows.push({ kind: "stuk", key: `${h.id}-stuk`, title: h.piece, detail: h.pieceNote });
     for (const t of h.tasks) {
       if (t.recording) rows.push({ kind: "opname", key: t.id, task: t, done: recordedThisLesson(t) });
@@ -59,8 +65,8 @@ export function planVandaag(items: CurrentHomework[], { mayRecord }: { mayRecord
     goal, today, rows, next,
     givers: [...new Set(items.map((x) => x.h.givenByName))],
     due: items.map((x) => x.h.dueDate).sort()[0]!,
-    started: today > 0 || rows.some((r) => r.kind !== "minuten" && r.kind !== "stuk" && r.done),
-    allDone: rows.every((r) => r.kind === "stuk" || r.done),
+    started: today > 0 || rows.some((r) => (r.kind === "opdracht" || r.kind === "opname") && r.done),
+    allDone: rows.every((r) => r.kind === "stuk" || r.kind === "groep" || r.done),
   };
 }
 
