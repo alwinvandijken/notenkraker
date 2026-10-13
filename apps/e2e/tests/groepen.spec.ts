@@ -106,6 +106,10 @@ test("de leraar ziet op de kindpagina in welke groep het kind ook zit", async ({
   await page.getByRole("group", { name: "Weergave leerlingen" }).getByRole("button", { name: "Leerlingen" }).click();
   await page.getByRole("button", { name: "Noor: details" }).click();
   await expect(page.getByRole("button", { name: "Ook in: Samenspel →" })).toBeVisible();
+  // groepshuiswerk pas je aan op de groepspagina, niet op de kindpagina
+  await expect(page.getByRole("region", { name: /Huiswerk van/ })).toHaveCount(2);
+  await expect(page.getByRole("button", { name: "Aanpassen →" })).toHaveCount(1);
+  await expect(page.getByText(/^Samenspel · tot/)).toBeVisible();
   // Sem heeft alleen groepshuiswerk: zijn privéles is nog leeg (groep en privé gescheiden)
   await kiesInMenuTerug(page);
   await page.getByRole("button", { name: "Sem: details" }).click();
@@ -140,6 +144,11 @@ test("vakantie: de volgende les springt eroverheen", async ({ page, admin, maakG
   await page.getByRole("button", { name: "← Groepen" }).click();
   const volgende = new Date(); volgende.setDate(volgende.getDate() + 14);
   await expect(page.getByRole("button", { name: /Trio/ })).toContainText(`volgende: ${volgende.toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" })}`);
+  // huiswerk voor de volgende les gaat ook naar de les na de vakantie
+  await page.getByRole("button", { name: /Trio/ }).click();
+  await page.getByRole("button", { name: "Huiswerk geven" }).click();
+  await expect(page.getByRole("group", { name: "Les" }).getByRole("button", { name: /^Volgende les/ }))
+    .toContainText(volgende.toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" }));
 });
 
 test("Herhalen meldt of de volgende les al klaarstond", async ({ page, admin, maakGebruiker, maakKind }, testInfo) => {

@@ -89,7 +89,8 @@ export function KindPagina({ studentId, onPractice, onOpenDay, onGiveHomework, o
         <div className="grid gap-4 lg:grid-cols-2 min-w-0 items-start -mt-2">
           {row.homework.map((x) => (
             // aanpassen verandert dit huiswerk zelf: vinkjes, opnames en voortgang blijven (0013)
-            <HuiswerkKaart key={x.h.id} item={x} instrumentId={student.instrumentId} mine={x.h.givenBy === profile?.id} onEdit={() => onEditHomework(x.h.id)} />
+            // groepshuiswerk pas je aan op de groepspagina (stap 2): hier alleen bekijken
+            <HuiswerkKaart key={x.h.id} item={x} instrumentId={student.instrumentId} mine={x.h.givenBy === profile?.id} onEdit={x.h.groupName ? undefined : () => onEditHomework(x.h.id)} />
           ))}
           {row.homework.length === 0 && (
             <p className="text-muted m-0">{canGive && !mine ? `Nog geen huiswerk. Met "Huiswerk geven" geef je ${student.name} noten, opdrachten en een doel per dag.` : "Nog geen huiswerk."}</p>
@@ -101,7 +102,7 @@ export function KindPagina({ studentId, onPractice, onOpenDay, onGiveHomework, o
             <div className="grid gap-4 lg:grid-cols-2 min-w-0 items-start -mt-2">
               {upcoming.map((h) => (
                 <HuiswerkKaart key={h.id} item={{ h, p: homeworkProgress(h, { rounds: row.rounds, sessions: row.sessions }) }} instrumentId={student.instrumentId}
-                  mine={h.givenBy === profile?.id} onEdit={() => onEditHomework(h.id)} />
+                  mine={h.givenBy === profile?.id} onEdit={h.groupName ? undefined : () => onEditHomework(h.id)} />
               ))}
             </div>
           </>

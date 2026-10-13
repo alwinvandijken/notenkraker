@@ -112,16 +112,17 @@ function GroepBeheer({ group, onChanged, onEnded }: { group: LessonGroup; onChan
         {leden.map((m) => (
           <div key={m.studentId} className="flex items-center gap-3 border-b border-line py-2 last:border-0">
             <span className="flex-1">{m.name} <span className="text-sm text-muted">sinds {kort(m.joinedOn)}</span></span>
-            <button type="button" aria-label={`${m.name} uit de groep`} onClick={() => run(client.groups.removeMember(group.id, m.studentId))} className="bg-transparent cursor-pointer text-muted px-2">✕</button>
+            {/* een privéles blijft van één leerling */}
+            {group.name && <button type="button" aria-label={`${m.name} uit de groep`} onClick={() => run(client.groups.removeMember(group.id, m.studentId))} className="bg-transparent cursor-pointer text-muted px-2">✕</button>}
           </div>
         ))}
-        {anderen.length > 0 && (
+        {group.name && anderen.length > 0 && (
           <label className="flex items-center gap-2 mt-2"><span className="text-sm text-muted">Toevoegen</span>
             <select aria-label="Leerling toevoegen" value="" onChange={(e) => e.target.value && run(client.groups.addMember(group.id, e.target.value))} className="rounded-xl border-2 border-line px-2 py-1.5 ml-auto">
               <option value="">kies…</option>{anderen.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select></label>
         )}
-        <span className="text-xs text-muted">Haal je iemand uit de groep, dan ziet hij vanaf vandaag geen nieuw groepshuiswerk meer. Zijn opnames en vinkjes blijven.</span>
+        {group.name && <span className="text-xs text-muted">Haal je iemand uit de groep, dan ziet hij vanaf vandaag geen nieuw groepshuiswerk meer. Zijn opnames en vinkjes blijven.</span>}
       </section>
       {group.name && (
         <section className="rounded-3xl bg-surface p-4 flex gap-2 items-end">

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lessonEnd, lessonOverview, nextLesson, recordingsPerWeek, weekOf } from "./lessons.js";
+import { lessonEnd, lessonOverview, nextLesson, plannedLesson, recordingsPerWeek, weekOf } from "./lessons.js";
 import type { GroupLesson, LessonSpan, TaskRecording } from "./types.js";
 
 const span = (lessonId: string, start: string, end: string): LessonSpan => ({ lessonId, start, end });
@@ -53,5 +53,28 @@ describe("nextLesson", () => {
   it("de eerste geplande les na vandaag", () => {
     const rows = lessonOverview([les("2026-10-13", "gegeven")], { weekday: 2, startTime: null }, [], "2026-10-13", 2);
     expect(nextLesson(rows, "2026-10-13")?.date).toBe("2026-10-20");
+  });
+});
+
+// di 13 okt 2026 is een dinsdag
+describe("plannedLesson", () => {
+  const di = { weekday: 2, startTime: null };
+  const herfst = [{ id: "h", name: "Herfst", startDate: "2026-10-19", endDate: "2026-10-25" }];
+  it("de volgende les springt over een vakantie", () => {
+    expect(plannedLesson([], di, herfst, "volgende", "2026-10-13")).toMatchObject({ lesson: null, start: "2026-10-27", due: "2026-11-02" });
+  });
+  it("deze les: de lopende les met zijn einde uit de database", () => {
+    const l = les("2026-10-13", "gegeven", { endDate: "2026-10-26" });
+    expect(plannedLesson([l], di, herfst, "deze", "2026-10-13")).toEqual({ lesson: l, start: "2026-10-13", due: "2026-10-26" });
+  });
+  it("de volgende les is de vroegste les die doorgaat, ook een lege verzette", () => {
+    const verzet = les("2026-10-19", "gepland", { originalDate: "2026-10-20", endDate: "2026-10-26" });
+    const later = les("2026-10-27", "gepland", { endDate: "2026-11-02" });
+    expect(plannedLesson([later, verzet], di, [], "volgende", "2026-10-13").lesson).toBe(verzet);
+  });
+  it("zonder rooster: vandaag en over een week", () => {
+    const geen = { weekday: null, startTime: null };
+    expect(plannedLesson([], geen, [], "deze", "2026-10-13")).toMatchObject({ start: "2026-10-13", due: "2026-10-19" });
+    expect(plannedLesson([], geen, [], "volgende", "2026-10-13")).toMatchObject({ start: "2026-10-20", due: "2026-10-26" });
   });
 });

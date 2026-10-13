@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import clsx from "clsx";
 import { instrumentNotes, type NoteId, type StatusMap } from "@notenkraker/core";
 import { getInstrument } from "@notenkraker/instruments";
-import { dateKey, dueLabel, isRunning, lessonPeriod, type BankTask, type Book, type GroupLesson, type Homework, type HomeworkTask, type HomeworkTemplate, type Lesson, type LessonGroup } from "@notenkraker/client";
+import { dateKey, dueLabel, isRunning, plannedLesson, type BankTask, type Book, type GroupLesson, type Holiday, type Homework, type HomeworkTask, type HomeworkTemplate, type Lesson, type LessonGroup } from "@notenkraker/client";
 import { client } from "@/lib/client";
 import { useApp } from "@/lib/store";
 import { useWide } from "@/lib/useWide";
@@ -41,7 +41,10 @@ export function HuiswerkGeven({ studentIds, homeworkId, groupId, onDone }: { stu
   const { profile, students } = useApp();
   /** groepshuiswerk: de groep met leden en lessen */
   const [group, setGroup] = useState<LessonGroup | null>(null);
-  useEffect(() => { if (groupId) void client.groups.get(groupId).then(setGroup); }, [groupId]);
+  useEffect(() => { if (groupId) void client.groups.get(groupId).then(setGroup).catch(() => setGroup(null)); }, [groupId]);
+  /** vakanties van de leraar: de volgende les springt eroverheen */
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
+  useEffect(() => { if (profile?.role === "leraar") void client.groups.holidays().then(setHolidays).catch(() => setHolidays([])); }, [profile?.role]);
   const memberIds = group ? group.members.filter((m) => !m.leftOn).map((m) => m.studentId) : studentIds;
   const chosen = students.filter((s) => memberIds.includes(s.id));
   const student = chosen[0];
@@ -96,18 +99,25 @@ export function HuiswerkGeven({ studentIds, homeworkId, groupId, onDone }: { stu
   if (homeworkId && !editing) return <p className="text-muted">Laden…</p>;
   const who = group ? group.displayName : studentId ? student.name : `${chosen.length} leerlingen`;
   const today = dateKey(new Date());
-  const lesdag = group ? group.schedule.weekday : weekday;
+  /** mijn privélessen met deze leerling, als lessen: afgezegde lessen tellen dan ook mee */
+  const privateLessons: GroupLesson[] = list.filter((h) => h.givenBy === profile?.id && !h.groupName).map((h) => ({
+    id: h.id, date: h.startDate, startTime: null, status: h.status, reason: "", originalDate: null, endDate: h.dueDate,
+    notes: h.notes, minutesPerDay: h.minutesPerDay, daysPerWeek: h.daysPerWeek, remark: h.remark, items: [],
+  }));
+  /** de les en periode zoals de database ze kiest (vakanties, afgezegde en verzette lessen) */
+  const plan = (which: Lesson) => group ? plannedLesson(group.lessons, group.schedule, holidays, which, today)
+    : plannedLesson(privateLessons, { weekday, startTime: null }, holidays, which, today);
   /** de data van de les zijn bekend bij één leerling of een groep */
   const dated = !!studentId || !!group;
-  const period = lessonPeriod(lesdag, lesson);
+  const period = plan(lesson);
   /** al huiswerk van mij voor de gekozen les: dan komen de opdrachten erbij */
   /** mijn lopende les met deze leerling: daaruit kun je opdrachten meenemen naar de volgende les */
-  const groupLesson = (which: Lesson) => group?.lessons.find((l) => isRunning(l) && l.endDate >= today && (which === "deze" ? l.date <= today : l.date > today));
   const lopendeGroepsles = group && lesson === "volgende" ? group.lessons.find((l) => isRunning(l) && l.date <= today && l.endDate >= today) : undefined;
   const lopend: { tasks: LopendeTaak[] } | undefined = lopendeGroepsles ? looptNogUitGroep(lopendeGroepsles) : !editing && studentId && lesson === "volgende"
     ? list.find((h) => h.givenBy === profile?.id && !h.groupName && isRunning(h) && h.startDate <= today && h.dueDate >= today) : undefined;
   const meegaand = lopend ? lopend.tasks.filter((t) => carry.includes(t.id)) : [];
-  const bestaand = group ? groupLesson(lesson) : undefined;
+  // een les zonder opdrachten (bijv. net verzet) is nog leeg: dan kies je het doel zelf
+  const bestaand = group && period.lesson && period.lesson.items.length > 0 ? period.lesson : undefined;
   const existing: { minutesPerDay: number; daysPerWeek: number; dueDate: string } | undefined = bestaand
     ? { minutesPerDay: bestaand.minutesPerDay, daysPerWeek: bestaand.daysPerWeek, dueDate: bestaand.endDate }
     : !editing && studentId
@@ -154,7 +164,7 @@ export function HuiswerkGeven({ studentIds, homeworkId, groupId, onDone }: { stu
     <section aria-label="Voor welke les" className="rounded-3xl bg-surface p-4 flex flex-col gap-2.5">
       <Caption>Voor welke les</Caption>
       <Segmented value={lesson} onChange={setLesson} label="Les" options={(["deze", "volgende"] as Lesson[]).map((l) => {
-        const p = lessonPeriod(lesdag, l);
+        const p = plan(l);
         return [l, `${l === "deze" ? "Deze les" : "Volgende les"}${dated ? ` · ${kort(p.start)} – ${kort(p.due)}` : ""}`] as [Lesson, string];
       })} />
       {studentId && <Lesdag key={String(weekday)} studentId={studentId} name={student.name} weekday={weekday} onSaved={setWeekday} />}
