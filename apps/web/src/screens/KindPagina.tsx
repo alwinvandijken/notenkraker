@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getInstrument } from "@notenkraker/instruments";
-import { dateKey, homeworkProgress, upcomingHomework } from "@notenkraker/client";
+import { dateKey, homeworkProgress, upcomingHomework, type LessonGroup } from "@notenkraker/client";
 import { client, hasBackend } from "@/lib/client";
 import { useApp } from "@/lib/store";
 import { KindUitnodigen } from "@/components/KindUitnodigen";
@@ -20,10 +20,19 @@ const tabFromHistory = (): Tab => (TABS.some(([t]) => t === window.history.state
  * notenspel; tik op een dag of sessie voor de dagpagina. Noten: wat het kind kent, in de les heeft en
  * nog lastig vindt.
  */
-export function KindPagina({ studentId, onPractice, onOpenDay, onGiveHomework, onEditHomework }: {
+export function KindPagina({ studentId, onPractice, onOpenDay, onGiveHomework, onEditHomework, onOpenGroup }: {
   studentId: string; onPractice(): void; onOpenDay(date: string): void; onGiveHomework(): void; onEditHomework(homeworkId: string): void;
+  /** leraar: naar een groep waarin het kind ook zit (AC-124 stap 2) */
+  onOpenGroup?(groupId: string): void;
 }) {
   const { profile, loadStudents } = useApp();
+  /** groepen (met naam) van deze leraar waarin het kind nu zit */
+  const [groepen, setGroepen] = useState<LessonGroup[]>([]);
+  useEffect(() => {
+    if (profile?.role !== "leraar") return;
+    void client.groups.mine().then((mine) => setGroepen(mine.filter((g) => g.name && g.members.some((m) => m.studentId === studentId && !m.leftOn))))
+      .catch(() => setGroepen([]));
+  }, [profile?.role, studentId]);
   const row = useChildRows()?.find((r) => r.student.id === studentId);
   const [invite, setInvite] = useState<string | null>(null);
   /** direct tonen wat je aanklikt; daarna komt het via loadStudents uit de database */
@@ -69,6 +78,9 @@ export function KindPagina({ studentId, onPractice, onOpenDay, onGiveHomework, o
         )}
       </section>
 
+      {groepen.map((g) => (
+        <button key={g.id} type="button" onClick={() => onOpenGroup?.(g.id)} className="self-start text-sm font-semibold text-kent bg-transparent cursor-pointer p-0">Ook in: {g.name} →</button>
+      ))}
       <div><Segmented value={tab} onChange={setTab} label="Tabbladen" options={TABS} /></div>
 
       {tab === "huiswerk" && (

@@ -265,7 +265,7 @@ export function AppMetLogin() {
       )}
       {current === "les" && extra.groupId && extra.date && <LesBeheer groupId={extra.groupId} date={extra.date} onDone={() => window.history.back()} />}
       {current === "kind" && childId && (
-        <KindPagina studentId={childId} onPractice={() => practice(childId)} onOpenDay={(date) => go("dag", { day: { date, back: "kind" } })}
+        <KindPagina studentId={childId} onPractice={() => practice(childId)} onOpenGroup={(id) => go("groep", { groupId: id, view: "groepen" })} onOpenDay={(date) => go("dag", { day: { date, back: "kind" } })}
           onGiveHomework={() => go("huiswerk", { studentIds: [childId] })}
           onEditHomework={(id) => go("huiswerk", { studentIds: [childId], homeworkId: id })} />
       )}

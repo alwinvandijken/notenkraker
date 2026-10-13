@@ -105,15 +105,15 @@ export function HuiswerkGeven({ studentIds, homeworkId, groupId, onDone }: { stu
   const groupLesson = (which: Lesson) => group?.lessons.find((l) => isRunning(l) && l.endDate >= today && (which === "deze" ? l.date <= today : l.date > today));
   const lopendeGroepsles = group && lesson === "volgende" ? group.lessons.find((l) => isRunning(l) && l.date <= today && l.endDate >= today) : undefined;
   const lopend: { tasks: LopendeTaak[] } | undefined = lopendeGroepsles ? looptNogUitGroep(lopendeGroepsles) : !editing && studentId && lesson === "volgende"
-    ? list.find((h) => h.givenBy === profile?.id && isRunning(h) && h.startDate <= today && h.dueDate >= today) : undefined;
+    ? list.find((h) => h.givenBy === profile?.id && !h.groupName && isRunning(h) && h.startDate <= today && h.dueDate >= today) : undefined;
   const meegaand = lopend ? lopend.tasks.filter((t) => carry.includes(t.id)) : [];
   const bestaand = group ? groupLesson(lesson) : undefined;
   const existing: { minutesPerDay: number; daysPerWeek: number; dueDate: string } | undefined = bestaand
     ? { minutesPerDay: bestaand.minutesPerDay, daysPerWeek: bestaand.daysPerWeek, dueDate: bestaand.endDate }
     : !editing && studentId
-    ? list.find((h) => h.givenBy === profile?.id && isRunning(h) && h.dueDate >= today && (lesson === "deze" ? h.startDate <= today : h.startDate > today))
+    ? list.find((h) => h.givenBy === profile?.id && !h.groupName && isRunning(h) && h.dueDate >= today && (lesson === "deze" ? h.startDate <= today : h.startDate > today))
     : undefined;
-  const previous = list.find((h) => h.givenBy === profile?.id);
+  const previous = list.find((h) => h.givenBy === profile?.id && !h.groupName);
   const instrument = getInstrument(student.instrumentId);
   const all = instrumentNotes(instrument);
   const toggle = (n: NoteId) => setNotes((cur) => (cur.includes(n) ? cur.filter((x) => x !== n) : all.filter((x) => x === n || cur.includes(x))));
