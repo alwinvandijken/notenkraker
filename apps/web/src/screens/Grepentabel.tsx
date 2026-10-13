@@ -95,6 +95,18 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu,
     setSel(n); setAlt(0);
     if (auto === "aan") playSound(soundingMidi(n, instrument.transposition), sound);
   };
+  // De gekozen noot staat altijd midden in de notenrij (letters én notenbalk). Alleen de rij scrolt,
+  // niet de pagina: op de telefoon staat de rij onder de sax, en vegen over de noot moet daar niet heen springen.
+  const picker = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const kies = picker.current?.querySelector<Element>('[aria-pressed="true"]');
+    let rij = kies?.parentElement ?? null;
+    while (rij && rij !== picker.current && getComputedStyle(rij).overflowX !== "auto") rij = rij.parentElement;
+    if (!kies || !rij) return;
+    const r = kies.getBoundingClientRect(), c = rij.getBoundingClientRect();
+    const still = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    rij.scrollTo({ left: rij.scrollLeft + (r.left + r.width / 2) - (c.left + c.width / 2), behavior: still ? "auto" : "smooth" });
+  }, [current, view, visible.length]);
   const step = (d: number) => { if (!visible.length) return; const i = visible.indexOf(current); select(visible[(i + d + visible.length) % visible.length]!); };
   const swipe = useSwipe((dir) => step(dir === "left" ? 1 : -1));
 
@@ -187,7 +199,7 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu,
 
       <nav aria-label="Kies een noot" className={`${panel} shrink-0 p-2 flex items-center gap-2`}>
         <button type="button" onClick={() => step(-1)} aria-label="Vorige noot" className="shrink-0 w-12 h-16 rounded-2xl bg-bg font-bold text-lg cursor-pointer">◀</button>
-        <div className="flex-1 min-w-0">
+        <div ref={picker} className="flex-1 min-w-0">
           {visible.length === 0 ? (
             <p className="text-muted m-0 px-2">Nog geen noten in deze lijst. Kies bij Weergave "Alle".</p>
           ) : view === "buttons" ? (
@@ -255,11 +267,8 @@ function useSwipe(onSwipe: (dir: "left" | "right") => void) {
 
 function NoteButtons({ notes, current, statuses, range, onSelect }:
   { notes: NoteId[]; current: NoteId; statuses: Record<NoteId, NoteStatus>; range: [string, string]; onSelect: (n: NoteId) => void }) {
-  const row = useRef<HTMLDivElement>(null);
-  // Houd de gekozen noot in beeld als je met Vorige/Volgende door de rij gaat.
-  useEffect(() => { row.current?.querySelector<HTMLElement>('[aria-pressed="true"]')?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" }); }, [current]);
   return (
-    <div ref={row} className="flex gap-2 overflow-x-auto py-1.5 px-1 [scrollbar-width:thin]">
+    <div className="flex gap-2 overflow-x-auto py-1.5 px-1 [scrollbar-width:thin]">
       {notes.map((n) => (
         <button key={n} type="button" aria-pressed={n === current} onClick={() => onSelect(n)}
           className={`shrink-0 w-14 h-14 p-0 rounded-2xl border-2 font-display font-bold cursor-pointer grid place-content-center justify-items-center gap-0.5 aria-pressed:outline-3 aria-pressed:outline-fg aria-pressed:outline-offset-2 ${statusClass(statuses[n])}`}>
