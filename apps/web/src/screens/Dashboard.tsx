@@ -7,7 +7,8 @@ import {
 } from "@notenkraker/client";
 import { client } from "@/lib/client";
 import { useApp } from "@/lib/store";
-import { Chip } from "@/components/ui";
+import { Chip, Segmented } from "@/components/ui";
+import { GroepenLijst } from "@/screens/Groepen";
 import { Donut } from "@/components/Donut";
 import { ICON } from "@/lib/iconen";
 import { GiverAvatar, StatusBadge, withProgress, type CurrentHomework } from "@/components/Huiswerk";
@@ -58,14 +59,23 @@ export function useChildRows(version = 0): Row[] | null {
   return rows;
 }
 
-export function Dashboard({ onOpenChild, onOpenDay, onManage, onGiveMany }: {
+export function Dashboard({ onOpenChild, onOpenDay, onManage, onGiveMany, view, onView, onOpenGroup, onNewGroup, onHolidays }: {
   onOpenChild(studentId: string): void; onOpenDay(studentId: string, date: string): void; onManage(): void; onGiveMany(ids: string[]): void;
+  /** leraar: leerlingen of groepen (AC-124 stap 2) */
+  view?: "leerlingen" | "groepen"; onView?(v: "leerlingen" | "groepen"): void;
+  onOpenGroup?(id: string): void; onNewGroup?(): void; onHolidays?(): void;
 }) {
   const { profile } = useApp();
   const isLeraar = profile?.role === "leraar";
   const [version, setVersion] = useState(0);
   const rows = useChildRows(version);
   const wide = useWide();
+  const switcher = isLeraar && (
+    <div><Segmented value={view ?? "leerlingen"} onChange={(v) => onView?.(v)} label="Weergave leerlingen" options={[["leerlingen", "Leerlingen"], ["groepen", "Groepen"]]} /></div>
+  );
+  if (isLeraar && view === "groepen") {
+    return <div className="flex flex-col gap-4 min-w-0">{switcher}<GroepenLijst onOpen={(id) => onOpenGroup?.(id)} onNew={() => onNewGroup?.()} onHolidays={() => onHolidays?.()} /></div>;
+  }
 
   if (!rows) return <p className="text-muted">Laden…</p>;
   const who = isLeraar ? "leerlingen" : "kinderen";
@@ -84,6 +94,7 @@ export function Dashboard({ onOpenChild, onOpenDay, onManage, onGiveMany }: {
 
   return (
     <div className="flex flex-col gap-4 min-w-0">
+      {switcher}
       <div className="grid grid-cols-2 gap-3">
         <Stat value={`${practiced} van ${rows.length}`} label={`${who} geoefend deze week`} />
         <Stat value={`${weekMinutes} min`} label={isLeraar ? "geoefend deze week" : "samen geoefend deze week"} />
