@@ -4,7 +4,7 @@
  * huiswerk gaat. Vink leerlingen aan om ze samen huiswerk te geven of hun vorige huiswerk te herhalen.
  */
 import { useMemo, useState } from "react";
-import { dateKey, dueLabel, STATUS_LABEL, worstStatus } from "@notenkraker/client";
+import { dateKey, dueLabel, isRunning, STATUS_LABEL, worstStatus } from "@notenkraker/client";
 import { client } from "@/lib/client";
 import { useApp } from "@/lib/store";
 import { filterRows, sortRows, type SortKey, type StatusFilter, type TableRow } from "@/lib/leerlingen";
@@ -48,7 +48,7 @@ export function LeerlingenTabel({ rows, onOpenChild, onGiveMany, onChanged }: {
   const repeat = async () => {
     let done = 0, none = 0;
     for (const id of picked) {
-      const prev = rows.find((r) => r.student.id === id)?.homeworkAll.find((h) => h.givenBy === profile?.id && h.status !== "afgezegd");
+      const prev = rows.find((r) => r.student.id === id)?.homeworkAll.find((h) => h.givenBy === profile?.id && isRunning(h));
       if (!prev) { none++; continue; }
       await client.homework.give([id], "volgende", { notes: prev.notes, minutesPerDay: prev.minutesPerDay, daysPerWeek: prev.daysPerWeek, remark: prev.remark },
         [], { [id]: prev.tasks.map((t) => t.id) });

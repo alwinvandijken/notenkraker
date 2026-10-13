@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import clsx from "clsx";
 import { instrumentNotes, type NoteId, type StatusMap } from "@notenkraker/core";
 import { getInstrument } from "@notenkraker/instruments";
-import { dateKey, dueLabel, lessonPeriod, type BankTask, type Book, type Homework, type HomeworkTemplate, type Lesson } from "@notenkraker/client";
+import { dateKey, dueLabel, isRunning, lessonPeriod, type BankTask, type Book, type Homework, type HomeworkTemplate, type Lesson } from "@notenkraker/client";
 import { client } from "@/lib/client";
 import { useApp } from "@/lib/store";
 import { useWide } from "@/lib/useWide";
@@ -87,10 +87,10 @@ export function HuiswerkGeven({ studentIds, homeworkId, onDone }: { studentIds: 
   /** al huiswerk van mij voor de gekozen les: dan komen de opdrachten erbij */
   /** mijn lopende les met deze leerling: daaruit kun je opdrachten meenemen naar de volgende les */
   const lopend = !editing && studentId && lesson === "volgende"
-    ? list.find((h) => h.givenBy === profile?.id && h.status !== "afgezegd" && h.startDate <= today && h.dueDate >= today) : undefined;
+    ? list.find((h) => h.givenBy === profile?.id && isRunning(h) && h.startDate <= today && h.dueDate >= today) : undefined;
   const meegaand = lopend ? lopend.tasks.filter((t) => carry.includes(t.id)) : [];
   const existing = !editing && studentId
-    ? list.find((h) => h.givenBy === profile?.id && h.status !== "afgezegd" && h.dueDate >= today && (lesson === "deze" ? h.startDate <= today : h.startDate > today))
+    ? list.find((h) => h.givenBy === profile?.id && isRunning(h) && h.dueDate >= today && (lesson === "deze" ? h.startDate <= today : h.startDate > today))
     : undefined;
   const previous = list.find((h) => h.givenBy === profile?.id);
   const instrument = getInstrument(student.instrumentId);

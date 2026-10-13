@@ -10,7 +10,7 @@ const task = (t: Partial<HomeworkTask>): HomeworkTask => ({
 });
 const rec = (submittedAt: string): TaskRecording => ({ id: submittedAt, taskId: "t", path: "p", submittedAt, deletedAt: null, reactionEmoji: "", reaction: "", reactedAt: null });
 const hw = (h: Partial<Homework>): Homework => ({
-  id: "h", groupId: "g", status: "gegeven", studentId: "s", givenBy: "u", givenByRole: "leraar", givenByName: "Marieke", createdAt: "2026-10-10T10:00:00Z", startDate: "2026-10-10", dueDate: "2026-10-17",
+  id: "h", groupId: "g", groupName: "", status: "gegeven", studentId: "s", givenBy: "u", givenByRole: "leraar", givenByName: "Marieke", createdAt: "2026-10-10T10:00:00Z", startDate: "2026-10-10", dueDate: "2026-10-17",
   minutesPerDay: 15, daysPerWeek: 5, notes: [], piece: "", pieceNote: "", remark: "", tasks: [], ...h,
 });
 
