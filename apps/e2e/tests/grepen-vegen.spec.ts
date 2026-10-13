@@ -34,3 +34,20 @@ test("vegen over de noot kiest de volgende en de vorige noot", async ({ page }) 
   await veeg(noot, -20);
   await expect(geschreven).toHaveText(eerste!);
 });
+
+// Tijdens het vegen schuift de noot met de vinger mee; loslaten zonder veeg zet hem terug
+test("de noot schuift mee met de vinger", async ({ page }) => {
+  await page.goto("/oefenen");
+  await page.getByRole("button", { name: "Overslaan" }).click();
+  await kiesTab(page, "Grepen");
+  const noot = page.getByRole("region", { name: "Noot" });
+  const schuif = noot.locator("[data-veeg]");
+  const box = (await noot.boundingBox())!;
+  const x = box.x + box.width / 2, y = box.y + box.height / 2;
+  const opties = { pointerId: 1, pointerType: "touch", isPrimary: true, bubbles: true };
+  await noot.dispatchEvent("pointerdown", { ...opties, clientX: x, clientY: y });
+  await noot.dispatchEvent("pointermove", { ...opties, clientX: x - 40, clientY: y });
+  await expect(schuif).toHaveCSS("transform", /matrix\(1, 0, 0, 1, -40, 0\)/);
+  await noot.dispatchEvent("pointerup", { ...opties, clientX: x - 40, clientY: y });
+  await expect(schuif).toHaveCSS("transform", "none");
+});
