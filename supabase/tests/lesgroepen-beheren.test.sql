@@ -2,7 +2,7 @@
 -- Draaien: supabase start && supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(27);
+select plan(45);
 
 delete from auth.users;
 create function pg_temp.als(uid uuid) returns void language plpgsql as $$
@@ -98,6 +98,45 @@ select is((select left_on from group_members where group_id = pg_temp.id('trio')
 -- opheffen
 select lives_ok($$ select end_group(pg_temp.id('trio')) $$, 'Opheffen');
 select throws_ok($$ select lesson_for(pg_temp.id('trio'), 'volgende') $$, 'P0001', 'ongeldige groep', 'Een opgeheven groep krijgt geen lessen meer');
+
+-- ── Afzeggen, verzetten, vakanties ───────────────────────────────────
+reset role;
+delete from lessons; delete from schedule_rules;
+select pg_temp.als(pg_temp.id('marieke'));
+insert into ids select 'band', create_group('Band', array[pg_temp.id('noor')], extract(dow from current_date)::smallint, '16:00');
+select give_homework(pg_temp.id('band'), 'deze', '[]', 15, 5, '', jsonb_build_array(jsonb_build_object('kind', 'opdracht', 'title', 'Deze week')), '{}');
+select give_homework(pg_temp.id('band'), 'volgende', '["c5"]', 20, 4, 'Klaargezet', jsonb_build_array(jsonb_build_object('kind', 'opdracht', 'title', 'Klaargezet')), '{}');
+-- de les over een week afzeggen: het klaargezette huiswerk schuift naar de les erna
+select lives_ok($$ select cancel_lesson(pg_temp.id('band'), current_date + 7, 'leraar ziek') $$, 'Les afzeggen');
+select is((select status || ' ' || reason from lessons where group_id = pg_temp.id('band') and date = current_date + 7), 'afgezegd leraar ziek', 'Afgezegd met reden');
+select results_eq($$ select l.date, a.title from homework h join lessons l on l.id = h.lesson_id join assignments a on a.id = h.assignment_id
+  where l.group_id = pg_temp.id('band') and a.title = 'Klaargezet' $$, $$ values (current_date + 14, 'Klaargezet'::text) $$, 'Klaargezet huiswerk schuift naar de les erna');
+select is((select minutes_per_day || ' ' || remark from lessons where group_id = pg_temp.id('band') and date = current_date + 14), '20 Klaargezet', 'met het doel en de opmerking');
+select is(lesson_end((select id from lessons where group_id = pg_temp.id('band') and date = current_date)), current_date + 13, 'Het huiswerk van deze week loopt door tot de les erna');
+-- afzeggen terwijl de les erna al huiswerk heeft: samenvoegen, niets dubbel, doel van die les blijft
+select give_homework(pg_temp.id('band'), 'volgende', '[]', 30, 3, 'Na', jsonb_build_array(jsonb_build_object('kind', 'opdracht', 'title', 'Na')), '{}');
+select lives_ok($$ select cancel_lesson(pg_temp.id('band'), current_date + 14, '') $$, 'Ook die les afzeggen');
+select is((select count(*)::int from homework h join lessons l on l.id = h.lesson_id where l.group_id = pg_temp.id('band') and l.date = current_date + 21), 2, 'Beide opdrachten in de les daarna');
+select throws_ok($$ select cancel_lesson(pg_temp.id('band'), current_date - 7, '') $$, 'P0001', 'ongeldige les', 'Een les in het verleden zeg je niet af');
+-- verzetten
+select lives_ok($$ select move_lesson(pg_temp.id('band'), current_date + 21, current_date + 20, '15:00') $$, 'Verzetten naar een dag eerder');
+select is((select date || ' ' || start_time || ' ' || original_date from lessons where group_id = pg_temp.id('band') and original_date is not null),
+  (current_date + 20) || ' 15:00:00 ' || (current_date + 21), 'Nieuwe dag en tijd, de roosterdag onthouden');
+select is(next_lesson_day(pg_temp.id('band'), current_date + 14), current_date + 28, 'De verzette roosterdag komt niet terug');
+select throws_ok($$ select move_lesson(pg_temp.id('band'), current_date + 20, current_date, null) $$, 'P0001', 'ongeldige les', 'Niet naar een dag met een les');
+select throws_ok($$ select move_lesson(pg_temp.id('band'), current_date + 20, current_date - 1, null) $$, 'P0001', 'ongeldige les', 'Niet naar het verleden');
+-- vakanties
+insert into ids select 'vak', add_holiday('Kerst', current_date + 25, current_date + 30);
+select is(next_lesson_day(pg_temp.id('band'), current_date + 21), current_date + 35, 'Vakantie overgeslagen');
+select lives_ok($$ select remove_holiday(pg_temp.id('vak')) $$, 'Vakantie weg');
+-- ── Controles ────────────────────────────────────────────────────────
+select throws_ok($$ select give_homework(pg_temp.id('band'), 'deze', '[1, 2]', 15, 5, '', '[]', '{}') $$, 'P0001', 'ongeldig huiswerk', 'Noten zijn tekst');
+select throws_ok($$ select set_progress((select id from assignments where title = 'Na'), pg_temp.id('vreemd_kind'), 'klaar', null) $$, 'P0001', 'geen toegang', 'Voortgang alleen voor een lid');
+-- een opname alleen bij een huidig lid
+reset role;
+update group_members set left_on = current_date where group_id = pg_temp.id('band') and student_id = pg_temp.id('noor');
+select pg_temp.als(pg_temp.id('noor_user'));
+select throws_ok($$ select submit_recording((select id from assignments where title = 'Na'), pg_temp.id('noor'), 'x', 0) $$, 'P0001', 'geen toegang', 'Een opname alleen bij een huidig lid');
 
 select * from finish();
 rollback;
