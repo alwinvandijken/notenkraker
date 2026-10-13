@@ -64,7 +64,8 @@ create or replace function public.member_during(p_group uuid, p_student uuid, p_
 language sql stable security definer set search_path = public as $$
   select exists (select 1 from public.group_members m join public.lessons l on l.id = p_lesson and l.group_id = m.group_id
                  where m.group_id = p_group and m.student_id = p_student
-                   and m.joined_on <= public.lesson_end(l.id) and (m.left_on is null or m.left_on >= l.date));
+                   -- eerst de goedkope vergelijking; lesson_end alleen voor wie na de lesdatum instapte
+                   and (m.joined_on <= l.date or m.joined_on <= public.lesson_end(l.id)) and (m.left_on is null or m.left_on >= l.date));
 $$;
 
 create or replace function public.lesson_visible(p_lesson uuid) returns boolean
@@ -157,6 +158,8 @@ begin
   if not public.is_group_teacher(p_group)
      or not exists (select 1 from public.teacher_students where teacher_id = auth.uid() and student_id = p_student)
   then raise exception 'geen toegang'; end if;
+  -- een privéles (zonder naam) blijft van één leerling
+  if exists (select 1 from public.lesson_groups where id = p_group and name = '') then raise exception 'ongeldige groep'; end if;
   insert into public.group_members (group_id, student_id) values (p_group, p_student)
   on conflict (group_id, student_id) do update set joined_on = current_date, left_on = null where public.group_members.left_on is not null;
 end $$;
@@ -176,7 +179,8 @@ begin
 end $$;
 
 drop function public.set_schedule(uuid, smallint);
-create function public.set_schedule(p_group uuid, p_weekday smallint, p_start_time time) returns void
+-- p_start_time met default: productie (0.2.0) roept hem met twee parameters aan tot de release
+create function public.set_schedule(p_group uuid, p_weekday smallint, p_start_time time default null) returns void
 language plpgsql security definer set search_path = public as $$
 begin
   if not public.is_group_teacher(p_group) then raise exception 'geen toegang'; end if;
@@ -248,8 +252,11 @@ begin
     values (p_group, coalesce(d, p_date + 7), public.scheduled_time(p_group, coalesce(d, p_date + 7)), 'gepland', l.notes, l.minutes_per_day, l.days_per_week, l.remark)
     on conflict (group_id, date) do update set status = 'gepland'
     returning * into nxt;
-  elsif not exists (select 1 from public.homework where lesson_id = nxt.id) then
+  elsif not exists (select 1 from public.homework where lesson_id = nxt.id) and nxt.notes = '[]'::jsonb and nxt.remark = '' then
     update public.lessons set notes = l.notes, minutes_per_day = l.minutes_per_day, days_per_week = l.days_per_week, remark = l.remark where id = nxt.id;
+  else
+    -- die les heeft al iets: zijn doel blijft, de noten komen erbij
+    update public.lessons set notes = (select coalesce(jsonb_agg(distinct x), '[]') from jsonb_array_elements(notes || l.notes) x) where id = nxt.id;
   end if;
   insert into public.homework (lesson_id, assignment_id, position, description)
     select nxt.id, h.assignment_id, (select coalesce(max(position) + 1, 0) from public.homework where lesson_id = nxt.id) + h.position, h.description

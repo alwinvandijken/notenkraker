@@ -2,7 +2,7 @@
 -- Draaien: supabase start && supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(45);
+select plan(50);
 
 delete from auth.users;
 create function pg_temp.als(uid uuid) returns void language plpgsql as $$
@@ -137,6 +137,25 @@ reset role;
 update group_members set left_on = current_date where group_id = pg_temp.id('band') and student_id = pg_temp.id('noor');
 select pg_temp.als(pg_temp.id('noor_user'));
 select throws_ok($$ select submit_recording((select id from assignments where title = 'Na'), pg_temp.id('noor'), 'x', 0) $$, 'P0001', 'geen toegang', 'Een opname alleen bij een huidig lid');
+
+
+-- ── Review-fixes ─────────────────────────────────────────────────────
+reset role;
+select pg_temp.als(pg_temp.id('marieke'));
+-- productie (0.2.0) roept set_schedule nog met twee parameters aan
+select lives_ok($$ select set_schedule(pg_temp.id('band'), 2::smallint) $$, 'set_schedule met twee parameters (0.2.0)');
+-- afzeggen: de volgende les heeft alleen noten en een doel; die blijven, de noten komen erbij
+insert into ids select 'kwartet', create_group('Kwartet', array[pg_temp.id('sem')], extract(dow from current_date)::smallint, null);
+select give_homework(pg_temp.id('kwartet'), 'volgende', '["d5"]', 20, 4, 'Weg', jsonb_build_array(jsonb_build_object('kind', 'opdracht', 'title', 'K2')), '{}');
+reset role;
+insert into lessons (group_id, date, status, notes, minutes_per_day, remark) values (pg_temp.id('kwartet'), current_date + 14, 'gepland', '["c5"]', 30, 'Blijft');
+select pg_temp.als(pg_temp.id('marieke'));
+select cancel_lesson(pg_temp.id('kwartet'), current_date + 7, '');
+select is((select minutes_per_day || ' ' || remark from lessons where group_id = pg_temp.id('kwartet') and date = current_date + 14), '30 Blijft', 'Afzeggen overschrijft het doel van de volgende les niet');
+select ok((select notes ?& array['c5', 'd5'] from lessons where group_id = pg_temp.id('kwartet') and date = current_date + 14), 'De noten komen erbij');
+select is((select count(*)::int from homework h join lessons l on l.id = h.lesson_id where l.group_id = pg_temp.id('kwartet') and l.date = current_date + 14), 1, 'De opdracht schuift mee');
+-- een privéles wordt geen groep
+select throws_ok($$ select add_member(ensure_group(pg_temp.id('noor')), pg_temp.id('sem')) $$, 'P0001', 'ongeldige groep', 'Geen tweede leerling in een privéles');
 
 select * from finish();
 rollback;
