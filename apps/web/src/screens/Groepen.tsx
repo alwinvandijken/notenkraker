@@ -134,9 +134,3 @@ export function Vakanties() {
     </div>
   );
 }
-
-/** tijdelijk: laadt de groep en geeft de naam door voor de titel (de groepspagina vervangt dit) */
-export function GroepKop({ groupId, onTitle }: { groupId: string; onTitle(name: string): void }) {
-  useEffect(() => { void client.groups.get(groupId).then((g) => onTitle(g.displayName)); }, [groupId, onTitle]);
-  return null;
-}
