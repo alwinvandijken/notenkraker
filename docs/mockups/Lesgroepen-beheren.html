@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesgroepen beheren</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* AC-124 stap 2 mock-up: lesgroepen beheren. Basislook A; de schermen zijn de app zelf, het verhaal eromheen is de review. */
+:root{
+  --bg:#E4EAF2; --surface:#FFFFFF; --ink:#172440; --muted:#4A5873; --line:#CCD6E3; --accent:#C2531A; --good:#1F7A4D;
+  --a-bg:#EDF2F7; --a-card:#FFFFFF; --a-ink:#172440; --a-muted:#4A5873; --a-line:#DCE3EC; --a-blue:#2459C9; --a-blue-soft:#DCE6FA;
+  --a-orange:#F4A261; --a-orange-soft:#FDEBDD; --a-accent:#C2531A; --a-ok:#1F7A4D; --a-ok-soft:#DDF2E5; --a-navy:#172440;
+  --font:"Lexend", ui-rounded, system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0F1729;--surface:#18233B;--ink:#E8EEF8;--muted:#A9B6CF;--line:#2B3A5C;--accent:#F4A261;--good:#3FAE74;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0F1729;--surface:#18233B;--ink:#E8EEF8;--muted:#A9B6CF;--line:#2B3A5C;--accent:#F4A261;--good:#3FAE74;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.55;margin:0}
+.wrap{max-width:1240px;margin:0 auto;padding:40px 20px 80px}
+h1,h2,h3{line-height:1.15;margin:0;text-wrap:balance}
+h1{font-size:clamp(30px,5vw,48px);font-weight:800}
+h2{font-size:clamp(22px,3vw,30px);font-weight:700;margin-top:56px}
+h3{font-size:18px;font-weight:700}
+p{margin:0;max-width:70ch}
+.lead{font-size:18px;color:var(--muted);margin-top:10px}
+.note{color:var(--muted);font-size:15px;margin-top:8px}
+.panel{background:var(--surface);border-radius:20px;padding:20px;margin-top:16px}
+ul.clean{margin:8px 0 0;padding-left:20px} ul.clean li{margin:4px 0}
+.frames{display:flex;gap:22px;overflow-x:auto;padding:6px 2px 14px;margin-top:16px}
+.cap{font-size:13px;color:var(--muted);margin-top:8px;max-width:640px}
+.laptop{flex:none;width:880px;height:520px;border-radius:14px;background:#101827;padding:10px 10px 18px}
+.ipad{flex:none;width:600px;height:417px;border-radius:26px;background:#101827;padding:11px}
+.scr{width:100%;height:100%;border-radius:10px;background:var(--a-bg);color:var(--a-ink);font-size:10px;line-height:1.35;overflow:hidden;display:flex;flex-direction:column}
+.ipad .scr{border-radius:16px}
+.row{display:flex;align-items:center;gap:6px}.grow{flex:1;min-width:0}
+.bar{display:flex;align-items:center;gap:8px;padding:10px 14px}
+.ttl{font-weight:800;font-size:17px}
+.muted{color:var(--a-muted)}
+.card{background:var(--a-card);border-radius:12px;padding:10px}
+.cap2{font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--a-muted)}
+.av{width:22px;height:22px;border-radius:50%;background:var(--a-blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10px;flex:none}
+.btn{background:var(--a-accent);color:#fff;border-radius:999px;padding:7px 14px;font-weight:700;text-align:center}
+.btn.line{background:var(--a-card);color:var(--a-ink);border:1.5px solid var(--a-line)}
+.seg{display:inline-flex;background:var(--a-bg);border-radius:999px;padding:2px;gap:2px}
+.seg span{padding:3px 9px;border-radius:999px;color:var(--a-muted)}.seg span.on{background:var(--a-navy);color:#fff;font-weight:600}
+.task{border:1.5px solid var(--a-line);border-radius:10px;padding:7px 8px;display:flex;align-items:center;gap:7px;margin-top:6px}
+.task.on{border-color:var(--a-ok);background:var(--a-ok-soft)}
+.task i{font-style:normal;font-size:13px}
+.box{width:13px;height:13px;border-radius:4px;border:1.5px solid var(--a-line);flex:none;background:var(--a-card)}
+.box.on{background:var(--a-ok);border-color:var(--a-ok)}
+.wk{border-radius:999px;padding:1px 7px;font-weight:700;background:var(--a-orange-soft);color:var(--a-accent);font-size:8.5px;white-space:nowrap}
+.rec{background:var(--a-bg);border-radius:9px;padding:6px 8px;margin-top:5px}
+.tabbar{margin-top:auto;display:flex;justify-content:space-around;background:var(--a-card);border-top:1px solid var(--a-line);padding:6px 0 8px}
+.tabbar div{display:flex;flex-direction:column;align-items:center;gap:1px;color:var(--a-muted);font-size:8.5px}.tabbar div.on{color:var(--a-accent);font-weight:700}
+.tabbar i{font-style:normal;font-size:14px}
+ol.decide{list-style:none;padding:0;margin:16px 0 0;display:flex;flex-direction:column;gap:12px;counter-reset:d}
+ol.decide li{background:var(--surface);border-radius:16px;padding:16px 18px 16px 58px;position:relative;counter-increment:d}
+ol.decide li::before{content:counter(d);position:absolute;left:18px;top:15px;width:28px;height:28px;border-radius:50%;background:var(--ink);color:var(--bg);font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+ol.decide p{color:var(--muted);font-size:15px;margin-top:4px}
+.ok{color:var(--good);font-weight:600}
+</style><style>
+.phone{flex:none;width:300px;height:620px;border-radius:40px;background:#101827;padding:10px}
+.phone .scr{border-radius:30px;font-size:11px}
+.chip{display:inline-flex;align-items:center;gap:4px;border:1.5px solid var(--a-line);border-radius:999px;padding:2px 8px 2px 3px;background:var(--a-card);white-space:nowrap}
+.chip .av{width:16px;height:16px;font-size:8px}
+.st{border-radius:999px;padding:1px 7px;font-weight:700;font-size:8.5px;white-space:nowrap}
+.st.gegeven{background:var(--a-ok-soft);color:var(--a-ok)}
+.st.gepland{background:var(--a-blue-soft);color:var(--a-blue)}
+.st.afgezegd{background:var(--a-orange-soft);color:var(--a-accent)}
+.les{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--a-line);padding:7px 2px}
+.dot{width:14px;height:14px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;background:var(--a-ok)}
+.dot.no{background:var(--a-card);border:1.5px dashed var(--a-line);color:var(--a-muted)}
+.field{border:1.5px solid var(--a-line);border-radius:9px;padding:6px 8px;background:var(--a-card);margin-top:4px}
+.gh{font-weight:800;font-size:12px;margin:10px 0 2px}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <h1>Lesgroepen beheren</h1>
+  <p class="lead">AC-124 stap 2. Een leraar maakt groepen met meer leerlingen, stelt het rooster in en ziet per groep welke lessen gegeven, gepland of afgezegd zijn. Een groep met één leerling blijft een privéles; die maakt de app zoals nu vanzelf.</p>
+
+  <div class="panel">
+    <h3>Wat Alwin besloot (13-10-2026)</h3>
+    <ul class="clean">
+      <li><b>Groepen staan bij Leerlingen</b>, met bovenin een schakelaar Leerlingen | Groepen. Geen extra tab.</li>
+      <li><b>Groepshuiswerk geef je één keer</b>; iedereen in de groep ziet dezelfde opdrachten. Vinkjes, opnames, status en cijfer blijven per leerling.</li>
+      <li><b>Een leerling kan in meer groepen zitten</b>, bijvoorbeeld privéles en samenspel. Vandaag toont het huiswerk van beide, met de naam van de groep erboven.</li>
+      <li><b>Lessenoverzicht:</b> gegeven, gepland en afgezegd; een les afzeggen of verzetten; vakanties overslaan; een begintijd in het rooster.</li>
+    </ul>
+  </div>
+
+  <h2>1. Leerlingen | Groepen (iPad)</h2>
+  <p class="note">Dezelfde tab Leerlingen, met een schakelaar. Een privéles staat er ook bij, zodat je rooster compleet is; die heeft geen eigen naam maar de naam van de leerling.</p>
+  <div class="frames">
+    <div>
+      <div class="ipad"><div class="scr">
+        <div class="bar"><span class="ttl">Leerlingen</span><span class="grow"></span><span class="seg"><span>Leerlingen</span><span class="on">Groepen</span></span><span class="grow"></span><span class="btn">+ Nieuwe groep</span><span class="av">M</span></div>
+        <div style="padding:0 14px;display:flex;flex-direction:column;gap:7px">
+          <div class="card row" style="gap:10px"><span class="grow"><b style="font-size:12px">Samenspel zaterdag</b><br><span class="muted">za 10:00 · 4 leerlingen</span></span>
+            <span class="row" style="gap:3px"><span class="chip"><span class="av">N</span>Noor</span><span class="chip"><span class="av">S</span>Sem</span><span class="chip"><span class="av">L</span>Lieke</span><span class="chip">+1</span></span>
+            <span style="text-align:right"><span class="st afgezegd">za 17 okt vakantie</span><br><span class="muted">volgende: za 31 okt</span></span></div>
+          <div class="card row" style="gap:10px"><span class="grow"><b style="font-size:12px">Noor</b> <span class="muted">· privéles</span><br><span class="muted">di 16:30</span></span>
+            <span style="text-align:right"><span class="st gegeven">vandaag gegeven</span><br><span class="muted">volgende: di 20 okt</span></span></div>
+          <div class="card row" style="gap:10px"><span class="grow"><b style="font-size:12px">Annabel</b> <span class="muted">· privéles</span><br><span class="muted">wo 15:00</span></span>
+            <span style="text-align:right"><span class="st gepland">morgen</span><br><span class="muted">3 opdrachten klaar</span></span></div>
+          <div class="card row" style="gap:10px"><span class="grow"><b style="font-size:12px">Beginners blokfluit</b><br><span class="muted">geen rooster · 6 leerlingen</span></span>
+            <span style="text-align:right"><span class="muted">nog geen les</span></span></div>
+        </div>
+        <div class="tabbar"><div class="on"><i>👥</i>Leerlingen</div><div><i>📝</i>Huiswerk</div><div><i>📚</i>Bibliotheek</div></div>
+      </div></div>
+      <p class="cap">Gesorteerd op de volgende les. Tik op een groep voor de groepspagina.</p>
+    </div>
+  </div>
+
+  <h2>2. Nieuwe groep (iPhone)</h2>
+  <p class="note">Een pagina, geen venster. Naam, leerlingen en rooster; de rest kan later.</p>
+  <div class="frames">
+    <div>
+      <div class="phone"><div class="scr">
+        <div class="bar"><span class="muted">← Groepen</span></div>
+        <div style="padding:0 14px;display:flex;flex-direction:column;gap:8px;flex:1">
+          <span class="ttl">Nieuwe groep</span>
+          <div class="card"><div class="cap2">Naam</div><div class="field">Samenspel zaterdag</div></div>
+          <div class="card"><div class="cap2">Leerlingen</div>
+            <div class="task on"><span class="box on"></span><span class="grow">Noor</span><span class="muted">ook privéles</span></div>
+            <div class="task on"><span class="box on"></span><span class="grow">Sem</span></div>
+            <div class="task on"><span class="box on"></span><span class="grow">Lieke</span></div>
+            <div class="task on"><span class="box on"></span><span class="grow">Daan</span></div>
+            <div class="task"><span class="box"></span><span class="grow">Annabel</span></div>
+          </div>
+          <div class="card"><div class="cap2">Rooster</div>
+            <div class="row" style="margin-top:4px"><span class="seg"><span>ma</span><span>di</span><span>wo</span><span>do</span><span>vr</span><span class="on">za</span><span>zo</span></span></div>
+            <div class="row" style="margin-top:6px"><span class="muted">Begintijd</span><span class="field" style="margin:0 0 0 auto">10:00</span></div>
+            <div class="muted" style="margin-top:4px">Leeg laten mag: dan kies je per les een datum.</div>
+          </div>
+          <div class="btn" style="margin-top:auto;margin-bottom:12px">Groep maken</div>
+        </div>
+      </div></div>
+    </div>
+    <div>
+      <div class="phone"><div class="scr">
+        <div class="bar"><span class="muted">← Samenspel zaterdag</span></div>
+        <div style="padding:0 14px;display:flex;flex-direction:column;gap:8px;flex:1">
+          <span class="ttl">Groep aanpassen</span>
+          <div class="card"><div class="cap2">Leerlingen</div>
+            <div class="task"><span class="grow">Noor</span><span class="muted">sinds 3 okt</span><span class="muted">✕</span></div>
+            <div class="task"><span class="grow">Sem</span><span class="muted">sinds 3 okt</span><span class="muted">✕</span></div>
+            <div class="task"><span class="grow">Lieke</span><span class="muted">sinds 10 okt</span><span class="muted">✕</span></div>
+            <div class="task"><span class="grow">Daan</span><span class="muted">sinds 10 okt</span><span class="muted">✕</span></div>
+            <div class="btn line" style="margin-top:6px">+ Leerling toevoegen</div>
+          </div>
+          <div class="card"><div class="muted">Haal je iemand uit de groep, dan ziet hij vanaf vandaag geen nieuw groepshuiswerk meer. Zijn opnames en vinkjes van eerdere lessen blijven.</div></div>
+          <div class="card"><div class="cap2">Rooster</div><div class="row" style="margin-top:4px"><span class="grow">za 10:00</span><span style="color:var(--a-blue);font-weight:700">wijzigen</span></div>
+            <div class="muted">Een nieuwe dag geldt vanaf de volgende les; eerdere lessen blijven staan.</div></div>
+          <div class="btn line" style="margin-top:auto;margin-bottom:12px;color:var(--a-accent)">Groep opheffen</div>
+        </div>
+      </div></div>
+      <p class="cap">Opheffen: geen nieuwe lessen meer; de geschiedenis blijft voor de leerlingen zichtbaar tot de opnames verlopen.</p>
+    </div>
+  </div>
+
+  <h2>3. De groepspagina (iPad)</h2>
+  <p class="note">Tabs zoals bij een leerling: Deze les, Volgende les, Lessen, Groep. Bij Deze les zie je per opdracht wie klaar is.</p>
+  <div class="frames">
+    <div>
+      <div class="ipad"><div class="scr">
+        <div class="bar"><span class="muted">← Groepen</span><span class="grow"></span><span class="av">M</span></div>
+        <div style="padding:0 14px"><span class="ttl">Samenspel zaterdag</span> <span class="muted">· za 10:00 · Noor, Sem, Lieke, Daan</span></div>
+        <div style="padding:6px 14px"><span class="seg"><span class="on">Deze les</span><span>Volgende les</span><span>Lessen</span><span>Groep</span></span></div>
+        <div class="row" style="padding:0 14px 12px;gap:10px;align-items:flex-start;flex:1">
+          <div class="card" style="flex:1.4">
+            <div class="row"><span class="cap2 grow">Les za 10 okt · huiswerk tot za 31 okt</span><span class="muted">wie is klaar</span></div>
+            <div class="task"><i>🎵</i><span class="grow"><b>Ode an die Freude, 2e stem</b><br><span class="muted">🎙️ 3 van 4 opgenomen</span></span><span class="row" style="gap:2px"><span class="dot">N</span><span class="dot">S</span><span class="dot">L</span><span class="dot no">D</span></span></div>
+            <div class="task"><i>🎵</i><span class="grow"><b>Samen inzetten, maat 1–8</b> <span class="wk">2e week</span><br><span class="muted">deze les afgevinkt</span></span><span class="row" style="gap:2px"><span class="dot">N</span><span class="dot no">S</span><span class="dot">L</span><span class="dot no">D</span></span></div>
+            <div class="task"><i>✓</i><span class="grow"><b>Toonladder F groot</b></span><span class="row" style="gap:2px"><span class="dot">N</span><span class="dot">S</span><span class="dot">L</span><span class="dot">D</span></span></div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+            <div class="card"><div class="cap2">Daan</div><div class="muted" style="margin-top:4px">Tik op een stip voor de opnames en voortgang van die leerling bij die opdracht.</div></div>
+            <div class="card"><div class="cap2">Deze week geoefend</div>
+              <div class="row" style="margin-top:4px"><span class="grow">Noor</span><b>94 min</b></div>
+              <div class="row"><span class="grow">Sem</span><b>40 min</b></div>
+              <div class="row"><span class="grow">Lieke</span><b>71 min</b></div>
+              <div class="row"><span class="grow">Daan</span><b>12 min</b></div></div>
+            <div class="btn" style="margin-top:auto">Huiswerk geven</div>
+          </div>
+        </div>
+      </div></div>
+      <p class="cap">Huiswerk geven gaat zoals bij één leerling (Deze les / Volgende les, "Loopt nog"), maar dan voor de hele groep.</p>
+    </div>
+  </div>
+
+  <h2>4. Lessen: gegeven, gepland, afgezegd, vakantie</h2>
+  <p class="note">De tab Lessen van een groep (hier op de iPhone). Een geplande les kun je afzeggen of verzetten. Vakanties stel je één keer in voor al je groepen.</p>
+  <div class="frames">
+    <div>
+      <div class="phone"><div class="scr">
+        <div class="bar"><span class="muted">← Groepen</span></div>
+        <div style="padding:0 14px"><span class="ttl">Samenspel zaterdag</span></div>
+        <div style="padding:6px 14px"><span class="seg"><span>Deze les</span><span>Volgende</span><span class="on">Lessen</span><span>Groep</span></span></div>
+        <div style="padding:0 14px;flex:1">
+          <div class="card">
+            <div class="les"><span class="grow"><b>za 7 nov</b> 10:00</span><span class="st gepland">gepland</span></div>
+            <div class="les"><span class="grow"><b>za 31 okt</b> 10:00<br><span class="muted">2 opdrachten klaargezet</span></span><span class="st gepland">gepland</span><span style="color:var(--a-blue);font-weight:700">⋯</span></div>
+            <div class="les"><span class="grow"><b>za 24 okt</b><br><span class="muted">herfstvakantie</span></span><span class="st afgezegd">vakantie</span></div>
+            <div class="les"><span class="grow"><b>za 17 okt</b><br><span class="muted">herfstvakantie</span></span><span class="st afgezegd">vakantie</span></div>
+            <div class="les"><span class="grow"><b>za 10 okt</b> 10:00<br><span class="muted">3 opdrachten · 3 van 4 opnames</span></span><span class="st gegeven">gegeven</span></div>
+            <div class="les"><span class="grow"><b>za 3 okt</b> 10:00<br><span class="muted">Lieke ziek</span></span><span class="st gegeven">gegeven</span></div>
+            <div class="les" style="border:0"><span class="grow"><b>za 26 sep</b><br><span class="muted">leraar ziek</span></span><span class="st afgezegd">afgezegd</span></div>
+          </div>
+        </div>
+        <div class="tabbar"><div class="on"><i>👥</i>Leerlingen</div><div><i>📝</i>Huiswerk</div><div><i>📚</i>Bibliotheek</div></div>
+      </div></div>
+      <p class="cap">Het huiswerk van za 10 okt loopt door tot de eerstvolgende les die doorgaat (za 31 okt).</p>
+    </div>
+    <div>
+      <div class="phone"><div class="scr">
+        <div class="bar"><span class="muted">← Lessen</span></div>
+        <div style="padding:0 14px;display:flex;flex-direction:column;gap:8px;flex:1">
+          <span class="ttl">Les za 31 okt</span>
+          <div class="card"><div class="cap2">Verzetten</div>
+            <div class="row" style="margin-top:4px"><span class="grow">Datum</span><span class="field" style="margin:0">vr 30 okt</span></div>
+            <div class="row" style="margin-top:4px"><span class="grow">Tijd</span><span class="field" style="margin:0">16:00</span></div>
+            <div class="muted" style="margin-top:4px">Alleen deze les; het rooster blijft za 10:00.</div>
+            <div class="btn" style="margin-top:8px">Verzetten</div></div>
+          <div class="card"><div class="cap2">Afzeggen</div>
+            <div class="field muted">Reden (mag leeg), bijv. "leraar ziek"</div>
+            <div class="muted" style="margin-top:4px">Het huiswerk van de vorige les loopt door tot de les erna. Wat je al klaarzette, schuift mee.</div>
+            <div class="btn line" style="margin-top:8px;color:var(--a-accent)">Les afzeggen</div></div>
+        </div>
+      </div></div>
+    </div>
+    <div>
+      <div class="phone"><div class="scr">
+        <div class="bar"><span class="muted">← Groepen</span></div>
+        <div style="padding:0 14px;display:flex;flex-direction:column;gap:8px;flex:1">
+          <span class="ttl">Vakanties</span>
+          <div class="muted">Geen lessen in deze periodes, voor al je groepen. "Volgende les" springt eroverheen.</div>
+          <div class="card">
+            <div class="les"><span class="grow"><b>Herfstvakantie</b><br><span class="muted">za 17 – zo 25 okt</span></span><span class="muted">✕</span></div>
+            <div class="les"><span class="grow"><b>Kerstvakantie</b><br><span class="muted">za 19 dec – zo 3 jan</span></span><span class="muted">✕</span></div>
+            <div class="les" style="border:0"><span class="grow"><b>Voorjaarsvakantie</b><br><span class="muted">za 13 – zo 21 feb</span></span><span class="muted">✕</span></div>
+          </div>
+          <div class="card"><div class="cap2">Nieuwe vakantie</div>
+            <div class="field muted">Naam</div>
+            <div class="row" style="gap:6px"><span class="field grow">van</span><span class="field grow">tot en met</span></div>
+            <div class="btn" style="margin-top:8px">Toevoegen</div></div>
+        </div>
+      </div></div>
+      <p class="cap">Bereikbaar via een knop "Vakanties" bovenaan Groepen.</p>
+    </div>
+  </div>
+
+  <h2>5. De leerling in twee groepen (iPhone)</h2>
+  <p class="note">Noor heeft privéles op dinsdag en samenspel op zaterdag. Vandaag toont beide, met de naam van de groep erboven.</p>
+  <div class="frames">
+    <div>
+      <div class="phone"><div class="scr">
+        <div class="bar"><span class="ttl">Hoi Noor!</span><span class="grow"></span><span class="av">N</span></div>
+        <div style="padding:0 14px;display:flex;flex-direction:column;gap:6px;flex:1">
+          <div class="gh">Privéles · tot di 20 okt</div>
+          <div class="task on"><span class="box on"></span><i>🎵</i><span class="grow"><b>Etude in G</b></span></div>
+          <div class="task"><span class="box"></span><i>🎵</i><span class="grow"><b>Toonladder D groot</b> <span class="wk">2e week</span></span></div>
+          <div class="gh">Samenspel zaterdag · tot za 31 okt</div>
+          <div class="task on"><span class="box on"></span><i>🎵</i><span class="grow"><b>Ode an die Freude, 2e stem</b><br><span class="muted">🎙️ opgenomen</span></span></div>
+          <div class="task"><span class="box"></span><i>🎵</i><span class="grow"><b>Samen inzetten, maat 1–8</b> <span class="wk">2e week</span></span></div>
+          <div class="task on"><span class="box on"></span><i>✓</i><span class="grow"><b>Toonladder F groot</b></span></div>
+          <div class="card" style="margin-top:6px"><div class="cap2">Vandaag geoefend</div><b style="font-size:14px">18 van 20 min</b></div>
+        </div>
+        <div class="tabbar"><div class="on"><i>☀️</i>Vandaag</div><div><i>🎮</i>Spelen</div><div><i>🎷</i>Grepen</div><div><i>🎙️</i>Vrij spelen</div></div>
+      </div></div>
+      <p class="cap">Het dagdoel telt de lessen op (hier 10 + 10 min). Met AC-122 verdeelt de leraar het per opdracht.</p>
+    </div>
+  </div>
+
+  <h2>Nog te beslissen</h2>
+  <ol class="decide">
+    <li><b>Vakanties voor al je groepen, of per groep?</b><p>Voorstel: per leraar, voor al zijn groepen. Een losse les afzeggen kan altijd nog.</p></li>
+    <li><b>Wat gebeurt er met huiswerk dat al klaarstond voor een les die je afzegt?</b><p>Voorstel: het schuift mee naar de eerstvolgende les die doorgaat (in de mock-up: "Wat je al klaarzette, schuift mee").</p></li>
+    <li><b>Een leerling uit de groep halen.</b><p>Voorstel: vanaf vandaag geen nieuw groepshuiswerk; zijn eerdere vinkjes en opnames blijven, en de leraar kan ze nog terugluisteren.</p></li>
+    <li><b>Dagdoel bij twee groepen.</b><p>Voorstel: de minuten per dag van alle lopende lessen opgeteld, tot AC-122 het per opdracht regelt.</p></li>
+    <li><b>Groepshuiswerk en privéles door elkaar.</b><p>Voorstel: ze blijven gescheiden. Wil je één leerling uit de groep iets extra's geven, dan doe je dat in zijn privéles.</p></li>
+  </ol>
+</main>
+</body>
+</html>
