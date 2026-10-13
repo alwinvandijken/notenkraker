@@ -47,7 +47,7 @@ select is((lesson_for(pg_temp.id('groep'), 'volgende')).date, current_date + 7, 
 reset role;
 delete from lessons;
 select pg_temp.als(pg_temp.id('marieke'));
-select lives_ok($$ select set_schedule(pg_temp.id('groep'), extract(dow from current_date - 2)::smallint) $$, 'Lesdag: eergisteren');
+select lives_ok($$ select set_schedule(pg_temp.id('groep'), extract(dow from current_date - 2)::smallint, null) $$, 'Lesdag: eergisteren');
 select is((lesson_for(pg_temp.id('groep'), 'deze')).date, current_date - 2, 'Met rooster: deze les was eergisteren');
 select is((lesson_for(pg_temp.id('groep'), 'volgende')).date, current_date + 5, 'De volgende les op de volgende lesdag');
 

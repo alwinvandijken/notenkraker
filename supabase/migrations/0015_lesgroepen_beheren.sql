@@ -118,3 +118,112 @@ revoke execute on function public.in_holiday(uuid, date), public.next_lesson_day
 grant execute on function public.in_holiday(uuid, date), public.next_lesson_day(uuid, date), public.lesson_end(uuid),
   public.member_during(uuid, uuid, uuid), public.scheduled_day(uuid, date, int), public.is_group_teacher(uuid),
   public.can_see_group(uuid), public.lesson_visible(uuid), public.member_of_lesson(uuid, uuid), public.end_date(public.lessons) to authenticated;
+
+-- ── Groepen beheren (alleen een leraar) ──────────────────────────────
+create or replace function public.check_group_name(p_name text) returns text
+language plpgsql immutable as $$
+begin
+  if length(trim(coalesce(p_name, ''))) = 0 then raise exception 'ongeldige groep'; end if;
+  return left(trim(p_name), 80);
+end $$;
+
+create or replace function public.create_group(p_name text, p_students uuid[], p_weekday smallint, p_start_time time) returns uuid
+language plpgsql security definer set search_path = public as $$
+declare me public.profiles; gid uuid; sid uuid; nm text := public.check_group_name(p_name);
+begin
+  select * into me from public.profiles where id = auth.uid();
+  if me.id is null or me.role <> 'leraar' then raise exception 'geen toegang'; end if;
+  if p_students is null or cardinality(p_students) = 0 or cardinality(p_students) > 40 then raise exception 'ongeldige groep'; end if;
+  foreach sid in array p_students loop
+    if not exists (select 1 from public.teacher_students where teacher_id = me.id and student_id = sid) then raise exception 'geen toegang'; end if;
+  end loop;
+  insert into public.lesson_groups (teacher_id, teacher_name, kind, name) values (me.id, me.display_name, 'les', nm) returning id into gid;
+  insert into public.group_members (group_id, student_id) select gid, s from unnest(p_students) s on conflict do nothing;
+  if p_weekday is not null then insert into public.schedule_rules (group_id, weekday, start_time) values (gid, p_weekday, p_start_time); end if;
+  return gid;
+end $$;
+
+create or replace function public.rename_group(p_group uuid, p_name text) returns void
+language plpgsql security definer set search_path = public as $$
+declare nm text := public.check_group_name(p_name);
+begin
+  if not public.is_group_teacher(p_group) then raise exception 'geen toegang'; end if;
+  update public.lesson_groups set name = nm where id = p_group;
+end $$;
+
+create or replace function public.add_member(p_group uuid, p_student uuid) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_group_teacher(p_group)
+     or not exists (select 1 from public.teacher_students where teacher_id = auth.uid() and student_id = p_student)
+  then raise exception 'geen toegang'; end if;
+  insert into public.group_members (group_id, student_id) values (p_group, p_student)
+  on conflict (group_id, student_id) do update set joined_on = current_date, left_on = null where public.group_members.left_on is not null;
+end $$;
+
+create or replace function public.remove_member(p_group uuid, p_student uuid) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_group_teacher(p_group) then raise exception 'geen toegang'; end if;
+  update public.group_members set left_on = current_date where group_id = p_group and student_id = p_student and left_on is null;
+end $$;
+
+create or replace function public.end_group(p_group uuid) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_group_teacher(p_group) then raise exception 'geen toegang'; end if;
+  update public.lesson_groups set ended_on = current_date where id = p_group and ended_on is null;
+end $$;
+
+drop function public.set_schedule(uuid, smallint);
+create function public.set_schedule(p_group uuid, p_weekday smallint, p_start_time time) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_group_teacher(p_group) then raise exception 'geen toegang'; end if;
+  update public.schedule_rules set valid_until = current_date - 1 where group_id = p_group and valid_until is null and valid_from < current_date;
+  delete from public.schedule_rules where group_id = p_group and valid_from >= current_date;
+  if p_weekday is not null then insert into public.schedule_rules (group_id, weekday, start_time) values (p_group, p_weekday, p_start_time); end if;
+end $$;
+
+-- de begintijd van het rooster op een dag
+create or replace function public.scheduled_time(p_group uuid, p_day date) returns time
+language sql stable security definer set search_path = public as $$
+  select start_time from public.schedule_rules where group_id = p_group and valid_from <= p_day
+    and (valid_until is null or valid_until >= p_day) order by valid_from desc limit 1;
+$$;
+revoke execute on function public.scheduled_time(uuid, date), public.check_group_name(text) from public, anon;
+
+create or replace function public.lesson_for(p_group uuid, p_which text) returns public.lessons
+language plpgsql security definer set search_path = public as $$
+declare l public.lessons; d date;
+begin
+  if not public.is_group_teacher(p_group) then raise exception 'geen toegang'; end if;
+  if exists (select 1 from public.lesson_groups where id = p_group and ended_on is not null) then raise exception 'ongeldige groep'; end if;
+  if p_which = 'deze' then
+    select * into l from public.lessons where group_id = p_group and date <= current_date and status in ('gepland','gegeven')
+      and public.lesson_end(id) >= current_date order by date desc limit 1;
+    d := coalesce(public.scheduled_day(p_group, current_date, -1), current_date);
+  elsif p_which = 'volgende' then
+    select * into l from public.lessons where group_id = p_group and date > current_date and status in ('gepland','gegeven') order by date limit 1;
+    d := coalesce(public.next_lesson_day(p_group, current_date), current_date + 7);
+  else raise exception 'ongeldige les'; end if;
+  -- is de les op die dag gestopt of afgezegd, dan begint "deze les" vandaag opnieuw in plaats van die terug te halen
+  if l.id is null and p_which = 'deze' and exists (select 1 from public.lessons where group_id = p_group and date = d and status in ('afgezegd','gestopt')) then
+    d := current_date;
+  end if;
+  if l.id is null then
+    -- staat er op die dag een gestopte of afgezegde les, dan begint die opnieuw: leeg, zonder het oude huiswerk
+    delete from public.homework h using public.lessons x
+      where h.lesson_id = x.id and x.group_id = p_group and x.date = d and x.status in ('afgezegd','gestopt');
+    update public.lessons set notes = '[]', remark = '', reason = '' where group_id = p_group and date = d and status in ('afgezegd','gestopt');
+    insert into public.lessons (group_id, date, start_time, status)
+    values (p_group, d, public.scheduled_time(p_group, d), case when d <= current_date then 'gegeven' else 'gepland' end)
+    on conflict (group_id, date) do update set status = case when excluded.date <= current_date then 'gegeven' else 'gepland' end
+    returning * into l;
+  end if;
+  return l;
+end $$;
+revoke execute on function public.create_group(text, uuid[], smallint, time), public.rename_group(uuid, text), public.add_member(uuid, uuid),
+  public.remove_member(uuid, uuid), public.end_group(uuid), public.set_schedule(uuid, smallint, time) from public, anon;
+grant execute on function public.create_group(text, uuid[], smallint, time), public.rename_group(uuid, text), public.add_member(uuid, uuid),
+  public.remove_member(uuid, uuid), public.end_group(uuid), public.set_schedule(uuid, smallint, time) to authenticated;

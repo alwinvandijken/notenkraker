@@ -2,7 +2,7 @@
 -- Draaien: supabase start && supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(14);
+select plan(27);
 
 delete from auth.users;
 create function pg_temp.als(uid uuid) returns void language plpgsql as $$
@@ -75,6 +75,29 @@ select isnt(ensure_group(pg_temp.id('noor')), pg_temp.id('groep'), 'Samenspel me
 
 -- ── Hulpfuncties niet voor anon ──────────────────────────────────────
 select ok(not has_function_privilege('anon', 'public.next_lesson_day(uuid, date)', 'execute'), 'anon mag next_lesson_day niet');
+
+-- ── Groepen maken en beheren ─────────────────────────────────────────
+reset role;
+delete from lessons; delete from holidays; delete from schedule_rules;
+insert into ids values ('vreemd_kind', gen_random_uuid());
+insert into students (id, name, owner_id) values (pg_temp.id('vreemd_kind'), 'Vreemd', pg_temp.id('olaf'));
+select pg_temp.als(pg_temp.id('marieke'));
+insert into ids select 'trio', create_group('Trio', array[pg_temp.id('noor'), pg_temp.id('sem')], extract(dow from current_date)::smallint, '10:00');
+select is((select count(*)::int from group_members where group_id = pg_temp.id('trio') and left_on is null), 2, 'Groep met twee leerlingen');
+select is((select start_time from schedule_rules where group_id = pg_temp.id('trio')), '10:00'::time, 'Rooster met begintijd');
+select throws_ok($$ select create_group('Fout', array[pg_temp.id('vreemd_kind')], null, null) $$, 'P0001', 'geen toegang', 'Alleen eigen leerlingen');
+select throws_ok($$ select create_group('  ', array[pg_temp.id('noor')], null, null) $$, 'P0001', 'ongeldige groep', 'Een groep heeft een naam');
+select lives_ok($$ select rename_group(pg_temp.id('trio'), 'Duo') $$, 'Hernoemen');
+select is((lesson_for(pg_temp.id('trio'), 'volgende')).start_time, '10:00'::time, 'Een nieuwe les krijgt de begintijd van het rooster');
+select is((lesson_for(pg_temp.id('trio'), 'volgende')).date, current_date + 7, 'De volgende les op de volgende lesdag');
+-- lid eruit en er weer in
+select lives_ok($$ select remove_member(pg_temp.id('trio'), pg_temp.id('sem')) $$, 'Sem eruit');
+select is((select left_on from group_members where group_id = pg_temp.id('trio') and student_id = pg_temp.id('sem')), current_date, 'Vertrokken vanaf vandaag');
+select lives_ok($$ select add_member(pg_temp.id('trio'), pg_temp.id('sem')) $$, 'Sem weer erin');
+select is((select left_on from group_members where group_id = pg_temp.id('trio') and student_id = pg_temp.id('sem')), null, 'Weer lid');
+-- opheffen
+select lives_ok($$ select end_group(pg_temp.id('trio')) $$, 'Opheffen');
+select throws_ok($$ select lesson_for(pg_temp.id('trio'), 'volgende') $$, 'P0001', 'ongeldige groep', 'Een opgeheven groep krijgt geen lessen meer');
 
 select * from finish();
 rollback;
