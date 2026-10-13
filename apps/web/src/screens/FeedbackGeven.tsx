@@ -3,13 +3,14 @@ import type { FeedbackKind } from "@notenkraker/client";
 import { client } from "@/lib/client";
 import { deviceLabel } from "@/lib/feedback";
 import { useApp } from "@/lib/store";
+import { VERSIE } from "@/lib/versie";
 import { Chip, Segmented } from "@/components/ui";
 
 /**
  * Feedback geven (AC-116, mock-up docs/mockups/Feedback.html), een eigen pagina. Je komt hier via
  * "Feedback geven" in het avatarmenu; de pagina waar je was (`screen`) gaat mee, net als apparaat, versie en rol.
  */
-export const APP_VERSION = (import.meta.env.VITE_APP_VERSION as string | undefined) ?? "dev";
+export const APP_VERSION = VERSIE.commit;
 
 export function FeedbackGeven({ screen, onDone }: { screen: string; onDone(): void }) {
   const { profile } = useApp();
