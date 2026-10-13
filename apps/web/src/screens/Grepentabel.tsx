@@ -143,7 +143,7 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu,
         </section>
 
         {/* naar links of rechts vegen: volgende of vorige noot, zonder naar de notenrij te scrollen; omhoog en omlaag scrolt de pagina gewoon */}
-        <section aria-label="Noot" {...swipe} className={`${panel} order-1 md:order-2 p-4 md:p-5 flex flex-col gap-3 md:min-h-0 touch-pan-y select-none`}>
+        <section aria-label="Noot" {...swipe.handlers} className={`${panel} order-1 md:order-2 p-4 md:p-5 flex flex-col gap-3 md:min-h-0 touch-pan-y select-none overflow-hidden`}>
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
               {statuses[current] && (
@@ -160,7 +160,7 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu,
             <span className="text-muted text-sm">Geschreven {withOctave(current)} · klinkt als {withOctave(toId(midiToPitch(sounding)))}</span>
           </div>
 
-          <div className="flex items-center gap-4 md:flex-1 md:min-h-0">
+          <div data-veeg style={swipe.style} className="flex items-center gap-4 md:flex-1 md:min-h-0">
             <div className="flex-1 min-w-0 h-full flex items-center [&_svg]:max-w-none md:[&_svg]:max-h-full">
               <StaffNote note={current} clef={instrument.clef} color="var(--color-kent)" />
             </div>
@@ -208,19 +208,49 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu,
   );
 }
 
-/** Horizontaal vegen (vinger, pen of muis): minstens 50 px en duidelijk meer opzij dan omhoog of omlaag. */
+/**
+ * Horizontaal vegen (vinger, pen of muis): minstens 50 px en duidelijk meer opzij dan omhoog of omlaag.
+ * Tijdens het vegen schuift de noot mee (offset); bij een veeg glijdt hij weg en komt de nieuwe noot
+ * van de andere kant binnen. Met "minder beweging" aan wisselt de noot meteen.
+ */
 function useSwipe(onSwipe: (dir: "left" | "right") => void) {
   const start = useRef<{ id: number; x: number; y: number } | null>(null);
-  return {
-    onPointerDown: (e: ReactPointerEvent) => { if (e.isPrimary) start.current = { id: e.pointerId, x: e.clientX, y: e.clientY }; },
+  const [offset, setOffset] = useState(0);
+  const [glide, setGlide] = useState(false);
+  const still = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const back = () => { setGlide(true); setOffset(0); };
+  const handlers = {
+    onPointerDown: (e: ReactPointerEvent) => { if (e.isPrimary) { start.current = { id: e.pointerId, x: e.clientX, y: e.clientY }; setGlide(false); } },
+    onPointerMove: (e: ReactPointerEvent) => {
+      const s = start.current;
+      if (!s || s.id !== e.pointerId || still()) return;
+      const dx = e.clientX - s.x, dy = e.clientY - s.y;
+      if (Math.abs(dx) > Math.abs(dy)) setOffset(dx);
+    },
     onPointerUp: (e: ReactPointerEvent) => {
       const s = start.current; start.current = null;
       if (!s || s.id !== e.pointerId) return;
       const dx = e.clientX - s.x, dy = e.clientY - s.y;
-      if (Math.abs(dx) >= 50 && Math.abs(dx) > 1.5 * Math.abs(dy)) onSwipe(dx < 0 ? "left" : "right");
+      if (!(Math.abs(dx) >= 50 && Math.abs(dx) > 1.5 * Math.abs(dy))) { back(); return; }
+      const dir = dx < 0 ? "left" : "right";
+      if (still()) { setOffset(0); onSwipe(dir); return; }
+      const w = (e.currentTarget as HTMLElement).clientWidth || 320;
+      // wegglijden, wisselen, van de andere kant binnenkomen
+      setGlide(true); setOffset(dir === "left" ? -w : w);
+      setTimeout(() => {
+        onSwipe(dir);
+        setGlide(false); setOffset(dir === "left" ? w / 2 : -w / 2);
+        requestAnimationFrame(() => requestAnimationFrame(back));
+      }, 140);
     },
-    onPointerCancel: () => { start.current = null; },
+    onPointerCancel: () => { start.current = null; back(); },
   };
+  const style = {
+    transform: offset ? `translateX(${offset}px)` : undefined,
+    opacity: offset ? Math.max(0.2, 1 - Math.abs(offset) / 400) : undefined,
+    transition: glide ? "transform 140ms ease-out, opacity 140ms ease-out" : "none",
+  };
+  return { handlers, style };
 }
 
 function NoteButtons({ notes, current, statuses, range, onSelect }:
