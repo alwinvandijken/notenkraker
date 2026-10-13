@@ -105,7 +105,7 @@ select is((select count(*)::int from assignments where id = pg_temp.id('stuk')),
 
 -- ── Stoppen ──────────────────────────────────────────────────────────
 select lives_ok($$ select end_lesson(pg_temp.id('deze')) $$, 'Deze les stoppen');
-select isnt((lesson_for(pg_temp.id('groep'), 'deze')).id, pg_temp.id('deze'), 'Een afgezegde les telt niet als deze les');
+select isnt((lesson_for(pg_temp.id('groep'), 'deze')).id, pg_temp.id('deze'), 'Een gestopte les telt niet als deze les');
 
 -- ── Voortgang ────────────────────────────────────────────────────────
 select lives_ok($$ select set_progress(pg_temp.id('stuk'), pg_temp.id('lotte'), 'klaar', 8.5) $$, 'Voortgang zetten');
@@ -126,8 +126,8 @@ select give_homework(pg_temp.id('groep_sem'), 'deze', '[]', 15, 5, 'Oud', jsonb_
 select end_lesson((select id from lessons where group_id = pg_temp.id('groep_sem') and date = current_date));
 select give_homework(pg_temp.id('groep_sem'), 'deze', '[]', 30, 3, 'Nieuw', jsonb_build_array(jsonb_build_object('kind', 'opdracht', 'title', 'Nieuwe opdracht')), '{}');
 select results_eq($$ select a.title from homework h join assignments a on a.id = h.assignment_id join lessons l on l.id = h.lesson_id
-  where l.group_id = pg_temp.id('groep_sem') and l.status <> 'afgezegd' $$, $$ values ('Nieuwe opdracht') $$, 'Na stoppen: de oude opdracht komt niet terug');
-select is((select minutes_per_day || ' ' || remark from lessons where group_id = pg_temp.id('groep_sem') and status <> 'afgezegd'), '30 Nieuw', 'en het nieuwe doel geldt');
+  where l.group_id = pg_temp.id('groep_sem') and l.status not in ('afgezegd','gestopt') $$, $$ values ('Nieuwe opdracht') $$, 'Na stoppen: de oude opdracht komt niet terug');
+select is((select minutes_per_day || ' ' || remark from lessons where group_id = pg_temp.id('groep_sem') and status not in ('afgezegd','gestopt')), '30 Nieuw', 'en het nieuwe doel geldt');
 
 -- ── Review: opnames die in geen les meer staan, verlopen ook ─────────
 reset role;
