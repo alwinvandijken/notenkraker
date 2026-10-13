@@ -127,6 +127,9 @@ function Row({ row: r, labels, onTick, onOpen }: {
   row: VandaagRow; labels: Record<string, string>; onTick(t: HomeworkTask): void; onOpen?(t: HomeworkTask): void;
 }) {
   const line = "flex items-center gap-3 py-3 border-t border-line first:border-t-0 min-w-0";
+  if (r.kind === "groep") {
+    return <li className="pt-4 pb-1 border-t border-line first:border-t-0"><h2 className="font-display font-bold text-base m-0">{r.title} <span className="font-normal text-muted text-sm">· tot {dueLabel(r.due)}</span></h2></li>;
+  }
   const week = r.kind !== "minuten" && r.task && r.task.week > 1 ? <> <Week n={r.task.week} /></> : null;
   const text = (title: string, sub: string, done = false) => (
     <span className="flex-1 min-w-0">
