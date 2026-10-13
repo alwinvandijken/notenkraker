@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { instrumentNotes, midiToPitch, noteName, parseId, soundingMidi, toId, type Instrument, type NoteId, type NoteStatus, type StatusMap } from "@notenkraker/core";
 import { playSound, type Sound } from "@/audio/sax";
 import { useStatuses, usePref } from "@/lib/poc";
@@ -96,6 +96,7 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu,
     if (auto === "aan") playSound(soundingMidi(n, instrument.transposition), sound);
   };
   const step = (d: number) => { if (!visible.length) return; const i = visible.indexOf(current); select(visible[(i + d + visible.length) % visible.length]!); };
+  const swipe = useSwipe((dir) => step(dir === "left" ? 1 : -1));
 
   return (
     <div className="flex flex-col gap-3 p-4 md:p-5 md:h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-var(--ruimte-onder,0px))] md:overflow-hidden">
@@ -141,7 +142,8 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu,
           </div>
         </section>
 
-        <section aria-label="Noot" className={`${panel} order-1 md:order-2 p-4 md:p-5 flex flex-col gap-3 md:min-h-0`}>
+        {/* naar links of rechts vegen: volgende of vorige noot, zonder naar de notenrij te scrollen; omhoog en omlaag scrolt de pagina gewoon */}
+        <section aria-label="Noot" {...swipe} className={`${panel} order-1 md:order-2 p-4 md:p-5 flex flex-col gap-3 md:min-h-0 touch-pan-y select-none`}>
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
               {statuses[current] && (
@@ -204,6 +206,21 @@ export function Grepentabel({ instrument, student, title, actions, notice, menu,
       </nav>
     </div>
   );
+}
+
+/** Horizontaal vegen (vinger, pen of muis): minstens 50 px en duidelijk meer opzij dan omhoog of omlaag. */
+function useSwipe(onSwipe: (dir: "left" | "right") => void) {
+  const start = useRef<{ id: number; x: number; y: number } | null>(null);
+  return {
+    onPointerDown: (e: ReactPointerEvent) => { if (e.isPrimary) start.current = { id: e.pointerId, x: e.clientX, y: e.clientY }; },
+    onPointerUp: (e: ReactPointerEvent) => {
+      const s = start.current; start.current = null;
+      if (!s || s.id !== e.pointerId) return;
+      const dx = e.clientX - s.x, dy = e.clientY - s.y;
+      if (Math.abs(dx) >= 50 && Math.abs(dx) > 1.5 * Math.abs(dy)) onSwipe(dx < 0 ? "left" : "right");
+    },
+    onPointerCancel: () => { start.current = null; },
+  };
 }
 
 function NoteButtons({ notes, current, statuses, range, onSelect }:
