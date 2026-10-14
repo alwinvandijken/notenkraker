@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sax luisteren</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&amp;family=Noto+Music&amp;display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDF2F7; --card:#FFFFFF; --ink:#172440; --muted:#4A5873; --soft:#8592AA;
+  --line:#D5DEEA; --blue:#2459C9; --orange:#F4A261; --green:#2E9E5B; --red:#D9462B;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Lexend,sans-serif}
+button,select,input{font-family:inherit}
+main{max-width:1180px;margin:0 auto;padding:24px 16px 40px;display:flex;flex-direction:column;gap:20px}
+header{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+h1{font-size:26px;margin:0;flex-grow:1}
+.card{background:var(--card);border-radius:28px;padding:24px}
+.btn{height:52px;padding:0 24px;border-radius:26px;border:0;background:var(--blue);color:#fff;font-size:18px;font-weight:600;cursor:pointer;box-shadow:0 4px 0 #173F94}
+.btn.ghost{background:#fff;color:var(--muted);border:2px solid var(--line);box-shadow:none}
+.tabs{display:flex;gap:8px}
+.tabs button{height:44px;padding:0 20px;border-radius:22px;border:2px solid var(--line);background:#fff;color:var(--muted);font-size:16px;font-weight:500;cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--ink);border-color:var(--ink);color:#fff}
+.grid{display:grid;grid-template-columns:1.3fr 1fr;gap:20px}
+@media (max-width:820px){.grid{grid-template-columns:1fr}}
+.big{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.notename{font-size:96px;font-weight:700;line-height:1}
+.notename small{font-size:40px;color:var(--soft);font-weight:600}
+.sub{color:var(--muted);font-size:16px}
+.meter{position:relative;width:100%;max-width:420px;height:44px;margin-top:8px}
+.meter .track{position:absolute;left:0;right:0;top:20px;height:4px;border-radius:2px;background:var(--line)}
+.meter .zone{position:absolute;left:45%;width:10%;top:12px;height:20px;border-radius:6px;background:#DCF2E5}
+.meter .mid{position:absolute;left:50%;top:8px;width:2px;height:28px;background:var(--soft)}
+.meter .needle{position:absolute;top:6px;width:6px;height:32px;margin-left:-3px;border-radius:3px;background:var(--orange);left:50%;transition:left .08s linear}
+.meter .lbl{position:absolute;top:-2px;font-size:12px;color:var(--soft)}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:15px}
+.facts dt{color:var(--muted)} .facts dd{margin:0;font-variant-numeric:tabular-nums;font-weight:500}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+label{font-size:15px;color:var(--muted)}
+select,input[type=number]{height:40px;border-radius:12px;border:2px solid var(--line);padding:0 10px;font-size:15px;color:var(--ink);background:#fff}
+.feedback{font-size:24px;font-weight:600;min-height:34px;text-align:center}
+.ok{color:var(--green)} .bad{color:var(--red)}
+.hidden{display:none !important}
+.note-help{font-size:14px;color:var(--muted);line-height:1.5}
+.level{height:8px;border-radius:4px;background:var(--line);overflow:hidden;width:100%;max-width:420px}
+.level div{height:100%;width:0;background:var(--blue)}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Sax luisteren <span style="font-weight:400;color:var(--soft);font-size:18px">prototype</span></h1>
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="tuner">Wat speel ik?</button>
+      <button role="tab" aria-selected="false" data-tab="game">Speel na</button>
+    </div>
+    <button class="btn" id="micBtn">Start microfoon</button>
+  </header>
+
+  <!-- Wat speel ik? -->
+  <section id="tab-tuner" class="grid">
+    <div class="card big">
+      <svg id="liveStaff" width="100%" viewBox="0 0 420 240" role="img" aria-label="Gespeelde noot op de notenbalk" style="max-width:420px"></svg>
+      <div class="notename" id="liveName">–</div>
+      <div class="sub" id="liveSub">Speel een lange toon</div>
+      <div class="meter" aria-label="Zuiverheid">
+        <span class="lbl" style="left:0">te laag</span><span class="lbl" style="right:0">te hoog</span>
+        <div class="track"></div><div class="zone"></div><div class="mid"></div><div class="needle" id="needle"></div>
+      </div>
+      <div class="sub" id="centsTxt">&nbsp;</div>
+    </div>
+    <div class="card" style="display:flex;flex-direction:column;gap:18px">
+      <dl class="facts">
+        <dt>Geschreven (sax)</dt><dd id="fWritten">–</dd>
+        <dt>Klinkend (concert)</dt><dd id="fConcert">–</dd>
+        <dt>Frequentie</dt><dd id="fFreq">–</dd>
+        <dt>Zekerheid</dt><dd id="fClarity">–</dd>
+      </dl>
+      <div>
+        <label>Volume microfoon</label>
+        <div class="level"><div id="levelBar"></div></div>
+      </div>
+      <div class="row">
+        <label for="a4">Stemtoon A =</label>
+        <input type="number" id="a4" value="440" min="430" max="450" style="width:84px"> <span class="sub">Hz</span>
+      </div>
+      <p class="note-help">De altsax is een Es-instrument: wat je leest klinkt een grote sext lager.
+      De microfoon hoort de <b>klinkende</b> toon; de app telt er 9 halve tonen bij op en toont de <b>geschreven</b> noot, zoals in je boek.</p>
+    </div>
+  </section>
+
+  <!-- Speel na -->
+  <section id="tab-game" class="hidden" style="display:flex;flex-direction:column;gap:20px">
+    <div class="card" style="display:flex;flex-direction:column;align-items:center;gap:16px">
+      <div class="row" style="align-self:stretch;justify-content:space-between">
+        <div class="row">
+          <label for="preset">Oefening</label>
+          <select id="preset"></select>
+        </div>
+        <button class="btn ghost" id="restart">Opnieuw</button>
+      </div>
+      <svg id="gameStaff" width="100%" viewBox="0 0 900 200" role="img" aria-label="Noten om na te spelen"></svg>
+      <div class="feedback" id="gameFb">Start de microfoon en speel de oranje noot.</div>
+      <div class="sub" id="gameHeard">&nbsp;</div>
+    </div>
+  </section>
+
+  <!-- Testtoon -->
+  <section class="card">
+    <div class="row">
+      <b style="font-size:16px">Testen zonder sax</b>
+      <label for="testNote">geschreven noot</label>
+      <select id="testNote"></select>
+      <label for="testDetune">afwijking</label>
+      <input type="range" id="testDetune" min="-50" max="50" value="0" style="width:140px">
+      <span class="sub" id="testDetuneTxt">0 cent</span>
+      <button class="btn ghost" id="testBtn">Testtoon aan</button>
+    </div>
+    <p class="note-help" style="margin:10px 0 0">De testtoon gaat rechtstreeks naar de herkenning (je hoort hem niet) en vervangt zolang de microfoon.
+    Hij heeft boventonen, zoals een sax, zodat je ook ziet of de herkenning niet een octaaf te hoog grijpt.</p>
+  </section>
+</main>
+
+<script>
+// ---------- Noten ----------
+const NAMES   = ['C','Cis','D','Es','E','F','Fis','G','Gis','A','Bes','B'];
+const LETTER  = [0,0,1,2,2,3,3,4,4,5,6,6];          // C D E F G A B -> 0..6
+const ACC     = ['', '♯','', '♭','', '', '♯','', '♯','', '♭',''];
+const ALTO_SAX = 9;                                  // geschreven = klinkend + 9 halve tonen
+const RANGE = {lo: 58, hi: 89};                      // geschreven Bes3 .. F6
+
+const octaveOf = m => Math.floor(m / 12) - 1;
+const nameOf   = m => NAMES[m % 12];
+const stepOf   = m => LETTER[m % 12] + 7 * octaveOf(m); // diatonische plek; E4 = 30
+
+// ---------- Notenbalk tekenen ----------
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  parent && parent.appendChild(e);
+  return e;
+}
+function drawStaff(svg, notes, {s, x0, width, top, spacing}) {
+  svg.innerHTML = '';
+  const yOf = step => top + (38 - step) * s / 2;     // bovenste lijn = F5 (stap 38)
+  for (let st = 30; st <= 38; st += 2)
+    el('line', {x1: x0, x2: x0 + width, y1: yOf(st), y2: yOf(st), stroke: '#172440', 'stroke-width': 2}, svg);
+  const clef = el('text', {x: x0 + 2, y: yOf(30) + s * 1.05, 'font-family': "'Noto Music', serif", 'font-size': s * 4.6, fill: '#172440'}, svg);
+  clef.textContent = '𝄞';
+  notes.forEach((n, i) => {
+    if (n.midi == null) return;
+    const step = stepOf(n.midi), x = x0 + s * 5 + i * spacing, y = yOf(step);
+    const color = n.color || '#172440';
+    for (let st = 28; st >= step; st -= 2)           // hulplijnen onder
+      el('line', {x1: x - s, x2: x + s, y1: yOf(st), y2: yOf(st), stroke: '#172440', 'stroke-width': 2}, svg);
+    for (let st = 40; st <= step; st += 2)           // hulplijnen boven
+      el('line', {x1: x - s, x2: x + s, y1: yOf(st), y2: yOf(st), stroke: '#172440', 'stroke-width': 2}, svg);
+    el('ellipse', {cx: x, cy: y, rx: s * 0.66, ry: s * 0.46, fill: color, transform: `rotate(-20 ${x} ${y})`}, svg);
+    const up = step < 34;
+    const sx = up ? x + s * 0.6 : x - s * 0.6;
+    el('line', {x1: sx, x2: sx, y1: y, y2: up ? y - s * 3.4 : y + s * 3.4, stroke: color, 'stroke-width': 2.4}, svg);
+    const acc = ACC[n.midi % 12];
+    if (acc) {
+      const t = el('text', {x: x - s * 1.9, y: y + s * 0.45, 'font-size': s * 1.6, fill: color, 'text-anchor': 'middle'}, svg);
+      t.textContent = acc;
+    }
+    if (n.label) {
+      const t = el('text', {x, y: yOf(22) + s * 0.4, 'font-size': s * 1.05, fill: color, 'text-anchor': 'middle', 'font-weight': 600}, svg);
+      t.textContent = n.label;
+    }
+  });
+}
+
+// ---------- Toonhoogte (YIN) ----------
+function detectPitch(buf, sr) {
+  const W = Math.floor(buf.length / 2);
+  const tauMin = Math.floor(sr / 1200), tauMax = Math.min(W - 1, Math.ceil(sr / 110));
+  const d = new Float32Array(tauMax + 1);
+  for (let tau = 1; tau <= tauMax; tau++) {
+    let sum = 0;
+    for (let i = 0; i < W; i++) { const v = buf[i] - buf[i + tau]; sum += v * v; }
+    d[tau] = sum;
+  }
+  // cumulatief genormaliseerd verschil
+  let running = 0; d[0] = 1;
+  for (let tau = 1; tau <= tauMax; tau++) { running += d[tau]; d[tau] = d[tau] * tau / (running || 1); }
+  let tau = -1;
+  for (let t = tauMin; t <= tauMax; t++) {
+    if (d[t] < 0.15) { while (t + 1 <= tauMax && d[t + 1] < d[t]) t++; tau = t; break; }
+  }
+  if (tau < 0) return null;
+  // parabolische interpolatie voor precisie onder één sample
+  let better = tau;
+  if (tau > 1 && tau < tauMax) {
+    const a = d[tau - 1], b = d[tau], c = d[tau + 1], den = a + c - 2 * b;
+    if (den) better = tau + (a - c) / (2 * den);
+  }
+  return {freq: sr / better, clarity: 1 - d[tau]};
+}
+
+// ---------- Audio ----------
+let ctx, analyser, micSrc, osc, oscGain, running = false;
+const buf = new Float32Array(2048);
+const recent = [];                                   // laatste ronde metingen, voor een stabiel oordeel
+
+async function ensureCtx() {
+  if (!ctx) {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 2048;
+  }
+  if (ctx.state === 'suspended') await ctx.resume();
+  if (!running) { running = true; requestAnimationFrame(loop); }
+}
+
+document.getElementById('micBtn').onclick = async () => {
+  try {
+    await ensureCtx();
+    if (micSrc) return;
+    const stream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: false, noiseSuppression: false, autoGainControl: false}});
+    micSrc = ctx.createMediaStreamSource(stream);
+    if (!osc) micSrc.connect(analyser);
+    const b = document.getElementById('micBtn');
+    b.textContent = 'Microfoon aan'; b.classList.add('ghost');
+  } catch (e) {
+    alertBox('Geen toegang tot de microfoon. Open de pagina via localhost of https en sta de microfoon toe.');
+  }
+};
+
+function alertBox(msg) { document.getElementById('liveSub').textContent = msg; document.getElementById('gameFb').textContent = msg; }
+
+// testtoon
+const testSel = document.getElementById('testNote');
+for (let m = RANGE.lo; m <= RANGE.hi; m++) testSel.add(new Option(`${nameOf(m)}${octaveOf(m)}`, m));
+testSel.value = 67;
+const detune = document.getElementById('testDetune');
+function testFreq() {
+  const a4 = +document.getElementById('a4').value || 440;
+  const concert = +testSel.value - ALTO_SAX + (+detune.value) / 100;
+  return a4 * Math.pow(2, (concert - 69) / 12);
+}
+function updateOsc() { if (osc) osc.frequency.setValueAtTime(testFreq(), ctx.currentTime); }
+testSel.onchange = updateOsc;
+detune.oninput = () => { document.getElementById('testDetuneTxt').textContent = `${detune.value > 0 ? '+' : ''}${detune.value} cent`; updateOsc(); };
+document.getElementById('testBtn').onclick = async () => {
+  await ensureCtx();
+  const b = document.getElementById('testBtn');
+  if (osc) {
+    osc.stop(); osc.disconnect(); osc = null;
+    if (micSrc) micSrc.connect(analyser);
+    b.textContent = 'Testtoon aan'; return;
+  }
+  if (micSrc) micSrc.disconnect();
+  osc = ctx.createOscillator();
+  // zaagtand-achtig met afnemende boventonen, grofweg als een sax
+  const real = new Float32Array(9), imag = new Float32Array(9);
+  [0, 1, .7, .5, .35, .25, .15, .1, .05].forEach((v, i) => imag[i] = v);
+  osc.setPeriodicWave(ctx.createPeriodicWave(real, imag));
+  oscGain = ctx.createGain(); oscGain.gain.value = 0.3;
+  osc.connect(oscGain).connect(analyser);
+  osc.frequency.value = testFreq();
+  osc.start();
+  b.textContent = 'Testtoon uit';
+};
+
+// ---------- Hoofdlus ----------
+let lastFrame = 0;
+function loop(t) {
+  requestAnimationFrame(loop);
+  if (t - lastFrame < 33) return;                    // ~30 metingen per seconde
+  lastFrame = t;
+  analyser.getFloatTimeDomainData(buf);
+  let rms = 0; for (const v of buf) rms += v * v; rms = Math.sqrt(rms / buf.length);
+  document.getElementById('levelBar').style.width = Math.min(100, rms * 600) + '%';
+
+  let reading = null;
+  if (rms > 0.01) {
+    const p = detectPitch(buf, ctx.sampleRate);
+    if (p && p.clarity > 0.8) {
+      const a4 = +document.getElementById('a4').value || 440;
+      const concertF = 69 + 12 * Math.log2(p.freq / a4);
+      reading = {freq: p.freq, clarity: p.clarity, concert: concertF, written: concertF + ALTO_SAX};
+    }
+  }
+  recent.push(reading); if (recent.length > 6) recent.shift();
+  const stable = stableNote();
+  showLive(stable);
+  game(stable, t);
+}
+
+// een noot telt pas als minstens 4 van de laatste 6 metingen dezelfde noot zijn
+function stableNote() {
+  const counts = {};
+  for (const r of recent) if (r) { const m = Math.round(r.written); (counts[m] = counts[m] || []).push(r); }
+  for (const m in counts) if (counts[m].length >= 4) {
+    const rs = counts[m], avg = k => rs.reduce((s, r) => s + r[k], 0) / rs.length;
+    return {midi: +m, cents: Math.round((avg('written') - m) * 100), freq: avg('freq'), clarity: avg('clarity')};
+  }
+  return null;
+}
+
+function showLive(n) {
+  const name = document.getElementById('liveName');
+  if (!n) {
+    name.innerHTML = '–';
+    document.getElementById('liveSub').textContent = micSrc || osc ? 'Speel een lange toon' : 'Start de microfoon of de testtoon';
+    document.getElementById('centsTxt').innerHTML = '&nbsp;';
+    document.getElementById('needle').style.left = '50%';
+    drawStaff(liveStaff, [], liveOpts);
+    return;
+  }
+  const out = n.midi < RANGE.lo || n.midi > RANGE.hi;
+  const concert = n.midi - ALTO_SAX;
+  name.innerHTML = `${nameOf(n.midi)}<small>${octaveOf(n.midi)}</small>`;
+  document.getElementById('liveSub').textContent = out ? 'Buiten het bereik van de altsax' : 'geschreven noot';
+  const c = Math.max(-50, Math.min(50, n.cents));
+  document.getElementById('needle').style.left = (50 + c) + '%';
+  document.getElementById('needle').style.background = Math.abs(n.cents) <= 5 ? 'var(--green)' : 'var(--orange)';
+  document.getElementById('centsTxt').textContent = Math.abs(n.cents) <= 5 ? 'Zuiver!' : `${n.cents > 0 ? '+' : ''}${n.cents} cent ${n.cents > 0 ? 'te hoog' : 'te laag'}`;
+  document.getElementById('fWritten').textContent = `${nameOf(n.midi)}${octaveOf(n.midi)}`;
+  document.getElementById('fConcert').textContent = `${nameOf(concert)}${octaveOf(concert)}`;
+  document.getElementById('fFreq').textContent = `${n.freq.toFixed(1)} Hz`;
+  document.getElementById('fClarity').textContent = `${Math.round(n.clarity * 100)}%`;
+  drawStaff(liveStaff, [{midi: n.midi}], liveOpts);
+}
+
+// ---------- Speel na ----------
+const PRESETS = {
+  'Eerste noten: B A G': [71, 69, 67, 69, 71, 71, 71],
+  'Lage noten: D E F G': [62, 64, 65, 67, 65, 64, 62],
+  'G-majeur toonladder': [67, 69, 71, 72, 74, 76, 78, 79],
+  'Vreugdezang (begin)': [71, 71, 72, 74, 74, 72, 71, 69, 67, 67, 69, 71, 71, 69, 69],
+};
+const presetSel = document.getElementById('preset');
+for (const k in PRESETS) presetSel.add(new Option(k, k));
+let seq = [], pos = 0, results = [], holdSince = 0, wrongSince = 0, wrongMidi = null;
+function resetGame() {
+  seq = PRESETS[presetSel.value]; pos = 0; results = seq.map(() => null); holdSince = wrongSince = 0; wrongMidi = null;
+  document.getElementById('gameFb').textContent = 'Speel de oranje noot.';
+  document.getElementById('gameFb').className = 'feedback';
+  renderGame();
+}
+presetSel.onchange = resetGame;
+document.getElementById('restart').onclick = resetGame;
+function renderGame() {
+  const notes = seq.map((m, i) => ({
+    midi: m,
+    color: i === pos ? '#E07A2E' : results[i] === 'ok' ? '#2E9E5B' : results[i] === 'late' ? '#B8862B' : '#172440',
+    label: i < pos ? (results[i] === 'ok' ? '✓' : '•') : '',
+  }));
+  const spacing = Math.min(80, (900 - 140) / seq.length);
+  drawStaff(gameStaff, notes, {s: 16, x0: 20, width: 860, top: 50, spacing});
+}
+
+function game(n, t) {
+  if (document.getElementById('tab-game').classList.contains('hidden') || pos >= seq.length) return;
+  const target = seq[pos], fb = document.getElementById('gameFb');
+  document.getElementById('gameHeard').textContent = n ? `Ik hoor: ${nameOf(n.midi)}${octaveOf(n.midi)}` : ' ';
+  if (n && n.midi === target) {
+    wrongSince = 0;
+    holdSince = holdSince || t;
+    if (t - holdSince > 350) {                       // even vasthouden telt als goed
+      results[pos] = wrongMidi == null ? 'ok' : 'late';
+      pos++; holdSince = 0; wrongMidi = null;
+      fb.className = 'feedback ok';
+      fb.textContent = pos >= seq.length ? `Klaar! ${results.filter(r => r === 'ok').length} van ${seq.length} in één keer goed.` : 'Goed zo!';
+      renderGame();
+    }
+  } else if (n) {
+    holdSince = 0;
+    wrongSince = wrongSince || t;
+    if (t - wrongSince > 600) {
+      wrongMidi = n.midi;
+      fb.className = 'feedback bad';
+      const dir = n.midi < target ? 'hoger' : 'lager';
+      fb.textContent = `Je speelt ${nameOf(n.midi)}, zoek de ${nameOf(target)} (iets ${dir}).`;
+      if (Math.abs(n.midi - target) === 12) fb.textContent = `Bijna: dat is ${nameOf(target)}, maar een octaaf te ${n.midi > target ? 'hoog' : 'laag'}.`;
+    }
+  } else {
+    holdSince = 0; wrongSince = 0;
+  }
+}
+
+// ---------- Tabs ----------
+document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => {
+  document.querySelectorAll('[data-tab]').forEach(x => x.setAttribute('aria-selected', x === b));
+  document.getElementById('tab-tuner').classList.toggle('hidden', b.dataset.tab !== 'tuner');
+  document.getElementById('tab-game').classList.toggle('hidden', b.dataset.tab !== 'game');
+});
+
+const liveStaff = document.getElementById('liveStaff'), gameStaff = document.getElementById('gameStaff');
+const liveOpts = {s: 20, x0: 20, width: 380, top: 70, spacing: 0};
+document.fonts.ready.then(() => { drawStaff(liveStaff, [], liveOpts); resetGame(); });
+drawStaff(liveStaff, [], liveOpts); resetGame();
+</script>
+</body>
+</html>
